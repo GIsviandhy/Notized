@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notized — AI Study Companion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     SCREEN: LANDING
+════════════════════════════════════════════════════ -->
+<div id="screen-landing" class="screen active">
+  <nav class="nav">
+    <div class="nav-logo">
+      <span class="nav-logo-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+      </span>
+      <span class="nav-wordmark">Notized</span>
+    </div>
+    <button class="btn-primary" onclick="showScreen('input')">Start Free →</button>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-badge slide-up stagger-1">AI-Powered Study Companion</div>
+    <h1 class="hero-h1 serif slide-up stagger-2">
+      Turn chaotic notes into<br>
+      <em>clear understanding</em>
+    </h1>
+    <p class="hero-p slide-up stagger-3">
+      Paste your raw study notes. Notized transforms them into summaries, keyword maps,
+      structured topics, and personalized learning paths — in seconds.
+    </p>
+    <div class="hero-ctas slide-up stagger-4">
+      <button class="btn-hero" onclick="showScreen('input')">Process My Notes</button>
+      <button class="btn-ghost" onclick="loadExample()">See Example →</button>
+    </div>
+
+    <div class="feature-grid slide-up stagger-5">
+      <div class="feature-card">
+        <div class="feature-card-icon">✦</div>
+        <div class="feature-card-label">Smart Summary</div>
+        <div class="feature-card-desc">Dense notes distilled into crisp, scannable bullets</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">◈</div>
+        <div class="feature-card-label">Keyword Radar</div>
+        <div class="feature-card-desc">Key concepts surfaced as visual highlight chips</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">⬡</div>
+        <div class="feature-card-label">Topic Clusters</div>
+        <div class="feature-card-desc">Related ideas grouped into intuitive categories</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">↓</div>
+        <div class="feature-card-label">Learning Path</div>
+        <div class="feature-card-desc">Sequenced study order based on concept dependency</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card-icon">◎</div>
+        <div class="feature-card-label">Active Recall</div>
+        <div class="feature-card-desc">Gamified quizzes auto-generated from your material</div>
+      </div>
+    </div>
+
+    <div class="social-proof slide-up stagger-6">
+      <span class="stars">★★★★★</span>
+      &nbsp;&nbsp;<em>"Finally, studying doesn't feel overwhelming."</em> — Hana, Medical Student
+    </div>
+  </div>
+
+  <div class="footer-strip">© 2025 Notized · Built for students, by students</div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCREEN: INPUT PORTAL
+════════════════════════════════════════════════════ -->
+<div id="screen-input" class="screen">
+  <div class="input-topbar">
+    <button class="btn-back" onclick="showScreen('landing')">← Back</button>
+    <div class="topbar-divider"></div>
+    <div class="nav-logo">
+      <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px;">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+      </span>
+      <span class="nav-wordmark" style="font-size:17px;">Notized</span>
+    </div>
+    <span class="topbar-crumb">/ New Session</span>
+  </div>
+
+  <div class="input-main">
+    <!-- Form view -->
+    <div id="input-form-view" class="fade-in">
+      <h2 class="input-h2 serif">Paste your notes</h2>
+      <p class="input-sub">Lecture notes, textbook excerpts, handwritten drafts — anything goes.</p>
+
+      <div class="textarea-wrapper">
+        <textarea id="notes-input"
+          placeholder="Start typing or paste your raw notes here…&#10;&#10;Example: Today in Biology we covered mitosis. The cell cycle has four phases: G1, S, G2, and M phase. During prophase, chromatin condenses into visible chromosomes..."
+          oninput="updateWordCount()"></textarea>
+        <div class="textarea-footer">
+          <span class="word-count" id="word-count">Tip: Longer notes = richer insights</span>
+          <button class="upload-btn" onclick="triggerFileUpload()">+ Upload .txt file</button>
+          <input type="file" id="file-input" accept=".txt,.md" style="display:none" onchange="handleFileUpload(event)" />
+        </div>
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <div class="analyze-row">
+        <button class="btn-analyze" onclick="handleAnalyze()">
+          <span>✦</span> Analyze Notes
+        </button>
+        <span class="analyze-hint">Usually takes 10–20 seconds</span>
+      </div>
+
+      <div class="tips-grid">
+        <div class="tip-card">
+          <div class="tip-label">Works best with</div>
+          <div class="tip-text">Lecture notes, textbook chapters, study guides</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-label">Minimum length</div>
+          <div class="tip-text">~50 words for meaningful analysis</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-label">Supported format</div>
+          <div class="tip-text">Plain text, bullet points, mixed formats</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading view -->
+    <div id="loading-view" class="loading-view">
+      <div class="spinner-wrap">
+        <div class="spinner-ring"></div>
+        <span class="spinner-icon">✦</span>
+      </div>
+      <h3 class="loading-h3 serif">Processing your notes</h3>
+      <p class="loading-stage" id="loading-stage">Reading your notes…</p>
+      <div class="progress-track">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <p class="progress-pct" id="progress-pct">0%</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCREEN: DASHBOARD
+════════════════════════════════════════════════════ -->
+<div id="screen-dashboard" class="screen">
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <button class="btn-back" onclick="showScreen('input')">← Back</button>
+      <div class="topbar-divider"></div>
+      <div class="nav-logo">
+        <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px;">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+        </span>
+        <span class="nav-wordmark" style="font-size:17px;">Notized</span>
+      </div>
+    </div>
+    <div class="dash-header-right">
+      <span class="dash-title-tag" id="dash-title-tag"></span>
+      <button class="btn-quiz" onclick="startQuiz()">◎ Start Quiz</button>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="overview"  onclick="switchTab('overview')">Overview</button>
+    <button class="tab-btn"        data-tab="clusters"  onclick="switchTab('clusters')">Topic Clusters</button>
+    <button class="tab-btn"        data-tab="path"      onclick="switchTab('path')">Learning Path</button>
+  </div>
+
+  <div class="dash-content">
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview" class="tab-panel active">
+      <div class="overview-grid">
+        <!-- Summary card -->
+        <div class="card slide-up stagger-1">
+          <div class="card-header">
+            <span class="card-icon sage">✦</span>
+            <span class="card-title">Smart Summary</span>
+          </div>
+          <ul class="summary-list" id="summary-list"></ul>
+        </div>
+
+        <!-- Keywords card -->
+        <div class="card slide-up stagger-2">
+          <div class="card-header">
+            <span class="card-icon indigo">◈</span>
+            <span class="card-title">Keyword Radar</span>
+          </div>
+          <div class="keyword-chips" id="keyword-chips"></div>
+          <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stat-card slide-up stagger-3">
+          <span class="stat-icon indigo">◈</span>
+          <div><div class="stat-num" id="stat-keywords">0</div><div class="stat-label">Key Concepts</div></div>
+        </div>
+        <div class="stat-card slide-up stagger-4">
+          <span class="stat-icon sage">⬡</span>
+          <div><div class="stat-num" id="stat-clusters">0</div><div class="stat-label">Topic Clusters</div></div>
+        </div>
+        <div class="stat-card slide-up stagger-5">
+          <span class="stat-icon amber">↓</span>
+          <div><div class="stat-num" id="stat-steps">0</div><div class="stat-label">Study Steps</div></div>
+        </div>
+        <div class="stat-card slide-up stagger-6">
+          <span class="stat-icon rose">◎</span>
+          <div><div class="stat-num" id="stat-quiz">0</div><div class="stat-label">Quiz Questions</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLUSTERS TAB -->
+    <div id="tab-clusters" class="tab-panel">
+      <div class="clusters-grid" id="clusters-grid"></div>
+    </div>
+
+    <!-- PATH TAB -->
+    <div id="tab-path" class="tab-panel">
+      <p class="path-intro">Follow this sequence for maximum retention. Each step builds on the previous.</p>
+      <div class="path-wrap">
+        <div class="path-line"></div>
+        <div class="path-list" id="path-list"></div>
+      </div>
+      <div class="path-cta">
+        <div class="path-cta-title">✦ Ready to test yourself?</div>
+        <p class="path-cta-text">Complete the learning path, then try the Active Recall Quiz to lock in your memory.</p>
+        <button class="btn-quiz-sm" onclick="startQuiz()">◎ Launch Quiz Mode →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCREEN: QUIZ
+════════════════════════════════════════════════════ -->
+<div id="screen-quiz" class="screen">
+  <div class="quiz-header">
+    <button class="btn-back" onclick="showScreen('dashboard')">← Back to Dashboard</button>
+    <span class="quiz-counter" id="quiz-counter">Question 1 of 5</span>
+  </div>
+  <div class="quiz-progress-track">
+    <div class="quiz-progress-bar" id="quiz-progress-bar" style="width:0%"></div>
+  </div>
+  <div class="quiz-body">
+    <div class="quiz-card fade-in" id="quiz-card">
+      <div class="quiz-label-row">
+        <span class="recall-badge">◎ Active Recall</span>
+        <span class="score-so-far" id="score-so-far">0 correct so far</span>
+      </div>
+      <h3 class="quiz-question serif" id="quiz-question"></h3>
+      <div class="options-list" id="options-list"></div>
+      <div class="explanation" id="explanation"></div>
+      <button class="btn-next" id="btn-next" onclick="handleNext()"></button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCREEN: RESULTS
+════════════════════════════════════════════════════ -->
+<div id="screen-results" class="screen">
+  <div class="results-card slide-up">
+    <div class="results-emoji" id="results-emoji"></div>
+    <h2 class="results-h2 serif" id="results-grade"></h2>
+    <p class="results-sub" id="results-sub"></p>
+    <div class="results-pct" id="results-pct"></div>
+    <div class="results-fraction" id="results-fraction"></div>
+    <div class="answer-dots" id="answer-dots"></div>
+    <div class="results-actions">
+      <button class="btn-secondary" onclick="showScreen('dashboard')">← Back to Notes</button>
+      <button class="btn-retry" onclick="retryQuiz()">Retry Quiz ↺</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
