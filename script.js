@@ -208,8 +208,9 @@ Clinical Connections:
       renderDashboard(result);
       showScreen('dashboard');
     } catch (e) {
+      console.error('Analysis error:', e);
       resetInputView();
-      errEl.textContent = 'Processing failed. Please check your connection and try again.';
+      errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
       errEl.style.display = 'block';
     }
   }
@@ -296,8 +297,6 @@ Clinical Connections:
 
   // ─── RENDER DASHBOARD ───────────────────────────────────────────────────────
   function renderDashboard(data) {
-    document.getElementById('dash-title-tag').textContent = data.title || '';
-
     // Summary
     const summaryList = document.getElementById('summary-list');
     summaryList.innerHTML = (data.summary || []).map(point =>
