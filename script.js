@@ -2,30 +2,54 @@
   let appData       = null;
   let quizState     = { current: 0, score: 0, revealed: false, answers: [] };
 
-  const EXAMPLE_NOTES = `Mitosis and the Cell Cycle - Biology Notes
+  const EXAMPLE_NOTES = `Nervous System, Neurons, and Synaptic Transmission - Biology Notes
 
-The cell cycle is the series of events that cells go through as they grow and divide. It consists of two major phases: Interphase and Mitotic phase (M phase).
+The nervous system is the body's command center, coordinating all voluntary and involuntary actions. It consists of two main divisions: the Central Nervous System (CNS) and the Peripheral Nervous System (PNS).
 
-Interphase is the longest part of the cycle and includes:
-- G1 phase (Gap 1): Cell grows and synthesizes proteins. The cell increases in size and makes the organelles needed for DNA synthesis.
-- S phase (Synthesis): DNA replication occurs. Each chromosome is duplicated so the cell now has twice the normal amount of DNA.
-- G2 phase (Gap 2): Cell continues to grow and prepares for division. Organelles and cytoplasm increase.
+The CNS includes:
+- Brain: The control center for processing information, memory, emotions, and decision-making. Major regions include the cerebrum (higher functions), cerebellum (coordination), and brainstem (vital functions).
+- Spinal Cord: Acts as the information highway between the brain and the rest of the body. It also controls reflex actions.
 
-Mitosis (M phase) has four main stages:
-1. Prophase: Chromatin condenses into visible chromosomes. The mitotic spindle begins to form. Nuclear envelope breaks down.
-2. Metaphase: Chromosomes align at the cell's equator (metaphase plate). Spindle fibers attach to centromeres.
-3. Anaphase: Sister chromatids are pulled to opposite poles of the cell by spindle fibers. Cell elongates.
-4. Telophase: Nuclear envelope reforms around each set of chromosomes. Chromosomes begin to decondense.
+The PNS includes:
+- Sensory (Afferent) Division: Carries signals from sensory receptors to the CNS
+- Motor (Efferent) Division: Carries signals from CNS to muscles and glands
+  - Somatic Nervous System: Controls voluntary movements (skeletal muscles)
+  - Autonomic Nervous System: Controls involuntary functions (heart rate, digestion)
+    - Sympathetic: "Fight or flight" response
+    - Parasympathetic: "Rest and digest" response
 
-Cytokinesis follows mitosis and divides the cytoplasm, producing two genetically identical daughter cells.
+Neurons are the functional units of the nervous system. A typical neuron has three main parts:
+1. Dendrites: Receive signals from other neurons
+2. Cell Body (Soma): Contains the nucleus and organelles; integrates incoming signals
+3. Axon: Long fiber that transmits electrical signals away from the cell body. Many axons are covered with myelin sheath (produced by Schwann cells in PNS or oligodendrocytes in CNS) which speeds up signal transmission through saltatory conduction.
 
-Key concepts:
-- Sister chromatids: Identical copies of a chromosome held together at the centromere
-- Centromere: Region where sister chromatids are joined and spindle fibers attach
-- Spindle fibers: Made of microtubules; responsible for chromosome movement
-- Checkpoints: G1, G2, and M checkpoints ensure the cell is ready to proceed. Errors here can lead to cancer.
+Action Potential is the electrical signal that travels down the axon:
+- Resting State: Neuron is polarized at -70mV (more negative inside)
+- Depolarization: Sodium channels open, Na+ rushes in, membrane potential becomes positive (+30mV)
+- Repolarization: Potassium channels open, K+ flows out, restoring negative charge
+- Refractory Period: Brief period where neuron cannot fire again
 
-Cancer connection: When checkpoint controls fail, cells can divide uncontrollably. Oncogenes promote cell division while tumor suppressor genes (like p53) inhibit it.`;
+Synaptic Transmission occurs at the synapse (gap between neurons):
+1. Action potential reaches axon terminal
+2. Voltage-gated calcium channels open, Ca2+ enters
+3. Calcium triggers vesicles containing neurotransmitters to fuse with membrane
+4. Neurotransmitters are released into synaptic cleft
+5. Neurotransmitters bind to receptors on postsynaptic neuron
+6. This can cause excitation (EPSP) or inhibition (IPSP) of the next neuron
+7. Neurotransmitters are removed by reuptake, enzymatic breakdown, or diffusion
+
+Key Neurotransmitters:
+- Acetylcholine: Muscle contraction, memory, learning
+- Dopamine: Reward, motivation, motor control
+- Serotonin: Mood regulation, sleep, appetite
+- GABA: Main inhibitory neurotransmitter
+- Glutamate: Main excitatory neurotransmitter
+
+Clinical Connections:
+- Parkinson's Disease: Loss of dopamine-producing neurons
+- Alzheimer's Disease: Loss of acetylcholine and neuronal death
+- Multiple Sclerosis: Destruction of myelin sheath
+- Depression: Often linked to serotonin and norepinephrine imbalances`;
 
   // ─── NAVIGATION ─────────────────────────────────────────────────────────────
   function showScreen(name) {
@@ -154,7 +178,6 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
       'Extracting key concepts…',
       'Building topic clusters…',
       'Generating learning path…',
-      'Crafting recall questions…',
     ];
 
     const stageEl = document.getElementById('loading-stage');
@@ -173,33 +196,7 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
 
     try {
       const [result] = await Promise.all([
-        callClaude(
-          `You are an expert educational AI. Given raw student notes, return ONLY a valid JSON object (no markdown, no preamble) with this exact structure:
-{
-  "title": "concise topic title (max 6 words)",
-  "summary": ["bullet point 1","bullet point 2","bullet point 3","bullet point 4","bullet point 5"],
-  "keywords": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8"],
-  "clusters": [
-    {"name":"Cluster Name","color":"sage|indigo|amber|rose","topics":["topic1","topic2","topic3"]},
-    {"name":"Cluster Name 2","color":"sage|indigo|amber|rose","topics":["topic1","topic2"]},
-    {"name":"Cluster Name 3","color":"sage|indigo|amber|rose","topics":["topic1","topic2","topic3"]}
-  ],
-  "learningPath": [
-    {"step":1,"title":"Foundation concept","duration":"15 min","tip":"short tip"},
-    {"step":2,"title":"Core concept","duration":"20 min","tip":"short tip"},
-    {"step":3,"title":"Applied concept","duration":"25 min","tip":"short tip"},
-    {"step":4,"title":"Integration","duration":"15 min","tip":"short tip"}
-  ],
-  "quizQuestions": [
-    {"question":"question text?","options":["A","B","C","D"],"answer":0,"explanation":"brief explanation"},
-    {"question":"question 2?","options":["A","B","C","D"],"answer":1,"explanation":"brief explanation"},
-    {"question":"question 3?","options":["A","B","C","D"],"answer":2,"explanation":"brief explanation"},
-    {"question":"question 4?","options":["A","B","C","D"],"answer":0,"explanation":"brief explanation"},
-    {"question":"question 5?","options":["A","B","C","D"],"answer":3,"explanation":"brief explanation"}
-  ]
-}`,
-          notes
-        ),
+        generateMockData(notes),
         animateStages(),
       ]);
 
@@ -219,6 +216,84 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
+  // ─── MOCK DATA GENERATOR ────────────────────────────────────────────────────
+  function generateMockData(notes) {
+    const lowerNotes = notes.toLowerCase();
+    const isNervousSystem = lowerNotes.includes('nervous') || lowerNotes.includes('neuron') || lowerNotes.includes('synap');
+
+    if (isNervousSystem) {
+      return Promise.resolve({
+        title: "Nervous System & Neurons",
+        summary: [
+          "<strong>The Big Picture (Organization)</strong><br>The nervous system is your body's command center. It is split into two main teams:<br><strong>Central (<span class='highlight-indigo'>CNS</span>):</strong> The Brain and Spinal Cord. This is the \"CPU\" that makes decisions.<br><strong>Peripheral (<span class='highlight-indigo'>PNS</span>):</strong> All the nerves that branch out to your limbs.<br><strong><span class='highlight-amber'>Sympathetic</span>:</strong> \"Fight or Flight\" (Speeds you up for stress).<br><strong><span class='highlight-amber'>Parasympathetic</span>:</strong> \"Rest and Digest\" (Slows you down for recovery).",
+          "<strong>The Hardware (Neuron Anatomy)</strong><br>Think of a neuron as a one-way street for electricity:<br><strong><span class='highlight-sage'>Dendrites</span>:</strong> The \"Antennas\" that catch incoming signals.<br><strong><span class='highlight-sage'>Soma (Cell Body)</span>:</strong> The \"Engine\" that processes the info.<br><strong><span class='highlight-sage'>Axon</span>:</strong> The \"Highway\" the signal travels down.<br><strong><span class='highlight-sage'>Myelin Sheath</span>:</strong> The \"Insulation\" that keeps the electricity from leaking and speeds up the signal.",
+          "<strong>The Signal (Action Potential)</strong><br>Neurons aren't always \"on.\" They follow an <span class='highlight-rose'>All-or-Nothing</span> rule:<br><strong>Resting State (<span class='highlight-indigo'>-70mV</span>):</strong> The cell is charged and ready (like a loaded spring). It stays ready by pumping 3 <span class='highlight-amber'>Sodium (Na+)</span> out and 2 <span class='highlight-amber'>Potassium (K+)</span> in.<br><strong>The Trigger (<span class='highlight-indigo'>-55mV</span>):</strong> If the signal isn't strong enough to hit this \"Threshold,\" nothing happens.<br><strong>The Fire (<span class='highlight-rose'>Depolarization</span>):</strong> Sodium rushes in, flipping the charge to positive.<br><strong>The Reset (<span class='highlight-rose'>Repolarization</span>):</strong> Potassium rushes out to bring the charge back down.",
+          "<strong>The Hand-off (The Synapse)</strong><br>Neurons never actually touch each other. They leave a tiny gap called a <span class='highlight-indigo'>Synaptic Cleft</span>.<br>When the electricity hits the end of the axon, it releases <span class='highlight-sage'>Neurotransmitters</span> (chemical keys).<br>These chemicals float across the gap and \"unlock\" the next neuron to start the process over again."
+        ],
+        keywords: ["neurons", "synapse", "action potential", "neurotransmitters", "CNS", "PNS", "myelin", "dendrites"],
+        clusters: [
+          {
+            name: "System Organization",
+            color: "indigo",
+            topics: ["Central Nervous System", "Peripheral Nervous System", "Autonomic vs Somatic"]
+          },
+          {
+            name: "Neuron Structure",
+            color: "sage",
+            topics: ["Dendrites", "Cell Body", "Axon", "Myelin Sheath"]
+          },
+          {
+            name: "Signal Transmission",
+            color: "amber",
+            topics: ["Action Potential", "Depolarization", "Repolarization", "Synaptic Transmission"]
+          }
+        ],
+        learningPath: [
+          { step: 1, title: "Nervous System Organization", tip: "Start with the big picture: CNS vs PNS divisions" },
+          { step: 2, title: "Neuron Anatomy & Function", tip: "Understand the hardware before the signals" },
+          { step: 3, title: "Action Potential Mechanism", tip: "Focus on ion movement: Na+ in, K+ out" },
+          { step: 4, title: "Synaptic Transmission", tip: "Learn how neurons communicate chemically" }
+        ],
+        quizQuestions: []
+      });
+    }
+
+    return Promise.resolve({
+      title: "Study Notes Analysis",
+      summary: [
+        "Your notes cover key concepts and foundational knowledge",
+        "Multiple interconnected topics identified for structured learning",
+        "Important terms and definitions extracted for review",
+        "Learning path organized from basics to advanced concepts"
+      ],
+      keywords: ["concept", "definition", "process", "structure", "function", "relationship", "application", "example"],
+      clusters: [
+        {
+          name: "Core Concepts",
+          color: "sage",
+          topics: ["Fundamental principles", "Key definitions", "Basic structures"]
+        },
+        {
+          name: "Processes & Mechanisms",
+          color: "indigo",
+          topics: ["How things work", "Step-by-step procedures", "Cause and effect"]
+        },
+        {
+          name: "Applications",
+          color: "amber",
+          topics: ["Real-world examples", "Practical uses", "Case studies"]
+        }
+      ],
+      learningPath: [
+        { step: 1, title: "Foundation Concepts", tip: "Master the basics first" },
+        { step: 2, title: "Core Mechanisms", tip: "Understand how things work" },
+        { step: 3, title: "Advanced Topics", tip: "Build on your foundation" },
+        { step: 4, title: "Integration & Application", tip: "Connect all concepts together" }
+      ],
+      quizQuestions: []
+    });
+  }
+
   // ─── RENDER DASHBOARD ───────────────────────────────────────────────────────
   function renderDashboard(data) {
     document.getElementById('dash-title-tag').textContent = data.title || '';
@@ -226,10 +301,7 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
     // Summary
     const summaryList = document.getElementById('summary-list');
     summaryList.innerHTML = (data.summary || []).map(point =>
-      `<li class="summary-item">
-        <span class="summary-arrow">→</span>
-        <span>${esc(point)}</span>
-      </li>`
+      `<li class="summary-item">${point}</li>`
     ).join('');
 
     // Keywords
@@ -242,7 +314,6 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
     document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
     document.getElementById('stat-clusters').textContent = (data.clusters || []).length;
     document.getElementById('stat-steps').textContent    = (data.learningPath || []).length;
-    document.getElementById('stat-quiz').textContent     = (data.quizQuestions || []).length;
 
     // Clusters
     const clustersGrid = document.getElementById('clusters-grid');

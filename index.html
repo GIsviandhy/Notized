@@ -61,11 +61,6 @@
         <div class="feature-card-label">Learning Path</div>
         <div class="feature-card-desc">Sequenced study order based on concept dependency</div>
       </div>
-      <div class="feature-card">
-        <div class="feature-card-icon">◎</div>
-        <div class="feature-card-label">Active Recall</div>
-        <div class="feature-card-desc">Gamified quizzes auto-generated from your material</div>
-      </div>
     </div>
 
     <div class="social-proof slide-up stagger-6">
@@ -168,10 +163,6 @@
         <span class="nav-wordmark" style="font-size:17px;">Notized</span>
       </div>
     </div>
-    <div class="dash-header-right">
-      <span class="dash-title-tag" id="dash-title-tag"></span>
-      <button class="btn-quiz" onclick="startQuiz()">◎ Start Quiz</button>
-    </div>
   </div>
 
   <div class="tab-nav">
@@ -184,15 +175,7 @@
     <!-- OVERVIEW TAB -->
     <div id="tab-overview" class="tab-panel active">
       <div class="overview-grid">
-        <!-- Summary card -->
-        <div class="card slide-up stagger-1">
-          <div class="card-header">
-            <span class="card-icon sage">✦</span>
-            <span class="card-title">Smart Summary</span>
-          </div>
-          <ul class="summary-list" id="summary-list"></ul>
-        </div>
-
+        
         <!-- Keywords card -->
         <div class="card slide-up stagger-2">
           <div class="card-header">
@@ -201,6 +184,15 @@
           </div>
           <div class="keyword-chips" id="keyword-chips"></div>
           <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
+        </div>
+
+        <!-- Summary card -->
+        <div class="card slide-up stagger-1">
+          <div class="card-header">
+            <span class="card-icon sage">✦</span>
+            <span class="card-title">Smart Summary</span>
+          </div>
+          <ul class="summary-list" id="summary-list"></ul>
         </div>
 
         <!-- Stat cards -->
@@ -215,10 +207,6 @@
         <div class="stat-card slide-up stagger-5">
           <span class="stat-icon amber">↓</span>
           <div><div class="stat-num" id="stat-steps">0</div><div class="stat-label">Study Steps</div></div>
-        </div>
-        <div class="stat-card slide-up stagger-6">
-          <span class="stat-icon rose">◎</span>
-          <div><div class="stat-num" id="stat-quiz">0</div><div class="stat-label">Quiz Questions</div></div>
         </div>
       </div>
     </div>
@@ -235,56 +223,6 @@
         <div class="path-line"></div>
         <div class="path-list" id="path-list"></div>
       </div>
-      <div class="path-cta">
-        <div class="path-cta-title">✦ Ready to test yourself?</div>
-        <p class="path-cta-text">Complete the learning path, then try the Active Recall Quiz to lock in your memory.</p>
-        <button class="btn-quiz-sm" onclick="startQuiz()">◎ Launch Quiz Mode →</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════════════
-     SCREEN: QUIZ
-════════════════════════════════════════════════════ -->
-<div id="screen-quiz" class="screen">
-  <div class="quiz-header">
-    <button class="btn-back" onclick="showScreen('dashboard')">← Back to Dashboard</button>
-    <span class="quiz-counter" id="quiz-counter">Question 1 of 5</span>
-  </div>
-  <div class="quiz-progress-track">
-    <div class="quiz-progress-bar" id="quiz-progress-bar" style="width:0%"></div>
-  </div>
-  <div class="quiz-body">
-    <div class="quiz-card fade-in" id="quiz-card">
-      <div class="quiz-label-row">
-        <span class="recall-badge">◎ Active Recall</span>
-        <span class="score-so-far" id="score-so-far">0 correct so far</span>
-      </div>
-      <h3 class="quiz-question serif" id="quiz-question"></h3>
-      <div class="options-list" id="options-list"></div>
-      <div class="explanation" id="explanation"></div>
-      <button class="btn-next" id="btn-next" onclick="handleNext()"></button>
-    </div>
-  </div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════════════
-     SCREEN: RESULTS
-════════════════════════════════════════════════════ -->
-<div id="screen-results" class="screen">
-  <div class="results-card slide-up">
-    <div class="results-emoji" id="results-emoji"></div>
-    <h2 class="results-h2 serif" id="results-grade"></h2>
-    <p class="results-sub" id="results-sub"></p>
-    <div class="results-pct" id="results-pct"></div>
-    <div class="results-fraction" id="results-fraction"></div>
-    <div class="answer-dots" id="answer-dots"></div>
-    <div class="results-actions">
-      <button class="btn-secondary" onclick="showScreen('dashboard')">← Back to Notes</button>
-      <button class="btn-retry" onclick="retryQuiz()">Retry Quiz ↺</button>
     </div>
   </div>
 </div>
