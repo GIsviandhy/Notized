@@ -154,7 +154,6 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
       'Extracting key concepts…',
       'Building topic clusters…',
       'Generating learning path…',
-      'Crafting recall questions…',
     ];
 
     const stageEl = document.getElementById('loading-stage');
@@ -189,13 +188,6 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
     {"step":2,"title":"Core concept","duration":"20 min","tip":"short tip"},
     {"step":3,"title":"Applied concept","duration":"25 min","tip":"short tip"},
     {"step":4,"title":"Integration","duration":"15 min","tip":"short tip"}
-  ],
-  "quizQuestions": [
-    {"question":"question text?","options":["A","B","C","D"],"answer":0,"explanation":"brief explanation"},
-    {"question":"question 2?","options":["A","B","C","D"],"answer":1,"explanation":"brief explanation"},
-    {"question":"question 3?","options":["A","B","C","D"],"answer":2,"explanation":"brief explanation"},
-    {"question":"question 4?","options":["A","B","C","D"],"answer":0,"explanation":"brief explanation"},
-    {"question":"question 5?","options":["A","B","C","D"],"answer":3,"explanation":"brief explanation"}
   ]
 }`,
           notes
@@ -207,9 +199,11 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
       pctEl.textContent = '100%';
       await sleep(400);
 
-      appData = result;
-      renderDashboard(result);
-      showScreen('dashboard');
+      // 1. Simpan data hasil analisis ke LocalStorage (memori browser)
+      localStorage.setItem('notizedData', JSON.stringify(result));
+
+      // 2. Lempar user ke halaman dashboard.html
+      window.location.href = 'dashboard.html';
     } catch (e) {
       resetInputView();
       errEl.textContent = 'Processing failed. Please check your connection and try again.';
@@ -242,7 +236,6 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
     document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
     document.getElementById('stat-clusters').textContent = (data.clusters || []).length;
     document.getElementById('stat-steps').textContent    = (data.learningPath || []).length;
-    document.getElementById('stat-quiz').textContent     = (data.quizQuestions || []).length;
 
     // Clusters
     const clustersGrid = document.getElementById('clusters-grid');
@@ -305,129 +298,6 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
     if (!wasActive) el.classList.add('active');
   }
 
-  // ─── QUIZ ────────────────────────────────────────────────────────────────────
-  function startQuiz() {
-    if (!appData || !appData.quizQuestions) return;
-    quizState = { current: 0, score: 0, revealed: false, answers: [] };
-    renderQuestion();
-    showScreen('quiz');
-  }
-
-  function renderQuestion() {
-    const q     = appData.quizQuestions[quizState.current];
-    const total = appData.quizQuestions.length;
-
-    document.getElementById('quiz-counter').textContent =
-      `Question ${quizState.current + 1} of ${total}`;
-    document.getElementById('quiz-progress-bar').style.width =
-      (quizState.current / total * 100) + '%';
-    document.getElementById('score-so-far').textContent =
-      `${quizState.score} correct so far`;
-    document.getElementById('quiz-question').textContent = q.question;
-
-    const optionsEl = document.getElementById('options-list');
-    optionsEl.innerHTML = (q.options || []).map((opt, i) =>
-      `<button class="option-btn" onclick="handleSelect(${i})">
-        <span class="option-circle">${String.fromCharCode(65 + i)}</span>
-        <span>${esc(opt)}</span>
-      </button>`
-    ).join('');
-
-    const expEl  = document.getElementById('explanation');
-    const nextEl = document.getElementById('btn-next');
-    expEl.classList.remove('show');
-    expEl.innerHTML = '';
-    nextEl.classList.remove('show');
-    nextEl.textContent = quizState.current < total - 1 ? 'Next Question →' : 'See Results →';
-
-    // Re-animate card
-    const card = document.getElementById('quiz-card');
-    card.style.animation = 'none';
-    card.offsetHeight;
-    card.style.animation = '';
-    card.classList.add('fade-in');
-  }
-
-  function handleSelect(selectedIdx) {
-    if (quizState.revealed) return;
-    quizState.revealed = true;
-
-    const q       = appData.quizQuestions[quizState.current];
-    const correct = selectedIdx === q.answer;
-    if (correct) quizState.score++;
-    quizState.answers.push({ correct });
-
-    // Style options
-    document.querySelectorAll('.option-btn').forEach((btn, i) => {
-      btn.classList.add('revealed');
-      const circle = btn.querySelector('.option-circle');
-      if (i === q.answer) {
-        btn.classList.add('correct');
-        circle.textContent = '✓';
-      } else if (i === selectedIdx && !correct) {
-        btn.classList.add('wrong');
-        circle.textContent = '✗';
-      }
-    });
-
-    // Explanation
-    const expEl = document.getElementById('explanation');
-    expEl.innerHTML = `<strong style="color:var(--ink)">Explanation:</strong> ${esc(q.explanation)}`;
-    expEl.classList.add('show', 'slide-up');
-
-    // Next button
-    const nextEl = document.getElementById('btn-next');
-    nextEl.classList.add('show', 'slide-up');
-
-    document.getElementById('score-so-far').textContent =
-      `${quizState.score} correct so far`;
-  }
-
-  function handleNext() {
-    const total = appData.quizQuestions.length;
-    if (quizState.current < total - 1) {
-      quizState.current++;
-      quizState.revealed = false;
-      renderQuestion();
-    } else {
-      showResults();
-    }
-  }
-
-  function showResults() {
-    const total = appData.quizQuestions.length;
-    const score = quizState.score;
-    const pct   = Math.round((score / total) * 100);
-
-    const grade = pct >= 80
-      ? { label: 'Excellent!',    color: 'var(--sage)',  bg: 'var(--sage-light)',  emoji: '🎉' }
-      : pct >= 60
-      ? { label: 'Good job!',     color: 'var(--amber)', bg: 'var(--amber-light)', emoji: '👏' }
-      : { label: 'Keep studying', color: 'var(--rose)',  bg: 'var(--rose-light)',  emoji: '📚' };
-
-    const emojiEl = document.getElementById('results-emoji');
-    emojiEl.style.background = grade.bg;
-    emojiEl.textContent = grade.emoji;
-
-    document.getElementById('results-grade').textContent    = grade.label;
-    document.getElementById('results-sub').textContent      = `${appData.title} · Active Recall Quiz`;
-    document.getElementById('results-pct').textContent      = pct + '%';
-    document.getElementById('results-pct').style.color      = grade.color;
-    document.getElementById('results-fraction').textContent = `${score} out of ${total} correct`;
-
-    const dotsEl = document.getElementById('answer-dots');
-    dotsEl.innerHTML = quizState.answers.map(a =>
-      `<div class="answer-dot ${a.correct ? 'correct' : 'wrong'}">${a.correct ? '✓' : '✗'}</div>`
-    ).join('');
-
-    showScreen('results');
-  }
-
-  function retryQuiz() {
-    startQuiz();
-    showScreen('quiz');
-  }
-
   // ─── UTILITY ─────────────────────────────────────────────────────────────────
   function esc(str) {
     if (!str) return '';
@@ -437,3 +307,17 @@ Cancer connection: When checkpoint controls fail, cells can divide uncontrollabl
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+
+    // Tambahkan ini di paling bawah file script.js
+window.addEventListener('DOMContentLoaded', () => {
+    // Cek apakah kita sedang berada di halaman dashboard
+    const dashboardCheck = document.getElementById('screen-dashboard');
+    
+    if (dashboardCheck) {
+        const savedData = localStorage.getItem('notizedData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            renderDashboard(data); // Memanggil fungsi render yang sudah ada
+        }
+    }
+});
