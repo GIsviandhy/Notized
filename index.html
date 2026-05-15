@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -101,8 +103,8 @@
           oninput="updateWordCount()"></textarea>
         <div class="textarea-footer">
           <span class="word-count" id="word-count">Tip: Longer notes = richer insights</span>
-          <button class="upload-btn" onclick="triggerFileUpload()">+ Upload .txt file</button>
-          <input type="file" id="file-input" accept=".txt,.md" style="display:none" onchange="handleFileUpload(event)" />
+          <button class="upload-btn" onclick="triggerFileUpload()">+ Upload file (.txt .pdf)</button>
+          <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
         </div>
       </div>
 
@@ -183,7 +185,7 @@
             <span class="card-title">Keyword Radar</span>
           </div>
           <div class="keyword-chips" id="keyword-chips"></div>
-          <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
+          <div class="chip-tip"><span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px">lightbulb</span> Scan these chips first when reviewing. They anchor the core ideas.</div>
         </div>
 
         <!-- Summary card -->

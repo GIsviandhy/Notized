@@ -1,4 +1,7 @@
-  // ─── STATE ──────────────────────────────────────────────────────────────────
+// Set the worker source for PDF.js (uses the CDN version to match your HTML)
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
   let appData       = null;
   let quizState     = { current: 0, score: 0, revealed: false, answers: [] };
 
@@ -81,17 +84,53 @@ Clinical Connections:
   function triggerFileUpload() {
     document.getElementById('file-input').click();
   }
-  function handleFileUpload(e) {
+  // function handleFileUpload(e) {
+  //   const file = e.target.files[0];
+  //   if (!file) return;
+  //   const reader = new FileReader();
+  //   reader.onload = ev => {
+  //     document.getElementById('notes-input').value = ev.target.result;
+  //     updateWordCount();
+  //   };
+  //   reader.readAsText(file);
+  // }
+
+  async function handleFileUpload(e) {
     const file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      document.getElementById('notes-input').value = ev.target.result;
+
+    if (file.type === "application/pdf") {
+      // If it's a PDF, use the custom extractor
+      const text = await extractTextFromPDF(file);
+      document.getElementById('notes-input').value = text;
       updateWordCount();
-    };
-    reader.readAsText(file);
+    } else {
+      // Standard logic for .txt files
+      const reader = new FileReader();
+      reader.onload = ev => {
+        document.getElementById('notes-input').value = ev.target.result;
+        updateWordCount();
+      };
+      reader.readAsText(file);
+    }
   }
 
+  async function extractTextFromPDF(file) {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let fullText = "";
+
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      // Join the text items of the page with spaces
+      const pageStrings = content.items.map(item => item.str);
+      fullText += pageStrings.join(" ") + "\n\n";
+    }
+
+    return fullText;
+  }
+  
   // ─── EXAMPLE LOADER ─────────────────────────────────────────────────────────
   function loadExample() {
     showScreen('input');
@@ -347,7 +386,7 @@ Clinical Connections:
             <span class="path-card-title">${esc(step.title)}</span>
             <span class="path-duration">${esc(step.duration)}</span>
           </div>
-          <p class="path-tip">💡 ${esc(step.tip)}</p>
+          <p class="path-tip"><span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px">lightbulb</span> ${esc(step.tip)}</p>
         </div>
       </div>`;
     }).join('');
