@@ -312,8 +312,7 @@ Clinical Connections:
         { step: 2, title: "Core Mechanisms", tip: "Understand how things work" },
         { step: 3, title: "Advanced Topics", tip: "Build on your foundation" },
         { step: 4, title: "Integration & Application", tip: "Connect all concepts together" }
-      ],
-      quizQuestions: []
+      ]
     });
   }
 
