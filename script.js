@@ -1,11 +1,11 @@
 // Set the worker source for PDF.js (uses the CDN version to match your HTML)
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-// ─── STATE ──────────────────────────────────────────────────────────────────
-  let appData       = null;
-  let quizState     = { current: 0, score: 0, revealed: false, answers: [] };
+// ─── STATE MANAGEMENT ────────────────────────────────────────────────────────
+let appData = null;
+let selectedFolderColor = "#6B8F71"; // Default warna koordinasi: Sage
 
-  const EXAMPLE_NOTES = `Nervous System, Neurons, and Synaptic Transmission - Biology Notes
+const EXAMPLE_NOTES = `Nervous System, Neurons, and Synaptic Transmission - Biology Notes
 
 The nervous system is the body's command center, coordinating all voluntary and involuntary actions. It consists of two main divisions: the Central Nervous System (CNS) and the Peripheral Nervous System (PNS).
 
@@ -54,198 +54,199 @@ Clinical Connections:
 - Multiple Sclerosis: Destruction of myelin sheath
 - Depression: Often linked to serotonin and norepinephrine imbalances`;
 
-  // ─── NAVIGATION ─────────────────────────────────────────────────────────────
-  function showScreen(name) {
-    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-    document.getElementById('screen-' + name).classList.add('active');
-    window.scrollTo(0, 0);
+// ─── INITIALIZATION ON LOAD ──────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const isDashboard = document.getElementById('folders-root-container');
+  if (!isDashboard) return;
 
-    if (name === 'input') {
-      resetInputView();
-      setTimeout(() => document.getElementById('notes-input').focus(), 100);
-    }
+  // Render list folder & file standalone dari database lokal ke sidebar kiri
+  refreshWorkspaceTree();
+
+  // Cek apakah ada data fresh yang baru dikirim setelah klik "Analyze" dari index.html
+  const incomingData = localStorage.getItem('notizedData');
+  if (incomingData) {
+    document.getElementById('btn-trigger-save').style.display = 'block';
+    const parsed = JSON.parse(incomingData);
+    
+    // Tampilkan preview data sementara sebelum di-save permanen oleh user
+    document.getElementById('empty-workspace-state').style.display = 'none';
+    document.getElementById('active-project-workspace').style.display = 'block';
+    renderProjectContent(parsed);
+    document.getElementById('active-project-title').textContent = "Preview: " + (parsed.title || "Unsaved Note");
   }
+});
 
-  function resetInputView() {
-    document.getElementById('input-form-view').style.display = 'block';
-    document.getElementById('loading-view').classList.remove('active');
-    document.getElementById('error-msg').style.display = 'none';
+// ─── NAVIGATION (index.html) ─────────────────────────────────────────────────
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).className = 'screen active';
+  window.scrollTo(0, 0);
+
+  if (name === 'input') {
+    resetInputView();
+    setTimeout(() => document.getElementById('notes-input').focus(), 100);
   }
+}
 
-  // ─── WORD COUNT ─────────────────────────────────────────────────────────────
-  function updateWordCount() {
-    const val = document.getElementById('notes-input').value.trim();
-    const words = val ? val.split(/\s+/).filter(Boolean).length : 0;
-    const el = document.getElementById('word-count');
-    el.textContent = words > 0 ? words + ' words' : 'Tip: Longer notes = richer insights';
-  }
+function resetInputView() {
+  document.getElementById('input-form-view').style.display = 'block';
+  document.getElementById('loading-view').classList.remove('active');
+  document.getElementById('error-msg').style.display = 'none';
+}
 
-  // ─── FILE UPLOAD ────────────────────────────────────────────────────────────
-  function triggerFileUpload() {
-    document.getElementById('file-input').click();
-  }
-  // function handleFileUpload(e) {
-  //   const file = e.target.files[0];
-  //   if (!file) return;
-  //   const reader = new FileReader();
-  //   reader.onload = ev => {
-  //     document.getElementById('notes-input').value = ev.target.result;
-  //     updateWordCount();
-  //   };
-  //   reader.readAsText(file);
-  // }
+// ─── WORD COUNT ─────────────────────────────────────────────────────────────
+function updateWordCount() {
+  const val = document.getElementById('notes-input').value.trim();
+  const words = val ? val.split(/\s+/).filter(Boolean).length : 0;
+  const el = document.getElementById('word-count');
+  if (el) el.textContent = words > 0 ? words + ' words' : 'Tip: Longer notes = richer insights';
+}
 
-  async function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+// ─── FILE UPLOAD & PDF EXTRACTOR ─────────────────────────────────────────────
+function triggerFileUpload() {
+  document.getElementById('file-input').click();
+}
 
-    if (file.type === "application/pdf") {
-      // If it's a PDF, use the custom extractor
-      const text = await extractTextFromPDF(file);
-      document.getElementById('notes-input').value = text;
+async function handleFileUpload(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  if (file.type === "application/pdf") {
+    const text = await extractTextFromPDF(file);
+    document.getElementById('notes-input').value = text;
+    updateWordCount();
+  } else {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      document.getElementById('notes-input').value = ev.target.result;
       updateWordCount();
-    } else {
-      // Standard logic for .txt files
-      const reader = new FileReader();
-      reader.onload = ev => {
-        document.getElementById('notes-input').value = ev.target.result;
-        updateWordCount();
-      };
-      reader.readAsText(file);
+    };
+    reader.readAsText(file);
+  }
+}
+
+async function extractTextFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageStrings = content.items.map(item => item.str);
+    fullText += pageStrings.join(" ") + "\n\n";
+  }
+  return fullText;
+}
+
+function loadExample() {
+  showScreen('input');
+  setTimeout(() => {
+    document.getElementById('notes-input').value = EXAMPLE_NOTES;
+    updateWordCount();
+  }, 100);
+}
+
+// ─── API KEY MANAGEMENT ──────────────────────────────────────────────────────
+let _apiKey = '';
+function getApiKey() { return _apiKey; }
+
+function saveApiKey() {
+  const val = document.getElementById('apikey-input').value.trim();
+  if (!val.startsWith('sk-')) {
+    document.getElementById('apikey-error').textContent = 'Key must start with sk-';
+    return;
+  }
+  _apiKey = val;
+  document.getElementById('apikey-modal').style.display = 'none';
+  document.getElementById('apikey-badge').textContent   = 'API key set ✓';
+  document.getElementById('apikey-badge').style.color   = 'var(--sage)';
+  if (_pendingAnalyze) { _pendingAnalyze = false; handleAnalyze(); }
+}
+
+let _pendingAnalyze = false;
+function openApiKeyModal(fromAnalyze = false) {
+  _pendingAnalyze = fromAnalyze;
+  document.getElementById('apikey-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('apikey-input').focus(), 50);
+}
+
+function closeApiKeyModal() {
+  _pendingAnalyze = false;
+  document.getElementById('apikey-modal').style.display = 'none';
+}
+
+// ─── API CALL (CLAUDE ANTHROPIC) ─────────────────────────────────────────────
+async function callClaude(systemPrompt, userPrompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': getApiKey(),
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'API error');
+  const text = (data.content || []).map(b => b.text || '').join('');
+  const clean = text.replace(/```json\n?|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+// ─── ANALYZE PROCESSOR ───────────────────────────────────────────────────────
+async function handleAnalyze() {
+  const notes = document.getElementById('notes-input').value.trim();
+  const errEl = document.getElementById('error-msg');
+
+  if (!notes || notes.split(/\s+/).filter(Boolean).length < 10) {
+    errEl.textContent = 'Please paste at least a paragraph of notes to process.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+
+  document.getElementById('input-form-view').style.display = 'none';
+  document.getElementById('loading-view').classList.add('active');
+
+  const stages = [
+    'Reading your notes…',
+    'Extracting key concepts…',
+    'Building topic clusters…',
+    'Generating learning path…',
+  ];
+
+  const stageEl = document.getElementById('loading-stage');
+  const barEl   = document.getElementById('progress-bar');
+  const pctEl   = document.getElementById('progress-pct');
+
+  async function animateStages() {
+    for (let i = 0; i < stages.length; i++) {
+      stageEl.textContent = stages[i];
+      const pct = Math.round((i + 1) / stages.length * 85);
+      barEl.style.width = pct + '%';
+      pctEl.textContent = pct + '%';
+      await sleep(700);
     }
   }
 
-  async function extractTextFromPDF(file) {
-    const arrayBuffer = await file.arrayBuffer();
-    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-    let fullText = "";
-
-    for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      // Join the text items of the page with spaces
-      const pageStrings = content.items.map(item => item.str);
-      fullText += pageStrings.join(" ") + "\n\n";
-    }
-
-    return fullText;
-  }
-  
-  // ─── EXAMPLE LOADER ─────────────────────────────────────────────────────────
-  function loadExample() {
-    showScreen('input');
-    setTimeout(() => {
-      document.getElementById('notes-input').value = EXAMPLE_NOTES;
-      updateWordCount();
-    }, 100);
-  }
-
-  // ─── API KEY ─────────────────────────────────────────────────────────────────
-  let _apiKey = '';
-
-  function getApiKey() { return _apiKey; }
-
-  function saveApiKey() {
-    const val = document.getElementById('apikey-input').value.trim();
-    if (!val.startsWith('sk-')) {
-      document.getElementById('apikey-error').textContent = 'Key must start with sk-';
-      return;
-    }
-    _apiKey = val;
-    document.getElementById('apikey-modal').style.display = 'none';
-    document.getElementById('apikey-badge').textContent   = 'API key set ✓';
-    document.getElementById('apikey-badge').style.color   = 'var(--sage)';
-    // Resume analyze if it was waiting
-    if (_pendingAnalyze) { _pendingAnalyze = false; handleAnalyze(); }
-  }
-
-  let _pendingAnalyze = false;
-
-  function openApiKeyModal(fromAnalyze = false) {
-    _pendingAnalyze = fromAnalyze;
-    document.getElementById('apikey-modal').style.display = 'flex';
-    setTimeout(() => document.getElementById('apikey-input').focus(), 50);
-  }
-
-  function closeApiKeyModal() {
-    _pendingAnalyze = false;
-    document.getElementById('apikey-modal').style.display = 'none';
-  }
-
-  // ─── API CALL ───────────────────────────────────────────────────────────────
-  async function callClaude(systemPrompt, userPrompt) {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': getApiKey(),
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userPrompt }],
-      }),
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error.message || 'API error');
-    const text = (data.content || []).map(b => b.text || '').join('');
-    const clean = text.replace(/```json\n?|```/g, '').trim();
-    return JSON.parse(clean);
-  }
-
-  // ─── ANALYZE ────────────────────────────────────────────────────────────────
-  async function handleAnalyze() {
-    const notes = document.getElementById('notes-input').value.trim();
-    const errEl = document.getElementById('error-msg');
-
-    if (!notes || notes.split(/\s+/).filter(Boolean).length < 10) {
-      errEl.textContent = 'Please paste at least a paragraph of notes to process.';
-      errEl.style.display = 'block';
-      return;
-    }
-    errEl.style.display = 'none';
-
-    // Show loading
-    document.getElementById('input-form-view').style.display = 'none';
-    document.getElementById('loading-view').classList.add('active');
-
-    const stages = [
-      'Reading your notes…',
-      'Extracting key concepts…',
-      'Building topic clusters…',
-      'Generating learning path…',
-    ];
-
-    const stageEl = document.getElementById('loading-stage');
-    const barEl   = document.getElementById('progress-bar');
-    const pctEl   = document.getElementById('progress-pct');
-
-    async function animateStages() {
-      for (let i = 0; i < stages.length; i++) {
-        stageEl.textContent = stages[i];
-        const pct = Math.round((i + 1) / stages.length * 85);
-        barEl.style.width = pct + '%';
-        pctEl.textContent = pct + '%';
-        await sleep(700);
-      }
-    }
-
-    try {
-      const [result] = await Promise.all([
-        generateMockData(notes),
-        callClaude(
-          `You are an expert educational AI. Given raw student notes, return ONLY a valid JSON object (no markdown, no preamble) with this exact structure:
+  try {
+    const [result] = await Promise.all([
+      callClaude(
+        `You are an expert educational AI. Given raw student notes, return ONLY a valid JSON object (no markdown, no preamble) with this exact structure:
 {
   "title": "concise topic title (max 6 words)",
   "summary": ["bullet point 1","bullet point 2","bullet point 3","bullet point 4","bullet point 5"],
   "keywords": ["keyword1","keyword2","keyword3","keyword4","keyword5","keyword6","keyword7","keyword8"],
   "clusters": [
     {"name":"Cluster Name","color":"sage|indigo|amber|rose","topics":["topic1","topic2","topic3"]},
-    {"name":"Cluster Name 2","color":"sage|indigo|amber|rose","topics":["topic1","topic2"]},
-    {"name":"Cluster Name 3","color":"sage|indigo|amber|rose","topics":["topic1","topic2","topic3"]}
+    {"name":"Cluster Name 2","color":"sage|indigo|amber|rose","topics":["topic1","topic2"]}
   ],
   "learningPath": [
     {"step":1,"title":"Foundation concept","duration":"15 min","tip":"short tip"},
@@ -254,207 +255,302 @@ Clinical Connections:
     {"step":4,"title":"Integration","duration":"15 min","tip":"short tip"}
   ]
 }`,
-          notes
-        ),
-        animateStages(),
-      ]);
+        notes
+      ),
+      animateStages(),
+    ]);
 
-      barEl.style.width = '100%';
-      pctEl.textContent = '100%';
-      await sleep(400);
+    barEl.style.width = '100%';
+    pctEl.textContent = '100%';
+    await sleep(400);
 
-      // 1. Simpan data hasil analisis ke LocalStorage (memori browser)
-      localStorage.setItem('notizedData', JSON.stringify(result));
+    localStorage.setItem('notizedData', JSON.stringify(result));
+    window.location.href = 'dashboard.html';
+  } catch (e) {
+    console.error('Analysis error:', e);
+    resetInputView();
+    errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
+    errEl.style.display = 'block';
+  }
+}
 
-      // 2. Lempar user ke halaman dashboard.html
-      window.location.href = 'dashboard.html';
-    } catch (e) {
-      console.error('Analysis error:', e);
-      resetInputView();
-      errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
-      errEl.style.display = 'block';
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ─── STORAGE MANAGEMENT (LOCALSTORAGE ENGINE) ────────────────────────────────
+function getLibraryData() {
+  const data = localStorage.getItem('notized_library');
+  const defaultLibrary = {
+    "root_files": {},
+    "folders": {
+      "Science": {
+        "color": "#6B8F71",
+        "path": ["Understand basic cell division logic", "Master Neuron action potential mechanics"],
+        "files": {}
+      }
+    }
+  };
+  return data ? JSON.parse(data) : defaultLibrary;
+}
+
+// ─── SIDEBAR DIRECT ACTION TRIGGER CONTROLLERS ───────────────────────────────
+function openFolderCreatorDirect(event) {
+  if (event) event.preventDefault();
+  const folderModal = document.getElementById('folder-creator-card');
+  if (folderModal) {
+    folderModal.style.display = 'flex';
+    document.getElementById('new-folder-name-input').focus();
+  }
+}
+
+function closeFolderCreatorCard() {
+  const folderModal = document.getElementById('folder-creator-card');
+  if (folderModal) {
+    folderModal.style.display = 'none';
+    document.getElementById('new-folder-name-input').value = '';
+  }
+}
+
+function saveFolderFromCard() {
+  const nameInput = document.getElementById('new-folder-name-input').value.trim();
+  if (!nameInput) return alert("Please enter a subject name!");
+
+  let library = getLibraryData();
+  if (!library.folders) library.folders = {};
+
+  if (library.folders[nameInput]) return alert("This folder already exists!");
+
+  library.folders[nameInput] = {
+    color: selectedFolderColor || "#6B8F71",
+    path: [],
+    files: {}
+  };
+
+  localStorage.setItem('notized_library', JSON.stringify(library));
+  closeFolderCreatorCard(); // Menutup modal tengah secara teratur
+  refreshWorkspaceTree();   // Me-render folder baru di sidebar kiri seketika
+}
+
+function goToNewNoteDirect(event) {
+  if (event) event.preventDefault();
+  window.location.href = 'input.html';
+}
+
+function selectColorDot(element) {
+  document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
+  element.classList.add('active');
+  selectedFolderColor = element.getAttribute('data-color') || "#6B8F71";
+}
+
+// ─── RENDERING SIDEBAR KONDISIONAL (MUNCUL HANYA JIKA ADA DATA) ───
+function refreshWorkspaceTree() {
+  let library = getLibraryData();
+  if (!library.folders) library.folders = {};
+  if (!library.root_files) library.root_files = {};
+
+  const standaloneSection = document.querySelector('.root-files-section');
+  const looseContainer = document.getElementById('loose-files-container');
+  const foldersSection = document.querySelector('.folders-section');
+  const folderContainer = document.getElementById('folders-root-container');
+
+  // === A. HANDLING STANDALONE NOTES ===
+  const rootFiles = Object.keys(library.root_files);
+  if (rootFiles.length === 0) {
+    if (standaloneSection) standaloneSection.style.display = 'none';
+  } else {
+    if (standaloneSection) standaloneSection.style.display = 'block';
+    if (looseContainer) {
+      looseContainer.innerHTML = rootFiles.map(fileName => `
+        <div class="tree-file-item" onclick="loadSavedFile('root_standalone', '${esc(fileName)}')">
+          📄 ${esc(fileName)}
+        </div>
+      `).join('');
     }
   }
 
-  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  // === B. HANDLING SUBJECT FOLDERS ===
+  const folders = Object.keys(library.folders);
+  if (folders.length === 0) {
+    if (foldersSection) foldersSection.style.display = 'none';
+  } else {
+    if (foldersSection) foldersSection.style.display = 'block';
+    if (folderContainer) {
+      folderContainer.innerHTML = '';
+      
+      folders.forEach(fName => {
+        const folderData = library.folders[fName];
+        const color = folderData.color || '#6B8F71';
+        const fileKeys = Object.keys(folderData.files || {});
 
-  // ─── MOCK DATA GENERATOR ────────────────────────────────────────────────────
-  function generateMockData(notes) {
-    const lowerNotes = notes.toLowerCase();
-    const isNervousSystem = lowerNotes.includes('nervous') || lowerNotes.includes('neuron') || lowerNotes.includes('synap');
+        let internalFilesHTML = fileKeys.map(fileKey => `
+          <div class="tree-file-item" onclick="loadSavedFile('${esc(fName)}', '${esc(fileKey)}')">
+            📄 ${esc(fileKey)}
+          </div>
+        `).join('');
 
-    if (isNervousSystem) {
-      return Promise.resolve({
-        title: "Nervous System & Neurons",
-        summary: [
-          "<strong>The Big Picture (Organization)</strong><br>The nervous system is your body's command center. It is split into two main teams:<br><strong>Central (<span class='highlight-indigo'>CNS</span>):</strong> The Brain and Spinal Cord. This is the \"CPU\" that makes decisions.<br><strong>Peripheral (<span class='highlight-indigo'>PNS</span>):</strong> All the nerves that branch out to your limbs.<br><strong><span class='highlight-amber'>Sympathetic</span>:</strong> \"Fight or Flight\" (Speeds you up for stress).<br><strong><span class='highlight-amber'>Parasympathetic</span>:</strong> \"Rest and Digest\" (Slows you down for recovery).",
-          "<strong>The Hardware (Neuron Anatomy)</strong><br>Think of a neuron as a one-way street for electricity:<br><strong><span class='highlight-sage'>Dendrites</span>:</strong> The \"Antennas\" that catch incoming signals.<br><strong><span class='highlight-sage'>Soma (Cell Body)</span>:</strong> The \"Engine\" that processes the info.<br><strong><span class='highlight-sage'>Axon</span>:</strong> The \"Highway\" the signal travels down.<br><strong><span class='highlight-sage'>Myelin Sheath</span>:</strong> The \"Insulation\" that keeps the electricity from leaking and speeds up the signal.",
-          "<strong>The Signal (Action Potential)</strong><br>Neurons aren't always \"on.\" They follow an <span class='highlight-rose'>All-or-Nothing</span> rule:<br><strong>Resting State (<span class='highlight-indigo'>-70mV</span>):</strong> The cell is charged and ready (like a loaded spring). It stays ready by pumping 3 <span class='highlight-amber'>Sodium (Na+)</span> out and 2 <span class='highlight-amber'>Potassium (K+)</span> in.<br><strong>The Trigger (<span class='highlight-indigo'>-55mV</span>):</strong> If the signal isn't strong enough to hit this \"Threshold,\" nothing happens.<br><strong>The Fire (<span class='highlight-rose'>Depolarization</span>):</strong> Sodium rushes in, flipping the charge to positive.<br><strong>The Reset (<span class='highlight-rose'>Repolarization</span>):</strong> Potassium rushes out to bring the charge back down.",
-          "<strong>The Hand-off (The Synapse)</strong><br>Neurons never actually touch each other. They leave a tiny gap called a <span class='highlight-indigo'>Synaptic Cleft</span>.<br>When the electricity hits the end of the axon, it releases <span class='highlight-sage'>Neurotransmitters</span> (chemical keys).<br>These chemicals float across the gap and \"unlock\" the next neuron to start the process over again."
-        ],
-        keywords: ["neurons", "synapse", "action potential", "neurotransmitters", "CNS", "PNS", "myelin", "dendrites"],
-        clusters: [
-          {
-            name: "System Organization",
-            color: "indigo",
-            topics: ["Central Nervous System", "Peripheral Nervous System", "Autonomic vs Somatic"]
-          },
-          {
-            name: "Neuron Structure",
-            color: "sage",
-            topics: ["Dendrites", "Cell Body", "Axon", "Myelin Sheath"]
-          },
-          {
-            name: "Signal Transmission",
-            color: "amber",
-            topics: ["Action Potential", "Depolarization", "Repolarization", "Synaptic Transmission"]
-          }
-        ],
-        learningPath: [
-          { step: 1, title: "Nervous System Organization", tip: "Start with the big picture: CNS vs PNS divisions" },
-          { step: 2, title: "Neuron Anatomy & Function", tip: "Understand the hardware before the signals" },
-          { step: 3, title: "Action Potential Mechanism", tip: "Focus on ion movement: Na+ in, K+ out" },
-          { step: 4, title: "Synaptic Transmission", tip: "Learn how neurons communicate chemically" }
-        ],
-        quizQuestions: []
+        let folderHTML = `
+          <div class="tree-folder-block" style="margin-bottom: 0.5rem;">
+            <div class="tree-folder-header">
+              <div onclick="viewFolderLevelPath('${esc(fName)}')" style="cursor:pointer; display:flex; gap:0.5rem; align-items:center;">
+                <span style="background:${color}; width:14px; height:16px; border-radius:4px; display:inline-block;"></span>
+                <strong>${esc(fName)}</strong>
+              </div>
+              <span class="tree-count">${fileKeys.length}</span>
+            </div>
+            <div class="tree-folder-contents" style="margin-top: 0.25rem;">
+              ${internalFilesHTML || '<div class="tree-empty-hint">No projects inside</div>'}
+            </div>
+          </div>
+        `;
+        folderContainer.insertAdjacentHTML('beforeend', folderHTML);
       });
     }
-
-    return Promise.resolve({
-      title: "Study Notes Analysis",
-      summary: [
-        "Your notes cover key concepts and foundational knowledge",
-        "Multiple interconnected topics identified for structured learning",
-        "Important terms and definitions extracted for review",
-        "Learning path organized from basics to advanced concepts"
-      ],
-      keywords: ["concept", "definition", "process", "structure", "function", "relationship", "application", "example"],
-      clusters: [
-        {
-          name: "Core Concepts",
-          color: "sage",
-          topics: ["Fundamental principles", "Key definitions", "Basic structures"]
-        },
-        {
-          name: "Processes & Mechanisms",
-          color: "indigo",
-          topics: ["How things work", "Step-by-step procedures", "Cause and effect"]
-        },
-        {
-          name: "Applications",
-          color: "amber",
-          topics: ["Real-world examples", "Practical uses", "Case studies"]
-        }
-      ],
-      learningPath: [
-        { step: 1, title: "Foundation Concepts", tip: "Master the basics first" },
-        { step: 2, title: "Core Mechanisms", tip: "Understand how things work" },
-        { step: 3, title: "Advanced Topics", tip: "Build on your foundation" },
-        { step: 4, title: "Integration & Application", tip: "Connect all concepts together" }
-      ]
-    });
   }
+}
 
-  // ─── RENDER DASHBOARD ───────────────────────────────────────────────────────
-  function renderDashboard(data) {
-    // Summary
-    const summaryList = document.getElementById('summary-list');
-    summaryList.innerHTML = (data.summary || []).map(point =>
-      `<li class="summary-item">${point}</li>`
-    ).join('');
+// ─── SAVE MODAL SYSTEM ───────────────────────────────────────────────────────
+function openSaveModal() {
+  const incoming = localStorage.getItem('notizedData');
+  if (!incoming) return;
 
-    // Keywords
-    const chipsEl = document.getElementById('keyword-chips');
-    chipsEl.innerHTML = (data.keywords || []).map((kw, i) =>
-      `<span class="chip c${i % 3}">${esc(kw)}</span>`
-    ).join('');
+  document.getElementById('save-modal').style.display = 'flex';
+  const parsed = JSON.parse(incoming);
+  document.getElementById('save-notes-name').value = parsed.title || '';
+  
+  const library = getLibraryData();
+  const selectEl = document.getElementById('save-folder-select');
+  
+  let optionsHTML = `<option value="root_standalone">📄 Save Outside Folder (Standalone Note)</option>`;
+  optionsHTML += Object.keys(library.folders || {}).map(f => `<option value="${f}">📁 Folder: ${f}</option>`).join('');
+  selectEl.innerHTML = optionsHTML;
+}
 
-    // Stats
-    document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
-    document.getElementById('stat-clusters').textContent = (data.clusters || []).length;
-    document.getElementById('stat-steps').textContent    = (data.learningPath || []).length;
+function closeSaveModal() {
+  document.getElementById('save-modal').style.display = 'none';
+}
 
-    // Clusters
-    const clustersGrid = document.getElementById('clusters-grid');
-    const validColors = ['sage','indigo','amber','rose'];
-    clustersGrid.innerHTML = (data.clusters || []).map((cluster, i) => {
-      const color = validColors.includes(cluster.color) ? cluster.color : 'sage';
-      return `<div class="cluster-card cluster-${color} slide-up" style="animation-delay:${i*0.08}s;opacity:0"
-                onclick="toggleCluster(this)">
-        <div class="cluster-header">
-          <span class="cluster-name">⬡ ${esc(cluster.name)}</span>
-          <span class="cluster-count">${cluster.topics.length} topics</span>
-        </div>
-        <ul class="cluster-topics">
-          ${(cluster.topics || []).map(t =>
-            `<li class="cluster-topic"><span class="cluster-dot">·</span><span>${esc(t)}</span></li>`
-          ).join('')}
-        </ul>
-      </div>`;
-    }).join('');
+function confirmSaveNotes() {
+  const titleInput = document.getElementById('save-notes-name').value.trim();
+  const folderTarget = document.getElementById('save-folder-select').value;
+  
+  if (!titleInput) return alert('Please enter a valid project name.');
 
-    // Learning Path
-    const pathList = document.getElementById('path-list');
-    const pathItems = data.learningPath || [];
-    pathList.innerHTML = pathItems.map((step, i) => {
-      const isFirst = i === 0;
-      const isLast  = i === pathItems.length - 1;
-      const numClass = isFirst ? 'first' : isLast ? 'last' : '';
-      return `<div class="path-item slide-up" style="animation-delay:${i*0.1}s;opacity:0">
-        <div class="path-num ${numClass}">${step.step}</div>
-        <div class="path-card">
-          <div class="path-card-header">
-            <span class="path-card-title">${esc(step.title)}</span>
-            <span class="path-duration">${esc(step.duration)}</span>
-          </div>
-          <p class="path-tip"><span class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px">lightbulb</span> ${esc(step.tip)}</p>
-        </div>
-      </div>`;
-    }).join('');
-  }
+  const incoming = localStorage.getItem('notizedData');
+  if (!incoming) return;
+  
+  const incomingData = JSON.parse(incoming);
+  let library = getLibraryData();
 
-  // ─── TABS ────────────────────────────────────────────────────────────────────
-  function switchTab(name) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelector(`[data-tab="${name}"]`).classList.add('active');
-    document.getElementById('tab-' + name).classList.add('active');
+  if (!library.folders) library.folders = {};
+  if (!library.root_files) library.root_files = {};
 
-    // Re-trigger animations
-    document.querySelectorAll(`#tab-${name} .slide-up`).forEach(el => {
-      el.style.animation = 'none';
-      el.offsetHeight; // reflow
-      el.style.animation = '';
-    });
-  }
-
-  // ─── CLUSTER TOGGLE ─────────────────────────────────────────────────────────
-  function toggleCluster(el) {
-    const wasActive = el.classList.contains('active');
-    document.querySelectorAll('.cluster-card').forEach(c => c.classList.remove('active'));
-    if (!wasActive) el.classList.add('active');
-  }
-
-  // ─── UTILITY ─────────────────────────────────────────────────────────────────
-  function esc(str) {
-    if (!str) return '';
-    return String(str)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;');
-  }
-
-    // Tambahkan ini di paling bawah file script.js
-window.addEventListener('DOMContentLoaded', () => {
-    // Cek apakah kita sedang berada di halaman dashboard
-    const dashboardCheck = document.getElementById('screen-dashboard');
-    
-    if (dashboardCheck) {
-        const savedData = localStorage.getItem('notizedData');
-        if (savedData) {
-            const data = JSON.parse(savedData);
-            renderDashboard(data); // Memanggil fungsi render yang sudah ada
-        }
+  if (folderTarget === "root_standalone") {
+    library.root_files[titleInput] = incomingData;
+  } else {
+    if (!library.folders[folderTarget]) {
+      library.folders[folderTarget] = { color: "#6B8F71", path: [], files: {} };
     }
-});
+    library.folders[folderTarget].files[titleInput] = incomingData;
+
+    if ((!library.folders[folderTarget].path || library.folders[folderTarget].path.length === 0) && incomingData.learningPath) {
+      library.folders[folderTarget].path = incomingData.learningPath.map(p => `Global Core: ${p.title}`);
+    }
+  }
+
+  localStorage.setItem('notized_library', JSON.stringify(library));
+  localStorage.removeItem('notizedData');
+  
+  document.getElementById('btn-trigger-save').style.display = 'none';
+  closeSaveModal();
+  refreshWorkspaceTree();
+  loadSavedFile(folderTarget, titleInput);
+}
+
+// ─── RENDERING CONTENT CORE VIEW ─────────────────────────────────────────────
+function loadSavedFile(folder, fileKey) {
+  let library = getLibraryData();
+  let fileData = null;
+
+  if (folder === "root_standalone") {
+    fileData = library.root_files[fileKey];
+  } else {
+    fileData = library.folders[folder]?.files[fileKey];
+  }
+
+  if (!fileData) return;
+
+  document.getElementById('empty-workspace-state').style.display = 'none';
+  document.getElementById('active-project-workspace').style.display = 'block';
+  document.getElementById('active-project-title').textContent = fileKey;
+
+  renderProjectContent(fileData);
+}
+
+function viewFolderLevelPath(folderName) {
+  const library = getLibraryData();
+  const folderData = library.folders[folderName];
+  if (!folderData) return;
+
+  document.getElementById('empty-workspace-state').style.display = 'none';
+  document.getElementById('active-project-workspace').style.display = 'block';
+  document.getElementById('active-project-title').textContent = `${folderName} — Master Curriculum Guide`;
+
+  document.getElementById('summary-list').innerHTML = `<li>📁 This interface aggregates all structured sub-units inside the <strong>${folderName}</strong> subject category.</li>`;
+  document.getElementById('keyword-chips').innerHTML = `<span class="chip c0">${folderName} Grid</span>`;
+
+  document.getElementById('stat-keywords').textContent = "-";
+  document.getElementById('stat-clusters').textContent = "-";
+  document.getElementById('stat-steps').textContent = folderData.path ? folderData.path.length : "0";
+
+  const pathList = document.getElementById('path-list');
+  if (folderData.path && folderData.path.length > 0) {
+    pathList.innerHTML = folderData.path.map((stepTitle, i) => `
+      <div class="path-item">
+        <div class="path-num first">${i+1}</div>
+        <div class="path-card">
+          <div class="path-card-header"><span class="path-card-title">${esc(stepTitle)}</span></div>
+          <p class="path-tip">🎯 Global integration milestone requirement for the ${folderName} cluster matrix.</p>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    pathList.innerHTML = `<p class="path-intro">No integrated master paths recorded yet. Populate this area by saving your first analyzed note session.</p>`;
+  }
+}
+
+function renderProjectContent(data) {
+  document.getElementById('summary-list').innerHTML = (data.summary || []).map(point =>
+    `<li class="summary-item"><span class="summary-arrow">→</span><span>${point}</span></li>`
+  ).join('');
+
+  document.getElementById('keyword-chips').innerHTML = (data.keywords || []).map((kw, i) =>
+    `<span class="chip c${i % 3}">${esc(kw)}</span>`
+  ).join('');
+
+  document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
+  document.getElementById('stat-clusters').textContent = data.clusters ? data.clusters.length : "0";
+  document.getElementById('stat-steps').textContent = (data.learningPath || []).length;
+
+  const pathList = document.getElementById('path-list');
+  pathList.innerHTML = (data.learningPath || []).map((step, i) => `
+    <div class="path-item">
+      <div class="path-num">${step.step}</div>
+      <div class="path-card">
+        <div class="path-card-header">
+          <span class="path-card-title">${esc(step.title)}</span>
+          <span class="path-duration">${esc(step.duration)}</span>
+        </div>
+        <p class="path-tip">💡 ${esc(step.tip)}</p>
+      </div>
+    </div>
+  `).join('');
+}
+
+// Escape utility
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}

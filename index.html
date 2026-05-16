@@ -13,9 +13,6 @@
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════════
-     SCREEN: LANDING
-════════════════════════════════════════════════════ -->
 <div id="screen-landing" class="screen active">
   <nav class="nav">
     <div class="nav-logo">
@@ -42,8 +39,8 @@
       structured topics, and personalized learning paths — in seconds.
     </p>
     <div class="hero-ctas slide-up stagger-4">
-      <button class="btn-hero" onclick="showScreen('input')">Process My Notes</button>
-      <button class="btn-ghost" onclick="loadExample()">See Example →</button>
+      <button class="btn-hero" onclick="location.href='input.html'">Process My Notes</button>
+      <button class="btn-ghost" onclick="location.href='input.html?loadExample=true'">See Example →</button>
     </div>
 
     <div class="feature-grid slide-up stagger-5">
@@ -75,82 +72,7 @@
     </div>
   </div>
 
-  <div class="footer-strip">© 2025 Notized · Built for students, by students</div>
-</div>
-
-
-<!-- ═══════════════════════════════════════════════════
-     SCREEN: INPUT PORTAL
-════════════════════════════════════════════════════ -->
-<div id="screen-input" class="screen">
-  <div class="input-topbar">
-    <button class="btn-back" onclick="showScreen('landing')">← Back</button>
-    <div class="topbar-divider"></div>
-    <div class="nav-logo">
-      <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px;">
-        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
-      </span>
-      <span class="nav-wordmark" style="font-size:17px;">Notized</span>
-    </div>
-    <span class="topbar-crumb">/ New Session</span>
-  </div>
-
-  <div class="input-main">
-    <!-- Form view -->
-    <div id="input-form-view" class="fade-in">
-      <h2 class="input-h2 serif">Paste your notes</h2>
-      <p class="input-sub">Lecture notes, textbook excerpts, handwritten drafts — anything goes.</p>
-
-      <div class="textarea-wrapper">
-        <textarea id="notes-input"
-          placeholder="Start typing or paste your raw notes here…&#10;&#10;Example: Today in Biology we covered mitosis. The cell cycle has four phases: G1, S, G2, and M phase. During prophase, chromatin condenses into visible chromosomes..."
-          oninput="updateWordCount()"></textarea>
-        <div class="textarea-footer">
-          <span class="word-count" id="word-count">Tip: Longer notes = richer insights</span>
-          <button class="upload-btn" onclick="triggerFileUpload()">+ Upload file (.txt .pdf)</button>
-          <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
-        </div>
-      </div>
-
-      <div class="error-msg" id="error-msg"></div>
-
-      <div class="analyze-row">
-        <button class="btn-analyze" onclick="handleAnalyze()">
-          <span>✦</span> Analyze Notes
-        </button>
-        <span class="analyze-hint">Usually takes 10–20 seconds</span>
-      </div>
-
-      <div class="tips-grid">
-        <div class="tip-card">
-          <div class="tip-label">Works best with</div>
-          <div class="tip-text">Lecture notes, textbook chapters, study guides</div>
-        </div>
-        <div class="tip-card">
-          <div class="tip-label">Minimum length</div>
-          <div class="tip-text">~50 words for meaningful analysis</div>
-        </div>
-        <div class="tip-card">
-          <div class="tip-label">Supported format</div>
-          <div class="tip-text">Plain text, bullet points, mixed formats</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading view -->
-    <div id="loading-view" class="loading-view">
-      <div class="spinner-wrap">
-        <div class="spinner-ring"></div>
-        <span class="spinner-icon">✦</span>
-      </div>
-      <h3 class="loading-h3 serif">Processing your notes</h3>
-      <p class="loading-stage" id="loading-stage">Reading your notes…</p>
-      <div class="progress-track">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-      <p class="progress-pct" id="progress-pct">0%</p>
-    </div>
-  </div>
+  <div class="footer-strip">© 2026 Notized · Built for students, by students</div>
 </div>
 
 <script src="script.js"></script>

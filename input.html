@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notized — New Session</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="screen-input" class="screen active" style="display: flex;">
+  
+  <div class="input-topbar">
+    <button class="btn-back" onclick="location.href='index.html'">← Back</button>
+    <div class="topbar-divider"></div>
+    <div class="nav-logo">
+      <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px; background: var(--sage); display: flex; align-items: center; justify-content: center;">
+        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+      </span>
+      <span class="nav-wordmark" style="font-size:17px; font-family: 'DM Serif Display', serif; font-weight: bold;">Notized</span>
+    </div>
+    <span class="topbar-crumb">/ New Session</span>
+  </div>
+
+  <div class="input-main">
+    
+    <div id="input-form-view" class="fade-in">
+      <h2 class="input-h2 serif">Paste your notes</h2>
+      <p class="input-sub">Lecture notes, textbook excerpts, handwritten drafts — anything goes.</p>
+
+      <div class="textarea-wrapper">
+        <textarea id="notes-input"
+          placeholder="Start typing or paste your raw notes here…&#10;&#10;Example: Today in Biology we covered mitosis. The cell cycle has four phases: G1, S, G2, and M phase. During prophase, chromatin condenses into visible chromosomes..."
+          oninput="updateWordCount()"></textarea>
+        <div class="textarea-footer">
+          <span class="word-count" id="word-count">Tip: Longer notes = richer insights</span>
+          <button type="button" class="upload-btn" onclick="triggerFileUpload()">+ Upload file (.txt .pdf)</button>
+          <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
+        </div>
+      </div>
+
+      <div class="error-msg" id="error-msg"></div>
+
+      <div class="analyze-row">
+        <button type="button" class="btn-analyze" onclick="handleAnalyze()">
+          <span>✦</span> Analyze Notes
+        </button>
+        <span class="analyze-hint">Usually takes 10–20 seconds</span>
+      </div>
+
+      <div class="tips-grid">
+        <div class="tip-card">
+          <div class="tip-label">Works best with</div>
+          <div class="tip-text">Lecture notes, textbook chapters, study guides</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-label">Minimum length</div>
+          <div class="tip-text">~50 words for meaningful analysis</div>
+        </div>
+        <div class="tip-card">
+          <div class="tip-label">Supported format</div>
+          <div class="tip-text">Plain text, bullet points, mixed formats</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="loading-view" class="loading-view">
+      <div class="spinner-wrap">
+        <div class="spinner-ring"></div>
+        <span class="spinner-icon">✦</span>
+      </div>
+      <h3 class="loading-h3 serif">Processing your notes</h3>
+      <p class="loading-stage" id="loading-stage">Reading your notes…</p>
+      <div class="progress-track">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+      <p class="progress-pct" id="progress-pct">0%</p>
+    </div>
+    
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  // Fitur Otomatis mengisi data contoh jika diakses dari tombol "See Example" landing page
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('loadExample') === 'true' && typeof loadExample === 'function') {
+      loadExample();
+    }
+  });
+</script>
+</body>
+</html>
