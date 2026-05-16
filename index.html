@@ -7,6 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -105,8 +107,8 @@
           oninput="updateWordCount()"></textarea>
         <div class="textarea-footer">
           <span class="word-count" id="word-count">Tip: Longer notes = richer insights</span>
-          <button class="upload-btn" onclick="triggerFileUpload()">+ Upload .txt file</button>
-          <input type="file" id="file-input" accept=".txt,.md" style="display:none" onchange="handleFileUpload(event)" />
+          <button class="upload-btn" onclick="triggerFileUpload()">+ Upload file (.txt .pdf)</button>
+          <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
         </div>
       </div>
 
@@ -147,6 +149,86 @@
         <div class="progress-bar" id="progress-bar"></div>
       </div>
       <p class="progress-pct" id="progress-pct">0%</p>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCREEN: DASHBOARD
+════════════════════════════════════════════════════ -->
+<div id="screen-dashboard" class="screen">
+  <div class="dash-header">
+    <div class="dash-header-left">
+      <button class="btn-back" onclick="showScreen('input')">← Back</button>
+      <div class="topbar-divider"></div>
+      <div class="nav-logo">
+        <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px;">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+        </span>
+        <span class="nav-wordmark" style="font-size:17px;">Notized</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" data-tab="overview"  onclick="switchTab('overview')">Overview</button>
+    <button class="tab-btn"        data-tab="clusters"  onclick="switchTab('clusters')">Topic Clusters</button>
+    <button class="tab-btn"        data-tab="path"      onclick="switchTab('path')">Learning Path</button>
+  </div>
+
+  <div class="dash-content">
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview" class="tab-panel active">
+      <div class="overview-grid">
+        
+        <!-- Keywords card -->
+        <div class="card slide-up stagger-2">
+          <div class="card-header">
+            <span class="card-icon indigo">◈</span>
+            <span class="card-title">Keyword Radar</span>
+          </div>
+          <div class="keyword-chips" id="keyword-chips"></div>
+          <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
+        </div>
+
+        <!-- Summary card -->
+        <div class="card slide-up stagger-1">
+          <div class="card-header">
+            <span class="card-icon sage">✦</span>
+            <span class="card-title">Smart Summary</span>
+          </div>
+          <ul class="summary-list" id="summary-list"></ul>
+        </div>
+
+        <!-- Stat cards -->
+        <div class="stat-card slide-up stagger-3">
+          <span class="stat-icon indigo">◈</span>
+          <div><div class="stat-num" id="stat-keywords">0</div><div class="stat-label">Key Concepts</div></div>
+        </div>
+        <div class="stat-card slide-up stagger-4">
+          <span class="stat-icon sage">⬡</span>
+          <div><div class="stat-num" id="stat-clusters">0</div><div class="stat-label">Topic Clusters</div></div>
+        </div>
+        <div class="stat-card slide-up stagger-5">
+          <span class="stat-icon amber">↓</span>
+          <div><div class="stat-num" id="stat-steps">0</div><div class="stat-label">Study Steps</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLUSTERS TAB -->
+    <div id="tab-clusters" class="tab-panel">
+      <div class="clusters-grid" id="clusters-grid"></div>
+    </div>
+
+    <!-- PATH TAB -->
+    <div id="tab-path" class="tab-panel">
+      <p class="path-intro">Follow this sequence for maximum retention. Each step builds on the previous.</p>
+      <div class="path-wrap">
+        <div class="path-line"></div>
+        <div class="path-list" id="path-list"></div>
+      </div>
     </div>
   </div>
 </div>
