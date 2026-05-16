@@ -355,12 +355,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     position: fixed; 
     inset: 0; 
     background: rgba(28,26,22,0.4); 
+    display: none;
     align-items: center; 
     justify-content: center; 
     z-index: 1000; 
     animation: fadeIn 0.2s ease;
     display: none; /* <--- Diubah Jadi None Agar Tidak Nge-block Layar Pas Load Awal */
 }
+.modal-overlay.active { display: flex; }
 .modal-card { background: var(--white); border-radius: 16px; padding: 2.25rem; max-width: 440px; width: 100%; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
 .modal-card h3 { font-size: 22px; margin-bottom: 0.5rem; }
 .modal-card p { font-size: 14px; color: var(--ink-muted); line-height: 1.5; }

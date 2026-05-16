@@ -140,11 +140,11 @@ async function extractTextFromPDF(file) {
 }
 
 function loadExample() {
-  showScreen('input');
-  setTimeout(() => {
-    document.getElementById('notes-input').value = EXAMPLE_NOTES;
+  const inputArea = document.getElementById('notes-input');
+  if (inputArea) {
+    inputArea.value = EXAMPLE_NOTES;
     updateWordCount();
-  }, 100);
+  }
 }
 
 // ─── API KEY MANAGEMENT ──────────────────────────────────────────────────────
@@ -277,19 +277,17 @@ async function handleAnalyze() {
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ─── STORAGE MANAGEMENT (LOCALSTORAGE ENGINE) ────────────────────────────────
+// 🆕 FIX ENGINE: Inisialisasi struktur database kosong yang aman & clean
 function getLibraryData() {
   const data = localStorage.getItem('notized_library');
-  const defaultLibrary = {
+  if (data) return JSON.parse(data);
+
+  const freshLibrary = {
     "root_files": {},
-    "folders": {
-      "Science": {
-        "color": "#6B8F71",
-        "path": ["Understand basic cell division logic", "Master Neuron action potential mechanics"],
-        "files": {}
-      }
-    }
+    "folders": {}
   };
-  return data ? JSON.parse(data) : defaultLibrary;
+  localStorage.setItem('notized_library', JSON.stringify(freshLibrary));
+  return freshLibrary;
 }
 
 // ─── SIDEBAR DIRECT ACTION TRIGGER CONTROLLERS ───────────────────────────────
@@ -297,19 +295,30 @@ function openFolderCreatorDirect(event) {
   if (event) event.preventDefault();
   const folderModal = document.getElementById('folder-creator-card');
   if (folderModal) {
-    folderModal.style.display = 'flex';
-    document.getElementById('new-folder-name-input').focus();
+    // Gunakan setProperty 'important' agar browser wajib menampilkan flex center di layar luar
+    folderModal.style.setProperty('display', 'flex', 'important');
+    
+    // Auto-focus ke kolom input nama folder
+    setTimeout(() => {
+      const inputForm = document.getElementById('new-folder-name-input');
+      if (inputForm) inputForm.focus();
+    }, 50);
   }
 }
 
 function closeFolderCreatorCard() {
   const folderModal = document.getElementById('folder-creator-card');
   if (folderModal) {
-    folderModal.style.display = 'none';
-    document.getElementById('new-folder-name-input').value = '';
+    // Paksa browser menutup dan menyembunyikan overlay modal secara mutlak
+    folderModal.style.setProperty('display', 'none', 'important');
+    
+    // Reset isi ketikan di dalam input text
+    const inputForm = document.getElementById('new-folder-name-input');
+    if (inputForm) inputForm.value = '';
   }
 }
 
+// ─── UPDATE FUNGSI SAVE FOLDER DENGAN LOGIKA FAIL-SAFE ───
 function saveFolderFromCard() {
   const nameInput = document.getElementById('new-folder-name-input').value.trim();
   if (!nameInput) return alert("Please enter a subject name!");
@@ -319,15 +328,20 @@ function saveFolderFromCard() {
 
   if (library.folders[nameInput]) return alert("This folder already exists!");
 
+  // Definisikan warna aman (default Sage #6B8F71) jika dot warna belum sempat diklik
+  const finalColor = (typeof selectedFolderColor !== 'undefined' && selectedFolderColor) ? selectedFolderColor : "#6B8F71";
+
   library.folders[nameInput] = {
-    color: selectedFolderColor || "#6B8F71",
+    color: finalColor,
     path: [],
     files: {}
   };
 
   localStorage.setItem('notized_library', JSON.stringify(library));
-  closeFolderCreatorCard(); // Menutup modal tengah secara teratur
-  refreshWorkspaceTree();   // Me-render folder baru di sidebar kiri seketika
+  
+  closeFolderCreatorCard();
+  
+  refreshWorkspaceTree();
 }
 
 function goToNewNoteDirect(event) {
@@ -336,6 +350,7 @@ function goToNewNoteDirect(event) {
 }
 
 function selectColorDot(element) {
+  if (!element) return;
   document.querySelectorAll('.color-dot').forEach(dot => dot.classList.remove('active'));
   element.classList.add('active');
   selectedFolderColor = element.getAttribute('data-color') || "#6B8F71";
@@ -424,6 +439,7 @@ function openSaveModal() {
   selectEl.innerHTML = optionsHTML;
 }
 
+// Tutup modal save
 function closeSaveModal() {
   document.getElementById('save-modal').style.display = 'none';
 }
@@ -518,31 +534,41 @@ function viewFolderLevelPath(folderName) {
 }
 
 function renderProjectContent(data) {
-  document.getElementById('summary-list').innerHTML = (data.summary || []).map(point =>
-    `<li class="summary-item"><span class="summary-arrow">→</span><span>${point}</span></li>`
-  ).join('');
+  if (!data) return;
+  
+  const summaryList = document.getElementById('summary-list');
+  if (summaryList) {
+    summaryList.innerHTML = (data.summary || []).map(point =>
+      `<li class="summary-item"><span class="summary-arrow">→</span><span>${point}</span></li>`
+    ).join('');
+  }
 
-  document.getElementById('keyword-chips').innerHTML = (data.keywords || []).map((kw, i) =>
-    `<span class="chip c${i % 3}">${esc(kw)}</span>`
-  ).join('');
+  const keywordChips = document.getElementById('keyword-chips');
+  if (keywordChips) {
+    keywordChips.innerHTML = (data.keywords || []).map((kw, i) =>
+      `<span class="chip c${i % 3}">${esc(kw)}</span>`
+    ).join('');
+  }
 
-  document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
-  document.getElementById('stat-clusters').textContent = data.clusters ? data.clusters.length : "0";
-  document.getElementById('stat-steps').textContent = (data.learningPath || []).length;
+  if (document.getElementById('stat-keywords')) document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
+  if (document.getElementById('stat-clusters')) document.getElementById('stat-clusters').textContent = data.clusters ? data.clusters.length : "0";
+  if (document.getElementById('stat-steps')) document.getElementById('stat-steps').textContent = (data.learningPath || []).length;
 
   const pathList = document.getElementById('path-list');
-  pathList.innerHTML = (data.learningPath || []).map((step, i) => `
-    <div class="path-item">
-      <div class="path-num">${step.step}</div>
-      <div class="path-card">
-        <div class="path-card-header">
-          <span class="path-card-title">${esc(step.title)}</span>
-          <span class="path-duration">${esc(step.duration)}</span>
+  if (pathList) {
+    pathList.innerHTML = (data.learningPath || []).map((step, i) => `
+      <div class="path-item">
+        <div class="path-num">${step.step}</div>
+        <div class="path-card">
+          <div class="path-card-header">
+            <span class="path-card-title">${esc(step.title)}</span>
+            <span class="path-duration">${esc(step.duration)}</span>
+          </div>
+          <p class="path-tip">💡 ${esc(step.tip)}</p>
         </div>
-        <p class="path-tip">💡 ${esc(step.tip)}</p>
       </div>
-    </div>
-  `).join('');
+    `).join(''); // <─── SUDAH DITAMBAHKAN .join('') BIAR GA ERROR LAGI
+  }
 }
 
 // Escape utility
