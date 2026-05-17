@@ -1,80 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Notized — AI Study Companion</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script>
+    // Guard: Redirect immediately to dashboard if user is already logged in
+    if (localStorage.getItem('notized_currentUser')) {
+      window.location.href = 'dashboard.html';
+    }
+  </script>
 </head>
 <body>
 
-<div id="screen-landing" class="screen active">
   <nav class="nav">
     <div class="nav-logo">
-      <span class="nav-logo-icon">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
-      </span>
+      <div class="nav-logo-icon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+      </div>
       <span class="nav-wordmark">Notized</span>
     </div>
     
-    <div style="display: flex; gap: 1rem; align-items: center;">
-        <button class="btn-nav-secondary" onclick="location.href='dashboard.html'">Dashboard</button>
+    <div class="nav-actions">
+      <button class="btn-nav-secondary" onclick="openAuthModal('login')">Login</button>
+      <button class="btn-primary" onclick="openAuthModal('register')">Sign Up Free</button>
     </div>
   </nav>
 
-  <div class="hero">
-    <div class="hero-badge slide-up stagger-1">AI-Powered Study Companion</div>
-    <h1 class="hero-h1 serif slide-up stagger-2">
-      Turn chaotic notes into<br>
-      <em>clear understanding</em>
-    </h1>
-    <p class="hero-p slide-up stagger-3">
-      Paste your raw study notes. Notized transforms them into summaries, keyword maps,
-      structured topics, and personalized learning paths — in seconds.
-    </p>
-    <div class="hero-ctas slide-up stagger-4">
-      <button class="btn-hero" onclick="location.href='input.html'">Process My Notes</button>
-      <button class="btn-ghost" onclick="location.href='input.html?loadExample=true'">See Example →</button>
-    </div>
+  <header class="hero-section">
+    <div class="hero-container">
+      <div class="hero-badge slide-up stagger-1">✨ Next-Generation AI Study Portal</div>
+      <h1 class="hero-h1 slide-up stagger-2">
+        Turn chaotic notes into<br>
+        <span class="gradient-text">structured mastery</span>
+      </h1>
+      <p class="hero-p slide-up stagger-3">
+        Paste your raw study notes, lecture drafts, or textbooks. Notized instantly builds micro-summaries, structural concept clusters, visual radars, and dynamic dependency paths.
+      </p>
+      <div class="hero-ctas slide-up stagger-4">
+        <button class="btn-hero-primary" onclick="openAuthModal('register')">Get Started Instantly</button>
+        <button class="btn-hero-secondary" onclick="handleTrySampleBypass()">Try Sample Concept →</button>
+      </div>
 
-    <div class="feature-grid slide-up stagger-5">
-      <div class="feature-card">
-        <div class="feature-card-icon">✦</div>
-        <div class="feature-card-label">Smart Summary</div>
-        <div class="feature-card-desc">Dense notes distilled into crisp, scannable bullets</div>
+      <div class="feature-grid slide-up stagger-5">
+        <div class="feature-card">
+          <div class="feature-card-icon icon-cyan">✦</div>
+          <div class="feature-card-label">Smart Summary</div>
+          <div class="feature-card-desc">Dense notes distilled into beautiful, scannable hierarchies.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon icon-indigo">◈</div>
+          <div class="feature-card-label">Keyword Radar</div>
+          <div class="feature-card-desc">Crucial core ideas flagged automatically as tactical anchors.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon icon-emerald">⬡</div>
+          <div class="feature-card-label">Topic Clusters</div>
+          <div class="feature-card-desc">Related structural dimensions sorted cleanly with color cues.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-icon icon-amber">↓</div>
+          <div class="feature-card-label">Learning Path</div>
+          <div class="feature-card-desc">A sequenced journey organized by conceptual dependencies.</div>
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-card-icon">◈</div>
-        <div class="feature-card-label">Keyword Radar</div>
-        <div class="feature-card-desc">Key concepts surfaced as visual highlight chips</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-card-icon">⬡</div>
-        <div class="feature-card-label">Topic Clusters</div>
-        <div class="feature-card-desc">Related ideas grouped into intuitive categories</div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-card-icon">↓</div>
-        <div class="feature-card-label">Learning Path</div>
-        <div class="feature-card-desc">Sequenced study order based on concept dependency</div>
+
+      <div class="social-proof slide-up stagger-6">
+        <span class="stars">★★★★★</span>
+        <span>"Accelerated my medical board preparation tenfold." — Hana, Med Student</span>
       </div>
     </div>
+  </header>
 
-    <div class="social-proof slide-up stagger-6">
-      <span class="stars">★★★★★</span>
-      &nbsp;&nbsp;<em>"Finally, studying doesn't feel overwhelming."</em> — Hana, Medical Student
+  <div id="auth-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card auth-card animate-scale">
+      <div class="auth-toggle-header">
+        <button id="tab-login" class="auth-tab" onclick="switchAuthTab('login')">Login</button>
+        <button id="tab-register" class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+      </div>
+      
+      <p id="auth-description" class="auth-sub">Access your personal workspace and academic tracks.</p>
+      
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)">
+        <div id="field-name" class="input-group">
+          <label class="form-label">Username</label>
+          <input type="text" id="auth-name" placeholder="Enter your username" class="modal-input">
+        </div>
+        
+        <div class="input-group">
+          <label class="form-label">Email Address</label>
+          <input type="email" id="auth-email" placeholder="Enter your email address" class="modal-input" required>
+        </div>
+        
+        <div class="input-group">
+          <label class="form-label">Password</label>
+          <input type="password" id="auth-password" placeholder="Enter your password" class="modal-input" required>
+        </div>
+
+        <div id="auth-error" class="error-msg" style="display: none; margin-bottom: 1rem; position: static;"></div>
+
+        <div class="modal-actions auth-actions">
+          <button type="button" class="btn-secondary" onclick="closeAuthModal()">Cancel</button>
+          <button type="submit" id="btn-auth-submit" class="btn-primary">Proceed</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <div class="footer-strip">© 2026 Notized · Built for students, by students</div>
-</div>
+  <footer class="footer-strip">
+    <div>© 2026 Notized · Designed for high-performance learners</div>
+  </footer>
 
-<script src="js/common.js"></script>
-<script src="js/landing.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/landing.js"></script>
+  <script>
+    function handleTrySampleBypass() {
+      // Set status auth instan sebagai tamu sekali pakai
+      localStorage.setItem('notized_currentUser', 'Guest Client');
+      // Alihkan langsung ke dashboard membawa trigger contoh note
+      window.location.href = 'dashboard.html?loadExample=true';
+    }
+  </script>
 </body>
 </html>
