@@ -101,12 +101,16 @@ async function handleAnalyze() {
   const notes = document.getElementById('notes-input').value.trim();
   const errEl = document.getElementById('error-msg');
 
+  // Validasi awal kata
   if (!notes || notes.split(/\s+/).filter(Boolean).length < 10) {
     errEl.textContent = 'Please paste at least a paragraph of notes to process.';
     errEl.style.display = 'block';
     return;
   }
   errEl.style.display = 'none';
+
+  // ⚡ FIX UTAMA: Kunci dan simpan teks asli dari textarea ke localStorage sebelum masuk antrean loading
+  localStorage.setItem('current_raw_text', notes);
 
   document.getElementById('input-form-view').style.display = 'none';
   document.getElementById('loading-view').classList.add('active');
@@ -133,7 +137,7 @@ async function handleAnalyze() {
   }
 
   try {
-    // Use AI service layer (currently hardcoded, ready for ML integration)
+    // Memproses data lewat AI service layer bawaanmu
     const [result] = await Promise.all([
       analyzeNotes(notes),
       animateStages(),
@@ -151,5 +155,13 @@ async function handleAnalyze() {
     document.getElementById('loading-view').classList.remove('active');
     errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
     errEl.style.display = 'block';
+    
+    // Jika proses gagal, hapus cache operan sementara agar memori tidak penuh
+    localStorage.removeItem('current_raw_text');
   }
+}
+
+// Helper utility sleep (jika belum dideklarasikan di common.js, biar tidak unhandled error)
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }

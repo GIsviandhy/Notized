@@ -110,12 +110,10 @@
         <button type="button" class="context-menu-item" onclick="triggerDeleteNode()" style="display: flex; width: 100%; padding: 0.5rem 1rem; font-size: 13px; text-align: left; color: var(--rose); gap: 0.5rem;"><span class="material-icons" style="font-size: 16px;">Delete</span></button>
       </div>
 
-
       <!-- Right Content Area -->
-      <main class="workspace-main-pane">
+      <main class="workspace-main-pane" style="display: flex; flex-direction: column; padding: 0;">
 
-        <!-- Empty State -->
-        <div id="empty-workspace-state" class="empty-state">
+        <div id="empty-workspace-state" class="empty-state" style="padding: 8rem 2rem; margin: auto;">
           <div class="empty-icon" style="color: var(--ink-muted); margin-bottom: 1rem; display: flex; justify-content: center;">
             <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           </div>
@@ -123,69 +121,103 @@
           <p>Select a note from the sidebar or create a new one to get started.</p>
         </div>
 
-        <!-- Active Project View -->
-        <div id="active-project-workspace" style="display:none;">
-          <h1 id="active-project-title" class="serif active-title">Project Workspace</h1>
-          
-          <!-- Keyword Radar -->
-          <div class="card card-keywords">
-            <div class="card-header">
-              <span class="card-icon indigo">◈</span>
-              <span class="card-title">Keyword Radar</span>
+        <div id="active-project-workspace" style="display: none; flex-direction: column; height: 100%; overflow: hidden;">
+
+          <div class="workspace-header-sticky" style="padding: 2rem 4rem 1rem 4rem; background: var(--cream); border-bottom: 1px solid var(--border);">
+            <h1 id="active-project-title" class="serif active-title" style="margin-bottom: 1.5rem;">Project Workspace</h1>
+            
+            <div class="workspace-tabs-container">
+              <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
+              <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
+              <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
+              <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
             </div>
-            <div class="keyword-chips" id="keyword-chips"></div>
-            <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
           </div>
 
-          <!-- Smart Summary -->
-          <div class="card card-summary">
-            <div class="card-header">
-              <span class="card-icon sage">✦</span>
-              <span class="card-title">Smart Summary</span>
-            </div>
-            <ul class="summary-list" id="summary-list"></ul>
-          </div>
-
-          <!-- Statistics Cards -->
-          <div class="stats-container">
-            <div class="stat-card">
-              <span class="stat-icon indigo">◈</span>
-              <div>
-                <div class="stat-num" id="stat-keywords">0</div>
-                <div class="stat-label">Key Concepts</div>
+          <div class="workspace-tab-body-scroll" style="flex: 1; overflow-y: auto; padding: 3rem 4rem;">
+  
+            <div id="tab-raw" class="tab-content-panel active">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-icon indigo" style="display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+                  </span>
+                  <span class="card-title">Source Materials</span>
+                </div>
+                <div id="raw-notes-content-area" style="font-size: 15px; line-height: 1.8; color: var(--ink); white-space: pre-wrap; font-family: inherit;">No raw textual content bound to this project session.</div>
               </div>
             </div>
-            <div class="stat-card">
-              <span class="stat-icon sage">⬡</span>
-              <div>
-                <div class="stat-num" id="stat-clusters">0</div>
-                <div class="stat-label">Topic Clusters</div>
+
+            <div id="tab-summary" class="tab-content-panel">
+              <div class="card card-keywords">
+                <div class="card-header">
+                  <span class="card-icon indigo" style="display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+                  </span>
+                  <span class="card-title">Keyword Radar</span>
+                </div>
+                <div class="keyword-chips" id="keyword-chips"></div>
+                <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
+              </div>
+
+              <div class="card card-summary">
+                <div class="card-header">
+                  <span class="card-icon sage" style="display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  </span>
+                  <span class="card-title">Smart Summary</span>
+                </div>
+                <ul class="summary-list" id="summary-list"></ul>
               </div>
             </div>
-            <div class="stat-card">
-              <span class="stat-icon amber">↓</span>
-              <div>
-                <div class="stat-num" id="stat-steps">0</div>
-                <div class="stat-label">Study Steps</div>
+
+            <div id="tab-clusters" class="tab-content-panel">
+              <div class="stats-container">
+                <div class="stat-card">
+                  <span class="stat-icon indigo" style="display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="22" y1="12" x2="18" y2="12"></line><line x1="6" y1="12" x2="2" y2="12"></line><line x1="12" y1="6" x2="12" y2="2"></line><line x1="12" y1="22" x2="12" y2="18"></line></svg>
+                  </span>
+                  <div>
+                    <div class="stat-num" id="stat-keywords">0</div>
+                    <div class="stat-label">Key Concepts</div>
+                  </div>
+                </div>
+                <div class="stat-card">
+                  <span class="stat-icon sage" style="display: inline-flex; align-items: center; justify-content: center;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
+                  </span>
+                  <div>
+                    <div class="stat-num" id="stat-clusters">0</div>
+                    <div class="stat-label">Topic Clusters</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="clusters-section" style="margin-top: 1.5rem;">
+                <div class="clusters-grid" id="clusters-grid"></div>
+              </div>
+            </div>
+
+            <div id="tab-path" class="tab-content-panel">
+              
+              <div class="stat-card" style="margin-bottom: 2rem; width: 100%;">
+                <span class="stat-icon amber" style="display: inline-flex; align-items: center; justify-content: center;">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>
+                </span>
+                <div>
+                  <div class="stat-num" id="stat-steps">0</div>
+                  <div class="stat-label">Study Steps</div>
+                </div>
+              </div>
+
+              <div class="learning-path-section" style="border-top: none; padding-top: 0; margin-top: 0; width: 100%;">
+                <div class="path-wrap">
+                  <div class="path-line"></div>
+                  <div class="path-list" id="path-list"></div>
+                </div>
               </div>
             </div>
           </div>
-
-          <!-- Topic Clusters Section -->
-          <div class="clusters-section">
-            <h3 class="serif block-title">⬡ Topic Clusters</h3>
-            <div class="clusters-grid" id="clusters-grid"></div>
-          </div>
-
-          <!-- Learning Path Section -->
-          <div class="learning-path-section">
-            <h3 class="serif block-title">↓ Curated Learning Path</h3>
-            <div class="path-wrap">
-              <div class="path-line"></div>
-              <div class="path-list" id="path-list"></div>
-            </div>
-          </div>
-
         </div>
       </main>
 

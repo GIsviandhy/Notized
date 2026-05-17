@@ -10,19 +10,26 @@ let editingNodeId = null;    // Menyimpan ID folder yang sedang diedit
 
 // ─── INITIALIZATION ON LOAD ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // Render struktur pohon direktori multi-level pertama kali
   refreshWorkspaceTree();
 
-  // Cek jika ada data hasil analisis baru dari input portal
   const incomingData = localStorage.getItem('notizedData');
   if (incomingData) {
     document.getElementById('btn-trigger-save').style.display = 'block';
     const parsed = JSON.parse(incomingData);
     
+    const sessionRawText = localStorage.getItem('current_raw_text');
+    if (sessionRawText) {
+      parsed.rawText = sessionRawText; // Paksa suntik ke object parsed preview
+    }
+    
     document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'block';
+    document.getElementById('active-project-workspace').style.display = 'flex'; // Paksa pakai flex
+    
     renderProjectContent(parsed);
     document.getElementById('active-project-title').textContent = "Preview: " + (parsed.title || "Unsaved Note");
+    
+    // Otomatis arahkan ke tab pertama
+    switchWorkspaceTab('tab-raw');
   }
 });
 
@@ -31,7 +38,6 @@ function getLibraryData() {
   const data = localStorage.getItem('notized_library_tree');
   if (data) return JSON.parse(data);
 
-  // Default data awal jika localstorage kosong (Sesuai mockup impianmu)
   const defaultTree = [
     {
       id: "node_bio", name: "Biology", type: "folder", expanded: true,
@@ -39,8 +45,30 @@ function getLibraryData() {
         {
           id: "node_lec3", name: "Lecture 3", type: "folder", expanded: true,
           children: [
-            { id: "node_mitosis", name: "Mitosis", type: "file" },
-            { id: "node_meiosis", name: "Meiosis", type: "file" }
+            { 
+              id: "node_mitosis", 
+              name: "Mitosis", 
+              type: "file",
+              data: {
+                rawText: "Mitosis is a process of cell duplication, or reproduction, during which one cell gives rise to two genetically identical daughter cells. Strictly applied, the term mitosis is used to describe the duplication and distribution of chromosomes, the structures that carry the genetic information.",
+                summary: ["Mitosis results in two identical daughter cells.", "Core checkpoint processes align chromatids perfectly.", "Crucial for growth and tissue repair."],
+                keywords: ["Mitosis", "Cell Division", "Chromatids", "Chromosomes"],
+                clusters: [{ name: "Core Cycles", color: "sage", topics: ["Prophase", "Metaphase", "Anaphase", "Telophase"] }],
+                learningPath: [{ step: 1, title: "Replication Baseline", tip: "Understand G1/S phases before moving to M phase." }]
+              }
+            },
+            { 
+              id: "node_meiosis", 
+              name: "Meiosis", 
+              type: "file",
+              data: {
+                rawText: "Meiosis is a special type of cell division of germ cells in sexually-reproducing organisms used to produce the gametes, such as sperm or egg cells. It involves two rounds of division that ultimately result in four cells with only one copy of each chromosome.",
+                summary: ["Meiosis creates genetic diversity via 4 haploid gametes.", "Involves two successive nuclear divisions (Meiosis I and II).", "Essential for sexual reproduction."],
+                keywords: ["Meiosis", "Gametes", "Haploid", "Genetic Diversity"],
+                clusters: [{ name: "Reduction Division", color: "indigo", topics: ["Crossing Over", "Homologous Pairs"] }],
+                learningPath: [{ step: 1, title: "Meiotic Stages", tip: "Study the critical crossing-over phase in Prophase I." }]
+              }
+            }
           ]
         },
         { id: "node_lec5", name: "Lecture 5", type: "folder", expanded: false, children: [] }
@@ -49,7 +77,18 @@ function getLibraryData() {
     {
       id: "node_phys", name: "Physics", type: "folder", expanded: false,
       children: [
-        { id: "node_optics", name: "Optics", type: "file" }
+        { 
+          id: "node_optics", 
+          name: "Optics", 
+          type: "file",
+          data: {
+            rawText: "Optics is the branch of physics that studies the behaviour and properties of light, including its interactions with matter and the construction of instruments that use or detect it. Optics usually describes the behaviour of visible, ultraviolet, and infrared light.",
+            summary: ["Studies the behavior and properties of light waves.", "Covers reflection, refraction, and diffraction phenomena.", "Governs the build of lenses and microscopes."],
+            keywords: ["Optics", "Light Waves", "Refraction", "Lenses"],
+            clusters: [{ name: "Wave Phenomena", color: "amber", topics: ["Geometric Optics", "Physical Optics"] }],
+            learningPath: [{ step: 1, title: "Light Fundamentals", tip: "Master Snell's Law before calculating lens matrix focal points." }]
+          }
+        }
       ]
     }
   ];
@@ -68,7 +107,7 @@ function hexToRgbaTint(hex, opacity = 0.15) {
     c= '0x'+c.join('');
     return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+opacity+')';
   }
-  return 'rgba(107, 143, 113, 0.15)'; // Fallback warna sage transparan
+  return 'rgba(107, 143, 113, 0.15)'; 
 }
 
 // ─── SIDEBAR RETRACTABLE CONTROLLER (BUKA TUTUP PANEL) ──────────────────────
@@ -78,7 +117,6 @@ function toggleSidebar(event) {
   const sidebar = document.getElementById('workspace-sidebar');
   if (!sidebar) return;
 
-  // Langsung inject atau lepas class .collapsed
   if (sidebar.classList.contains('collapsed')) {
     sidebar.classList.remove('collapsed');
   } else {
@@ -405,7 +443,6 @@ function triggerDeleteNode() {
 function loadSavedFileNode(id, name, event) {
   if (event) event.stopPropagation();
   
-  // Mencari file data di memori local storage secara rekursif
   let treeData = getLibraryData();
   let foundFile = null;
 
@@ -417,31 +454,33 @@ function loadSavedFileNode(id, name, event) {
     return false;
   }
   
-  // Catatan: Jika file bawaan statis diklik, muat simulasi data visual
   if (id === "node_mitosis" || id === "node_meiosis" || id === "node_optics") {
     document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'block';
+    document.getElementById('active-project-workspace').style.display = 'flex'; 
     document.getElementById('active-project-title').textContent = name;
     
-    // Simulate project content object structured schema
-    renderProjectContent({
-      summary: ["Mitosis results in two identical daughter cells.", "Meiosis creates genetic diversity via 4 haploid gametes.", "Core checkpoint processes align chromatids perfectly."],
-      keywords: [name, "Cell Division", "Chromatids", "Anaphase"],
-      clusters: [{ name: "Core Cycles", color: "sage", topics: ["Prophase", "Metaphase"] }],
-      learningPath: [{ step: 1, title: "Replication Baseline", tip: "Understand G1/S phases." }]
-    });
+    findFile(treeData);
+    if (foundFile && foundFile.data) {
+      renderProjectContent(foundFile.data);
+    }
+    
+    switchWorkspaceTab('tab-raw'); 
     return;
   }
 
-  // Jika file kustom bikinanmu sendiri yang diklik, ambil data aslinya
   findFile(treeData);
   if (foundFile && foundFile.data) {
     document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'block';
+    document.getElementById('active-project-workspace').style.display = 'flex'; // Wajib flex
     document.getElementById('active-project-title').textContent = name;
+    
+    // Render data asli hasil simpanan (termasuk .rawText di dalamnya)
     renderProjectContent(foundFile.data);
+    
+    switchWorkspaceTab('tab-raw'); 
   }
 }
+
 
 // ─── SAVE PARSED NOTE TO CHOSEN NODE RECURSIVE ENGINE ───
 function openSaveModal() {
@@ -485,8 +524,13 @@ function confirmSaveNotes() {
   const incoming = localStorage.getItem('notizedData');
   if (!incoming) return;
   
-  const incomingData = JSON.parse(incoming);
+  let incomingData = JSON.parse(incoming);
   let treeData = getLibraryData();
+
+  const savedRawText = localStorage.getItem('current_raw_text') || "";
+  
+  incomingData.rawText = savedRawText; 
+  incomingData.notes = savedRawText; 
 
   const newFileNode = {
     id: "node_" + Date.now(),
@@ -513,8 +557,10 @@ function confirmSaveNotes() {
     insertToTargetFolder(treeData);
   }
 
+  // Simpan database permanen dan bersihkan cache operan sementara
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
   localStorage.removeItem('notizedData');
+  localStorage.removeItem('current_raw_text'); // Bersihkan memori operan
   
   document.getElementById('btn-trigger-save').style.display = 'none';
   closeSaveModal();
@@ -525,7 +571,11 @@ function confirmSaveNotes() {
 // ─── CONTENT RENDERING PANEL CORE ────────────────────────────────────────────
 function renderProjectContent(data) {
   if (!data) return;
-  
+
+const rawNotesArea = document.getElementById('raw-notes-content-area');
+  if (rawNotesArea) {
+    rawNotesArea.textContent = data.rawText || data.notes || "No raw text content available for this session.";
+  }  
   const summaryList = document.getElementById('summary-list');
   if (summaryList) {
     summaryList.innerHTML = (data.summary || []).map(point =>
@@ -586,4 +636,20 @@ function esc(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+function switchWorkspaceTab(targetTabId) {
+  // 1. Matikan status aktif di seluruh tombol tab header atas
+  document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+  
+  // 2. Sembunyikan seluruh isi panel konten tab body
+  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
+  
+  // 3. Nyalakan tombol tab yang sedang di-klik user
+  const clickedBtn = document.querySelector(`[onclick="switchWorkspaceTab('${targetTabId}')"]`);
+  if (clickedBtn) clickedBtn.classList.add('active');
+  
+  // 4. Munculkan isi panel target secara instan
+  const targetPanel = document.getElementById(targetTabId);
+  if (targetPanel) targetPanel.classList.add('active');
 }
