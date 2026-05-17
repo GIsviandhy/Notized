@@ -1,3 +1,16 @@
+// ============================================================================
+// DEPRECATED: This file has been split into separate modules
+// ============================================================================
+// 
+// New structure:
+// - js/common.js    - Shared utilities (PDF extraction, API calls, storage)
+// - js/landing.js   - Landing page (index.html)
+// - js/input.js     - Input page (input.html)
+// - js/dashboard.js - Dashboard page (dashboard.html)
+//
+// This file is kept for backward compatibility only.
+// ============================================================================
+
 // Set the worker source for PDF.js (uses the CDN version to match your HTML)
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 

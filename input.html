@@ -14,18 +14,19 @@
 <body>
 
 <div id="screen-input" class="screen active" style="display: flex;">
-  
-  <div class="input-topbar">
-    <button class="btn-back" onclick="location.href='index.html'">← Back</button>
-    <div class="topbar-divider"></div>
+  <nav class="nav">
     <div class="nav-logo">
-      <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px; background: var(--sage); display: flex; align-items: center; justify-content: center;">
-        <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+      <span class="nav-logo-icon">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
       </span>
-      <span class="nav-wordmark" style="font-size:17px; font-family: 'DM Serif Display', serif; font-weight: bold;">Notized</span>
+      <span class="nav-wordmark">Notized</span>
     </div>
-    <span class="topbar-crumb">/ New Session</span>
-  </div>
+    
+    <div style="display: flex; gap: 1rem; align-items: center;">
+        <button class="btn-nav-secondary" onclick="location.href='dashboard.html'">Dashboard</button>
+        <button class="btn-primary" onclick="location.href='input.html'">Start Free →</button>
+    </div>
+  </nav>
 
   <div class="input-main">
     
@@ -85,9 +86,11 @@
   </div>
 </div>
 
-<script src="script.js"></script>
+<script src="js/common.js"></script>
+<script src="js/ai-service.js"></script>
+<script src="js/input.js"></script>
 <script>
-  // Fitur Otomatis mengisi data contoh jika diakses dari tombol "See Example" landing page
+  // Auto-load example if requested
   window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('loadExample') === 'true' && typeof loadExample === 'function') {

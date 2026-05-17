@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Notized — Workspace Studio</title>
+  <title>Notized — Dashboard</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   
@@ -12,12 +12,13 @@
 </head>
 <body>
 
+  <!-- Save Modal -->
   <div id="save-modal" class="modal-overlay" style="display:none;">
     <div class="modal-card">
       <h3 class="serif">Save Analysis to Project</h3>
       <p>Give this document a clear name and select the target subject folder.</p>
       
-      <input type="text" id="save-notes-name" placeholder="e.g., Bab 1: Neuron & Sinapsis" class="modal-input">
+      <input type="text" id="save-notes-name" placeholder="e.g., Chapter 1: Neurons" class="modal-input">
       
       <label style="font-size: 12px; margin-top: 1rem; display: block; color: var(--ink-muted);">Select Destination Folder:</label>
       <select id="save-folder-select" class="modal-input" style="margin-top: 0.25rem;">
@@ -30,14 +31,15 @@
     </div>
   </div>
 
+  <!-- Folder Creator Modal -->
   <div id="folder-creator-card" class="modal-overlay" style="display: none;">
     <div class="modal-card">
-      <h3 class="serif">Create New Subject</h3>
-      <p style="font-size: 14px; color: var(--ink-muted); margin-bottom: 1rem;">Give your new subject directory a name and choose a visual color identity.</p>
+      <h3 class="serif">Create New Folder</h3>
+      <p style="font-size: 14px; color: var(--ink-muted); margin-bottom: 1rem;">Give your new folder a name and choose a color theme.</p>
       
-      <input type="text" id="new-folder-name-input" class="modal-input" placeholder="Subject name (e.g., Biology, Alpro)..." style="margin-top: 0;">
+      <input type="text" id="new-folder-name-input" class="modal-input" placeholder="Folder name (e.g., Biology, Physics)..." style="margin-top: 0;">
       
-      <div class="color-picker-label" style="font-size: 12px; font-weight: 500; margin: 1rem 0 0.5rem 0; color: var(--ink-muted);">Color Coordinate Theme:</div>
+      <div class="color-picker-label" style="font-size: 12px; font-weight: 500; margin: 1rem 0 0.5rem 0; color: var(--ink-muted);">Color Theme:</div>
       <div class="color-palette-options">
         <span class="color-dot active" data-color="#6B8F71" style="background: #6B8F71;" onclick="selectColorDot(this)"></span>
         <span class="color-dot" data-color="#4A5586" style="background: #4A5586;" onclick="selectColorDot(this)"></span>
@@ -52,74 +54,81 @@
     </div>
   </div>
 
+  <!-- Main Dashboard Layout -->
   <div class="workspace-layout">
     
-    <header class="workspace-header">
-      <div class="header-left">
-        <button class="btn-back" onclick="location.href='index.html'">← New Session</button>
-        <div class="topbar-divider"></div>
-        <div class="nav-logo">
-          <span class="nav-logo-icon" style="width:24px;height:24px;border-radius:5px; background: var(--sage); display: flex; align-items: center; justify-content: center;">
-            <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
-          </span>
-          <span class="nav-wordmark" style="font-size:17px; font-family: 'DM Serif Display', serif; font-weight: bold;">Notized Workspace</span>
-        </div>
+    <!-- Top Navigation -->
+    <nav class="nav dashboard-nav">
+      <div class="nav-logo">
+        <span class="nav-logo-icon">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+        </span>
+        <span class="nav-wordmark">Notized</span>
       </div>
-      <div class="header-right">
-        <button id="btn-trigger-save" class="btn-save-action" onclick="openSaveModal()" style="display:none;">📥 Save Current Analysis</button>
+      
+      <div style="display: flex; gap: 1rem; align-items: center;">
+        <button class="btn-nav-secondary" onclick="location.href='index.html'">Home</button>
+        <button class="btn-nav-secondary" onclick="location.href='input.html'">New Note</button>
+        <button id="btn-trigger-save" class="btn-primary" onclick="openSaveModal()" style="display:none;">📥 Save Analysis</button>
       </div>
-    </header>
+    </nav>
 
+    <!-- Main Content Area -->
     <div class="workspace-content">
       
+      <!-- Left Sidebar -->
       <aside class="workspace-sidebar-pane">
-        <div class="sidebar-action-header">
-          <div class="sidebar-direct-actions" style="display: flex; gap: 0.4rem;">
-            <button type="button" class="btn-add-folder-trigger" onclick="openFolderCreatorDirect(event)">📁 New Folder</button>
-            <button type="button" class="btn-add-folder-trigger" onclick="goToNewNoteDirect(event)">📄 New Note</button>
-          </div>
+        <div class="sidebar-header">
+          <button type="button" class="btn-add-folder" onclick="openFolderCreatorDirect(event)">
+            <span style="font-size: 16px;">+</span>
+          </button>
         </div>
         
-        <div class="root-files-section" style="margin-bottom: 1.5rem; display: none;">
+        <div class="root-files-section" style="display: none;">
           <span class="sub-section-title">📄 Notes</span>
-          <div id="loose-files-container" class="tree-folder-contents" style="padding-left: 0;"></div>
+          <div id="loose-files-container" class="tree-folder-contents"></div>
         </div>
 
         <div class="folders-section" style="display: none;">
           <span class="sub-section-title">📁 Folders</span>
-          <div id="folders-root-container" class="folders-tree" style="margin-top: 0.5rem;"></div>
+          <div id="folders-root-container" class="folders-tree"></div>
         </div>
       </aside>
 
+      <!-- Right Content Area -->
       <main class="workspace-main-pane">
 
+        <!-- Empty State -->
         <div id="empty-workspace-state" class="empty-state">
           <div class="empty-icon">📂</div>
-          <h3 class="serif">Select a specific project node or tap a subject folder path inside the left tree pane to start studying.</h3>
+          <h3 class="serif">Welcome to your workspace</h3>
+          <p>Select a note from the sidebar or create a new one to get started.</p>
         </div>
 
+        <!-- Active Project View -->
         <div id="active-project-workspace" style="display:none;">
           <h1 id="active-project-title" class="serif active-title">Project Workspace</h1>
           
-          <div class="overview-grid">
-            <div class="card">
-              <div class="card-header">
-                <span class="card-icon sage">✦</span>
-                <span class="card-title">Smart Summary</span>
-              </div>
-              <ul class="summary-list" id="summary-list"></ul>
+          <!-- Keyword Radar -->
+          <div class="card card-keywords">
+            <div class="card-header">
+              <span class="card-icon indigo">◈</span>
+              <span class="card-title">Keyword Radar</span>
             </div>
-
-            <div class="card">
-              <div class="card-header">
-                <span class="card-icon indigo">◈</span>
-                <span class="card-title">Keyword Radar</span>
-              </div>
-              <div class="keyword-chips" id="keyword-chips"></div>
-              <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
-            </div>
+            <div class="keyword-chips" id="keyword-chips"></div>
+            <div class="chip-tip">💡 Scan these chips first when reviewing. They anchor the core ideas.</div>
           </div>
 
+          <!-- Smart Summary -->
+          <div class="card card-summary">
+            <div class="card-header">
+              <span class="card-icon sage">✦</span>
+              <span class="card-title">Smart Summary</span>
+            </div>
+            <ul class="summary-list" id="summary-list"></ul>
+          </div>
+
+          <!-- Statistics Cards -->
           <div class="stats-container">
             <div class="stat-card">
               <span class="stat-icon indigo">◈</span>
@@ -144,8 +153,15 @@
             </div>
           </div>
 
+          <!-- Topic Clusters Section -->
+          <div class="clusters-section">
+            <h3 class="serif block-title">⬡ Topic Clusters</h3>
+            <div class="clusters-grid" id="clusters-grid"></div>
+          </div>
+
+          <!-- Learning Path Section -->
           <div class="learning-path-section">
-            <h3 class="serif block-title">↓ Curated Learning Path Sequence</h3>
+            <h3 class="serif block-title">↓ Curated Learning Path</h3>
             <div class="path-wrap">
               <div class="path-line"></div>
               <div class="path-list" id="path-list"></div>
@@ -158,6 +174,7 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script src="js/common.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>
