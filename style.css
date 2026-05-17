@@ -60,7 +60,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .nav-logo { display: flex; align-items: center; gap: 0.5rem; }
 .nav-logo-icon { width: 28px; height: 28px; background: var(--sage); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
 .nav-wordmark { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: -0.02em; }
-.btn-primary { background: var(--ink); color: white; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all 0.2s ease; }
+.btn-primary { background: var(--sage); color: white; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-flex;align-items: center; justify-content: center; gap: 0.45rem; line-height: 1; box-shadow: var(--shadow-sm); transition: all 0.2s ease; }
 .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
 
 .btn-nav-secondary { color: var(--ink-muted); font-size: 14px; font-weight: 500; padding: 0.5rem 1.25rem; border-radius: 8px; transition: all 0.2s ease; }
@@ -127,29 +127,58 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .workspace-layout {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh; /* Kunci mati tinggi viewport agar sidebar ditarik penuh */
     background: var(--cream);
+    overflow: hidden;
 }
 
 .workspace-content {
     display: flex;
-    flex: 1;
+    flex: 1; /* Ambil seluruh sisa ruang tinggi di bawah topbar nav */
     width: 100%;
-    height: calc(100vh - 73px);
+    position: relative;
     overflow: hidden;
 }
 
-/* Sidebar */
+/* ── 🆕 RETRACTABLE SIDEBAR ARCHITECTURE (CLEAN FIXED) ── */
 .workspace-sidebar-pane {
+    position: relative;
     width: 280px;
     background: var(--white);
     border-right: 1px solid var(--border);
     padding: 0;
     flex-shrink: 0;
-    overflow-y: auto;
-    height: 100%;
+    height: 100%; /* Memanjang kokoh 100% sampai ujung bawah layar */
     display: flex;
     flex-direction: column;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Efek ciut super smooth */
+}
+
+/* Trigger Class Terlipat Pas Tombol Hamburger Atas Diklik */
+.workspace-sidebar-pane.collapsed {
+    width: 0px !important;
+    border-right-color: transparent !important;
+    overflow: hidden; /* Sembunyikan elemen agar tidak tembus keluar */
+}
+
+/* ── 🆕 TOP NAVBAR HAMBURGER MENU STYLE ── */
+#sidebar-toggle-btn {
+    background: transparent;
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+#sidebar-toggle-btn:hover {
+    background: var(--sage-light);
+}
+
+#sidebar-toggle-btn:hover svg path {
+    stroke: var(--sage); /* Garis ikon berubah sage pas mouse mendekat */
 }
 
 .sidebar-header {
@@ -218,27 +247,29 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     justify-content: space-between;
     align-items: center;
     padding: 0.65rem 0.85rem;
-    background: var(--sage-light);
-    color: var(--sage);
     border-radius: 8px;
     font-weight: 600;
     font-size: 13px;
     cursor: pointer;
+    margin-bottom: 0.25rem;
+    border: 1px solid transparent;
     transition: all 0.2s ease;
+    
+    background-color: var(--sage-light);
+    color: var(--sage);
 }
 
 .tree-folder-header:hover {
-    background: var(--sage-mid);
-    color: var(--ink);
+    filter: brightness(0.95);
 }
 
 .tree-count {
     font-size: 10px;
-    background: var(--white);
+    background: rgba(255, 255, 255, 0.6);
     padding: 0.15rem 0.5rem;
     border-radius: 10px;
-    color: var(--sage);
-    font-weight: 500;
+    color: inherit;
+    font-weight: 600;
 }
 
 .tree-folder-contents {
@@ -278,13 +309,29 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     text-align: center;
 }
 
-/* Main Content */
+/* ── CONTEXT MENU & DRAG VISUAL STATES ── */
+.context-menu-item:hover {
+    background: var(--cream);
+    color: var(--sage) !important;
+}
+.tree-node-row.dragging {
+    opacity: 0.4;
+    background: var(--sage-light);
+    border: 1px dashed var(--sage);
+}
+.tree-node-row.drag-over {
+    background: var(--sage-light);
+    border: 1px solid var(--sage);
+}
+
+/* Kolom Kanan Utama Workspace (Melebar Otomatis Pas Sidebar Ditutup) */
 .workspace-main-pane {
     flex: 1;
     padding: 3rem 4rem;
     background: var(--cream);
     overflow-y: auto;
     height: 100%;
+    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .empty-state {
@@ -484,23 +531,6 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     box-shadow: var(--shadow-md);
 }
 
-.stat-icon {
-    font-size: 28px;
-    flex-shrink: 0;
-}
-
-.stat-icon.sage {
-    color: var(--sage);
-}
-
-.stat-icon.indigo {
-    color: var(--indigo);
-}
-
-.stat-icon.amber {
-    color: var(--amber);
-}
-
 .stat-num {
     font-size: 32px;
     font-weight: 600;
@@ -545,32 +575,6 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
     border-bottom: 1px solid var(--border);
-}
-
-.cluster-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    flex-shrink: 0;
-}
-
-.cluster-icon.sage {
-    background: var(--sage-light);
-    color: var(--sage);
-}
-
-.cluster-icon.indigo {
-    background: var(--indigo-light);
-    color: var(--indigo);
-}
-
-.cluster-icon.amber {
-    background: var(--amber-light);
-    color: var(--amber);
 }
 
 .cluster-name {
@@ -707,19 +711,23 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     line-height: 1.6;
 }
 
-/* ── ARCHIVE SAVE & CREATOR MODAL OVERLAY SYSTEM (MODAL OVERLAY FIXED) ── */
+/* ── ARCHIVE SAVE & CREATOR MODAL OVERLAY SYSTEM ── */
 .modal-overlay { 
     position: fixed; 
     inset: 0; 
     background: rgba(28,26,22,0.4); 
-    display: none;
     align-items: center; 
     justify-content: center; 
     z-index: 1000; 
     animation: fadeIn 0.2s ease;
-    display: none; /* <--- Diubah Jadi None Agar Tidak Nge-block Layar Pas Load Awal */
+    display: none; 
 }
-.modal-overlay.active { display: flex; }
+
+/* State Aktif Suntikan JavaScript Rata Tengah */
+.modal-overlay.active { 
+    display: flex !important; 
+}
+
 .modal-card { background: var(--white); border-radius: 16px; padding: 2.25rem; max-width: 440px; width: 100%; box-shadow: var(--shadow-lg); border: 1px solid var(--border); }
 .modal-card h3 { font-size: 22px; margin-bottom: 0.5rem; }
 .modal-card p { font-size: 14px; color: var(--ink-muted); line-height: 1.5; }
@@ -727,6 +735,28 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.75rem; }
 .btn-secondary { background: var(--cream-dark); color: var(--ink); padding: 0.6rem 1.25rem; border-radius: 8px; font-size: 14px; font-weight: 500; }
 .btn-secondary:hover { background: #e0dbd0; }
+
+/* ── 🆕 PALETTE DOT INTERACTION STATE FIX ── */
+.color-palette-options {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.35rem;
+}
+.color-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+.color-dot:hover {
+    transform: scale(1.1);
+}
+.color-dot.active {
+    border-color: var(--ink) !important;
+    box-shadow: var(--shadow-sm);
+}
 
 @media (max-width: 640px) {
     .overview-grid { grid-template-columns: 1fr; }
