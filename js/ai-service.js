@@ -91,27 +91,23 @@ async function analyzeWithHardcodedLogic(notesText) {
   const learningPath = [
     {
       step: 1,
-      title: "Introduction & Overview",
-      duration: "15 min",
-      tip: "Start by understanding the main concepts"
+      title: "1. The Big Picture (Organization)",
+      tip: "Master the split between CNS (CPU) and PNS (Nerves), and how Sympathetic (Fight/Flight) balances Parasympathetic (Rest/Digest)."
     },
     {
       step: 2,
-      title: "Deep Dive into Details",
-      duration: "25 min",
-      tip: "Focus on understanding each component"
+      title: "2. The Hardware (Neuron Anatomy)",
+      tip: "Trace the one-way electrical street: Signals travel from the Dendrite antennas, through the Soma engine, and down the insulated Axon highway."
     },
     {
       step: 3,
-      title: "Connections & Relationships",
-      duration: "20 min",
-      tip: "See how different concepts relate to each other"
+      title: "3. The Signal (Action Potential)",
+      tip: "Memorize the All-or-Nothing rule: Cells rest at -70mV (pumping 3 Na+ out / 2 K+ in), trigger at -55mV, fire via Depolarization, and reset via Repolarization."
     },
     {
       step: 4,
-      title: "Review & Practice",
-      duration: "15 min",
-      tip: "Test your understanding with examples"
+      title: "4. The Hand-off (The Synapse)",
+      tip: "Visualize the Synaptic Cleft gap where electrical signals convert to chemical keys (Neurotransmitters) to unlock the next neuron."
     }
   ];
 

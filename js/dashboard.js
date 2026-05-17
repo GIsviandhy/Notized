@@ -298,7 +298,6 @@ function renderProjectContent(data) {
         <div class="path-card">
           <div class="path-card-header">
             <span class="path-card-title">${esc(step.title)}</span>
-            <span class="path-duration">${esc(step.duration)}</span>
           </div>
           <p class="path-tip">💡 ${esc(step.tip)}</p>
         </div>
