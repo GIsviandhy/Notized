@@ -29,7 +29,7 @@ function getRegisteredUsers() {
   return users ? JSON.parse(users) : [];
 }
 
-// Fungsi untuk merender ulang isi navbar
+// Fungsi untuk merender ulang isi navbar (Tombol Login VS Avatar Profil)
 function renderNavbarAuth() {
   const container = document.getElementById('nav-auth-container');
   if (!container) return;
@@ -159,6 +159,7 @@ function openAuthModal(mode = "login") {
     switchText.textContent = "Don't have an account?";
     switchLink.textContent = "Sign Up Free";
   } else {
+    // Mode: "signup"
     titleEl.textContent = "Create Account";
     descEl.textContent = "Join Notized to optimize your notes and learning paths.";
     nameField.style.display = 'flex';

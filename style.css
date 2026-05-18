@@ -322,6 +322,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .btn-sidebar-action.rename:hover { color: var(--amber) !important; }
 .btn-sidebar-action.delete:hover { color: var(--rose) !important; }
 
+#folder-overview-wrapper div[style*="display: grid"] {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+    gap: 1.25rem !important;
+    width: 100% !important;
+    max-width: 1000px;
+}
+
 .btn-overview-action {
   transition: all 0.2s ease-in-out;
 }
@@ -512,6 +520,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
+    flex: 1; 
+    width: 100%;
 }
 
 #raw-notes-content-area {
@@ -601,7 +611,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     margin-bottom: 1.5rem;
     
     width: 100%;
-    max-width: 100%;
+    max-width: 1000px; /* 🎯 FIX: Batasi lebar maksimal biar sedap dipandang di layar lebar */
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -991,6 +1001,27 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .color-dot.active {
     border-color: var(--ink) !important;
     box-shadow: var(--shadow-sm);
+}
+
+#tab-path .stat-card {
+    margin-bottom: 2.5rem !important; 
+}
+
+.learning-path-section {
+    margin-top: 1.5rem !important;
+    padding-top: 0 !important;
+}
+
+.path-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem !important; 
+}
+
+.path-line {
+    left: 21px;
+    top: 44px;
+    bottom: 44px;
 }
 
 @media (max-width: 640px) {

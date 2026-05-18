@@ -10,7 +10,6 @@ let editingNodeId = null;    // Menyimpan ID folder yang sedang diedit
 let currentSelectedNodeId = null; // Menyimpan ID item yang sedang dipilih untuk preview
 
 // ─── INITIALIZATION ON LOAD ──────────────────────────────────────────────────
-// ─── 🔒 LOCK INITIAL LOAD: SEMBUNYIKAN TOMBOL ACTION PAS PREVIEW ───
 window.addEventListener('DOMContentLoaded', () => {
   // 1. Suntikkan teks user secara dinamis (tanpa nama default)
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -27,7 +26,20 @@ window.addEventListener('DOMContentLoaded', () => {
   const incomingData = localStorage.getItem('notizedData');
   
   if (incomingData) {
-    document.getElementById('btn-trigger-save').style.display = 'block';
+    // FORCE SHOW: Paksa memunculkan tombol Save Note pas lagi Preview baru
+    const saveBtn = document.getElementById('btn-trigger-save');
+    if (saveBtn) {
+      saveBtn.style.setProperty('display', 'flex', 'important');
+    }
+
+    // FIX MUTLAK: Sembunyikan tombol "New Note" di navbar khusus pas lagi Preview
+    const navButtons = document.querySelectorAll('.dashboard-nav button');
+    navButtons.forEach(btn => {
+      if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+        btn.style.setProperty('display', 'none', 'important');
+      }
+    });
+    
     const parsed = JSON.parse(incomingData);
     
     const sessionRawText = localStorage.getItem('current_raw_text');
@@ -146,7 +158,6 @@ function findNodeById(nodes, id) {
   return null;
 }
 
-// Menghindari eror "isNodeChildOf is not defined" pas drop folder
 function isNodeChildOf(nodes, folderId, targetId) {
   const folderNode = findNodeById(nodes, folderId);
   if (!folderNode || !folderNode.children) return false;
@@ -174,7 +185,6 @@ function hexToRgbaTint(hex, opacity = 0.15) {
   return 'rgba(107, 143, 113, 0.15)'; 
 }
 
-// ─── SIDEBAR RETRACTABLE CONTROLLER ──────────────────────────────────────────
 function toggleSidebar(event) {
   if (event) event.preventDefault();
   const sidebar = document.getElementById('workspace-sidebar');
@@ -186,7 +196,6 @@ function toggleSidebar(event) {
   }
 }
 
-// ─── RECURSIVE SIDEBAR TREE RENDERING ────────────────────────────────────────
 function refreshWorkspaceTree() {
   const treeContainer = document.getElementById('nested-directory-root');
   if (!treeContainer) return;
@@ -199,7 +208,6 @@ function refreshWorkspaceTree() {
   }
 }
 
-// ─── RECURSIVE ENGINE: MARKUP BUILDER (FIX PANAH SIDEBAR & OVERVIEW SPLIT) ───
 function buildTreeHTML(nodes) {
   return nodes.map(node => {
     if (node.type === "folder") {
@@ -325,10 +333,6 @@ function closeFolderCreatorCard() {
     isEditMode = false;
     editingNodeId = null;
   }
-  const colorPickerLabel = document.querySelector('.color-picker-label');
-  const colorOptions = document.querySelectorAll('.color-palette-options');
-  if (colorPickerLabel) colorPickerLabel.style.display = 'block';
-  if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
 }
 
 function selectColorDot(element) {
@@ -338,7 +342,6 @@ function selectColorDot(element) {
   selectedFolderColor = element.getAttribute('data-color') || "#6B8F71";
 }
 
-// ─── 🛡️ ADAPTASI LOGIKA DRAG & DROP TEMAN (SUDAH SINKRON) ────────────────────
 function bindDragAndDropEvents() {
   const rows = document.querySelectorAll('.tree-node-row');
   rows.forEach(row => {
@@ -470,7 +473,6 @@ function bindDragAndDropEvents() {
   });
 }
 
-// ─── OVERVIEW ACTION HANDLERS (MODAL RENAME & DELETE INTEGRATION) ────────────
 function triggerRenameNode() {
   if (!currentRightClickedNodeId) return;
   
@@ -487,26 +489,9 @@ function triggerRenameNode() {
     if (targetNode.type === "file") {
       document.getElementById('modal-folder-title').textContent = "Rename Note";
       document.getElementById('btn-submit-folder').textContent = "Save Name";
-      const colorPickerLabel = document.querySelector('.color-picker-label');
-      const colorOptions = document.querySelectorAll('.color-palette-options');
-      if (colorPickerLabel) colorPickerLabel.style.display = 'none';
-      if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'none');
     } else {
       document.getElementById('modal-folder-title').textContent = "Rename Folder";
       document.getElementById('btn-submit-folder').textContent = "Save Changes";
-      
-      const colorPickerLabel = document.querySelector('.color-picker-label');
-      const colorOptions = document.querySelectorAll('.color-palette-options');
-      if (colorPickerLabel) colorPickerLabel.style.display = 'block';
-      if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
-      
-      document.querySelectorAll('.color-dot').forEach(dot => {
-        dot.classList.remove('active');
-        if (dot.getAttribute('data-color') === targetNode.color) {
-          dot.classList.add('active');
-          selectedFolderColor = targetNode.color;
-        }
-      });
     }
 
     document.getElementById('new-folder-name-input').value = targetNode.name;
@@ -574,7 +559,6 @@ function handleOverviewRename() {
   triggerRenameNode();
 }
 
-// ─── RE-LINK PREVIEW FILES MECHANISM ─────────────────────────────────────────
 function loadSavedFileNode(id, name, event) {
   if (event) event.stopPropagation();
   
@@ -599,7 +583,6 @@ function loadSavedFileNode(id, name, event) {
   }
 }
 
-// ─── SAVE PARSED NOTE TO CHOSEN NODE RECURSIVE ENGINE ───
 function openSaveModal() {
   const incoming = localStorage.getItem('notizedData');
   if (!incoming) return;
@@ -624,6 +607,17 @@ function openSaveModal() {
   
   injectFolderOptions(treeData);
   selectEl.innerHTML = optionsHTML;
+}
+
+function handleSaveNote() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+
+  if (!currentUser || !currentUser.name) {
+    showCustomAlert("You need to log in first to save your analyzed notes!");
+    return;
+  }
+
+  openSaveModal();
 }
 
 function closeSaveModal() {
@@ -701,7 +695,6 @@ function handleOverviewDelete() {
   triggerDeleteNode();
 }
 
-// ─── CONTENT RENDERING PANEL CORE ────────────────────────────────────────────
 function renderProjectContent(data) {
   if (!data) return;
 
@@ -766,7 +759,6 @@ function esc(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// ─── BREADCRUMBS LOGIC (FIX ACCURATE RECURSIVE) ──────────────────────────────
 function findNodePath(nodes, targetId) {
   for (let node of nodes) {
     if (node.id === targetId) {
@@ -782,7 +774,6 @@ function findNodePath(nodes, targetId) {
   return null;
 }
 
-// ─── 🔗 BREADCRUMBS CLICKABLE ROUTING SYSTEM ─────────────────────────────────
 function updateBreadcrumbs(nodeId) {
   const container = document.getElementById('workspace-breadcrumbs');
   if (!container) return;
@@ -839,16 +830,21 @@ function findNodePathWithIds(nodes, targetId) {
   return null;
 }
 
-// ─── 📂 RENDER FOLDER: SEMBUNYIKAN TAB ANALISIS, HANYA TAMPILKAN ISI ───
 function selectFolderWorkspace(folderId, event) {
   if (event) event.stopPropagation();
   
   currentSelectedNodeId = folderId;
   currentRightClickedNodeId = folderId; 
 
-  // 🎯 AMANKAN: Sembunyikan tombol Save Note karena ini folder lama
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
 
   document.getElementById('empty-workspace-state').style.display = 'none';
   document.getElementById('active-project-workspace').style.display = 'flex';
@@ -921,9 +917,15 @@ function selectFileWorkspace(fileId, fileName, event) {
   currentSelectedNodeId = fileId;
   currentRightClickedNodeId = fileId; 
   
-  // 🎯 AMANKAN: Sembunyikan tombol Save Note karena file ini sudah tersimpan lama di library
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
 
   const overviewActions = document.getElementById('overview-actions');
   if (overviewActions) {
@@ -959,70 +961,27 @@ function resetToEmptyState() {
   currentSelectedNodeId = null;
   currentRightClickedNodeId = null;
   
-  // 🎯 AMANKAN: Sembunyikan tombol Save Note pas balik ke halaman depan root overview
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
 
-  document.getElementById('empty-workspace-state').style.display = 'none';
-  document.getElementById('active-project-workspace').style.display = 'flex';
-  document.getElementById('active-project-title').innerText = "Root Workspace";
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
+
+  document.getElementById('empty-workspace-state').style.display = 'block';
+  document.getElementById('active-project-workspace').style.display = 'none';
   
   const overviewActions = document.getElementById('overview-actions');
   if (overviewActions) {
-    overviewActions.style.setProperty('display', 'none', 'important');
+    overviewActions.innerHTML = "";
   }
   
-  const tabsContainer = document.querySelector('.workspace-tabs-container');
-  if (tabsContainer) tabsContainer.style.setProperty('display', 'none', 'important');
-  
-  const notesCard = document.querySelector('#tab-raw .card');
-  if (notesCard) {
-    notesCard.style.background = 'transparent';
-    notesCard.style.border = 'none';
-    notesCard.style.boxShadow = 'none';
-    notesCard.style.padding = '0';
-  }
-  const notesCardHeader = document.querySelector('#tab-raw .card-header');
-  if (notesCardHeader) notesCardHeader.style.setProperty('display', 'none', 'important');
-  
-  if (document.getElementById('note-card-wrapper')) document.getElementById('note-card-wrapper').style.display = 'none';
-  if (document.getElementById('folder-overview-wrapper')) document.getElementById('folder-overview-wrapper').style.display = 'block';
-  
-  const treeData = getLibraryData();
-  if (treeData.length === 0) {
-    document.getElementById('empty-workspace-state').style.display = 'flex';
-    document.getElementById('active-project-workspace').style.display = 'none';
-    return;
-  }
-  
-  let rootOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; width: 100%;">`;
-  treeData.forEach(node => {
-    if (node.type === "folder") {
-      const folderColor = node.color || "#6B8F71";
-      rootOverviewHTML += `
-        <div onclick="selectFolderWorkspace('${node.id}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-          <span style="font-weight: 600; font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(node.name)}</span>
-        </div>`;
-    } else {
-      rootOverviewHTML += `
-        <div onclick="selectFileWorkspace('${node.id}', '${esc(node.name)}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-          <span style="font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(node.name)}</span>
-        </div>`;
-    }
-  });
-  rootOverviewHTML += `</div>`;
-  
-  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
-  document.getElementById('tab-raw').classList.add('active');
-  document.getElementById('folder-overview-wrapper').innerHTML = rootOverviewHTML;
-  
-  const breadcrumbsContainer = document.getElementById('workspace-breadcrumbs');
-  if (breadcrumbsContainer) breadcrumbsContainer.innerHTML = `<span style="font-weight: 600; color: var(--ink);">Dashboard</span>`;
+  renderDashboardCards();
 }
 
-// Fungsi Tab Navigation Bawaan Lama
 function switchWorkspaceTab(targetTabId) {
   document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
   document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
@@ -1030,4 +989,77 @@ function switchWorkspaceTab(targetTabId) {
   if (clickedBtn) clickedBtn.classList.add('active');
   const targetPanel = document.getElementById(targetTabId);
   if (targetPanel) targetPanel.classList.add('active');
+}
+
+function showCustomAlert(message) {
+  const alertModal = document.getElementById('custom-alert-modal');
+  const alertMessage = document.getElementById('custom-alert-message');
+  if (alertModal && alertMessage) {
+    alertMessage.textContent = message;
+    alertModal.style.setProperty('display', 'flex', 'important');
+  } else {
+    alert(message);
+  }
+}
+
+function closeCustomAlert() {
+  const alertModal = document.getElementById('custom-alert-modal');
+  if (alertModal) {
+    alertModal.style.setProperty('display', 'none', 'important');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderDashboardCards();
+});
+
+function renderDashboardCards() {
+  const cardsGrid = document.getElementById('dashboard-cards-grid');
+  if (!cardsGrid) return;
+
+  const treeData = getLibraryData();
+  let allExtractedFiles = [];
+
+  function extractFilesRecursively(nodes) {
+    nodes.forEach(node => {
+      if (node.type === "file") {
+        allExtractedFiles.push(node);
+      }
+      if (node.children && node.children.length > 0) {
+        extractFilesRecursively(node.children);
+      }
+    });
+  }
+  extractFilesRecursively(treeData);
+
+  // Jika folder data database benar-benar kosong mlompong
+  if (allExtractedFiles.length === 0) {
+    cardsGrid.innerHTML = `
+      <div class="empty-placeholder-card" style="grid-column: 1 / -1; background: rgba(247, 245, 240, 0.6); border: 2px dashed var(--border); border-radius: 12px; padding: 3rem; text-align: center; width: 100%;">
+        <p style="color: var(--ink-muted); font-size: 14px; margin-bottom: 1rem;">You don't have any saved notes yet.</p>
+        <button class="btn-primary" onclick="location.href='input.html'" style="font-size: 12px; padding: 0.5rem 1rem;">+ Create First Note</button>
+      </div>
+    `;
+    return;
+  }
+
+  // Suntikkan list card kolektif ke layar utama My Workspace secara otomatis!
+  cardsGrid.innerHTML = allExtractedFiles.map(file => {
+    const fileData = file.data || {};
+    // Ambil baris kata summary
+    const summaryHint = (fileData.summary && fileData.summary.length > 0) ? fileData.summary[0] : 'Click to explore complete smart summary components.';
+    
+    return `
+      <div class="cluster-card note-item-card" onclick="selectFileWorkspace('${file.id}', '${esc(file.name)}', event)" style="cursor: pointer; position: relative;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">
+          <span style="font-size: 18px;">📄</span>
+          <span style="font-size: 10px; background: rgba(107, 143, 113, 0.1); color: #6B8F71; padding: 0.15rem 0.5rem; border-radius: 20px; font-weight: 600;">AI Analyzed</span>
+        </div>
+        <h4 class="serif" style="font-size: 16px; color: var(--ink); margin-bottom: 0.35rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(file.name)}</h4>
+        <p style="font-size: 12px; line-height: 1.5; color: var(--ink-muted); height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 0.5rem;">
+          ${esc(summaryHint)}
+        </p>
+      </div>
+    `;
+  }).join('');
 }
