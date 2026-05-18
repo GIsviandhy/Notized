@@ -32,47 +32,277 @@
     <div class="hero-badge slide-up stagger-1">AI-Powered Study Companion</div>
     <h1 class="hero-h1 serif slide-up stagger-2">
       Turn chaotic notes into<br>
-      <em>clear understanding</em>
+      <span class="hero-accent">clear understanding</span>
     </h1>
     <p class="hero-p slide-up stagger-3">
       Paste your raw study notes. Notized transforms them into summaries, keyword maps,
       structured topics, and personalized learning paths — in seconds.
     </p>
     <div class="hero-ctas slide-up stagger-4">
-      <button class="btn-hero" onclick="location.href='input.html'">Process My Notes</button>
+      <button class="btn-hero" onclick="location.href='input.html'">
+        Process My Notes
+        <span class="btn-arrow">→</span>
+      </button>
       <button class="btn-ghost" onclick="location.href='input.html?loadExample=true'">See Example →</button>
+    </div>
+
+    <!-- Glassmorphism Preview Card -->
+    <div class="hero-preview-card slide-up stagger-5">
+      <div class="preview-header">
+        <div class="preview-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <span class="preview-title">Your Notes, Transformed</span>
+      </div>
+      <div class="preview-content">
+        <div class="preview-line preview-line-1"></div>
+        <div class="preview-line preview-line-2"></div>
+        <div class="preview-line preview-line-3"></div>
+        <div class="preview-chips">
+          <span class="preview-chip">Neurons</span>
+          <span class="preview-chip">Synapses</span>
+          <span class="preview-chip">Action Potential</span>
+        </div>
+      </div>
     </div>
 
     <div class="feature-grid slide-up stagger-5">
       <div class="feature-card">
         <div class="feature-card-icon">✦</div>
         <div class="feature-card-label">Smart Summary</div>
-        <div class="feature-card-desc">Dense notes distilled into crisp, scannable bullets</div>
+        <div class="feature-card-desc">Dense notes distilled into crisp, scannable format</div>
+        <div class="feature-preview">
+          <div class="preview-bullet"></div>
+          <div class="preview-bullet"></div>
+          <div class="preview-bullet"></div>
+        </div>
       </div>
       <div class="feature-card">
         <div class="feature-card-icon">◈</div>
         <div class="feature-card-label">Keyword Radar</div>
         <div class="feature-card-desc">Key concepts surfaced as visual highlight chips</div>
+        <div class="feature-preview" style="flex-direction: row;">
+          <span class="mini-chip">DNA</span>
+          <span class="mini-chip">Neurons</span>
+          <span class="mini-chip">ATP</span>
+        </div>
       </div>
       <div class="feature-card">
         <div class="feature-card-icon">⬡</div>
         <div class="feature-card-label">Topic Clusters</div>
-        <div class="feature-card-desc">Related ideas grouped into intuitive categories</div>
+        <div class="feature-card-desc">Distinct categories to better grasp concepts</div>
+        <div class="feature-preview" style="flex-direction: row;">
+          <div class="cluster-group">
+            <div class="cluster-mini-dot"></div>
+            <div class="cluster-mini-dot"></div>
+          </div>
+          <div class="cluster-group">
+            <div class="cluster-mini-dot"></div>
+            <div class="cluster-mini-dot"></div>
+          </div>
+        </div>
       </div>
       <div class="feature-card">
         <div class="feature-card-icon">↓</div>
         <div class="feature-card-label">Learning Path</div>
-        <div class="feature-card-desc">Sequenced study order based on concept dependency</div>
+        <div class="feature-card-desc">Optimize your study order for the best results</div>
+        <div class="feature-preview">
+          <div class="path-dots">
+            <span class="path-dot"></span>
+            <span class="path-dot"></span>
+            <span class="path-dot"></span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="social-proof slide-up stagger-6">
-      <span class="stars">★★★★★</span>
-      &nbsp;&nbsp;<em>"Finally, studying doesn't feel overwhelming."</em> — Hana, Medical Student
+    <div class="testimonial-section slide-up stagger-5">
+      <button class="carousel-arrow carousel-arrow-left" aria-label="Previous testimonial">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 18l-6-6 6-6"/>
+        </svg>
+      </button>
+      <button class="carousel-arrow carousel-arrow-right" aria-label="Next testimonial">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 18l6-6-6-6"/>
+        </svg>
+      </button>
+      <div class="testimonial-carousel">
+        <div class="testimonial-grid">
+        <div class="testimonial-card">
+          <div class="quote-mark">“</div>
+          <blockquote class="testimonial-quote serif">
+            Notized literally saved my grades this semester. I’d paste 20 pages worth of lecture slides here, and it'll give me the big picture in seconds and the parts I need to prioritize learning first? SAVED. MY. GRADES!
+          </blockquote>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <span class="avatar-initial">H</span>
+            </div>
+            <div class="author-info">
+              <div class="author-name">Hana
+                <span class="verified-badge">✓</span>
+              </div>
+              <div class="author-badge">
+                <span class="badge-icon">🩺</span>
+                <span>Medical Student</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div class="quote-mark">“</div>
+          <blockquote class="testimonial-quote serif">
+            I used to spend hours just trying to organize my messy Google Docs before an exam. Notized completely skips the busywork. It turns my chaotic thoughts into scannable bullet summaries instantly. 11/10.
+          </blockquote>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <span class="avatar-initial">M</span>
+            </div>
+            <div class="author-info">
+              <div class="author-name">Marcus
+                <span class="verified-badge">✓</span>
+              </div>
+              <div class="author-badge">
+                <span class="badge-icon">💻</span>
+                <span>CS Student</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="testimonial-card">
+          <div class="quote-mark">“</div>
+          <blockquote class="testimonial-quote serif">
+            The Keyword Radar feature is pure magic. I can dump an entire chapter of raw case law notes, and it immediately produces the core legal concepts highlighted. I stop wasting time formatting and actually spend time understanding.
+          </blockquote>
+          <div class="testimonial-author">
+            <div class="author-avatar">
+              <span class="avatar-initial">S</span>
+            </div>
+            <div class="author-info">
+              <div class="author-name">Sarah
+                <span class="verified-badge">✓</span>
+              </div>
+              <div class="author-badge">
+                <span class="badge-icon">⚖️</span>
+                <span>Law Student</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
+      </div>
+
+      <div class="social-stats">
+        <span class="stars">★★★★★</span>
+        <span class="stats-text">Trusted by 10,000+ students from top universities</span>
+      </div>
     </div>
   </div>
 
+<<<<<<< Updated upstream
   <div class="footer-strip">© 2026 Notized · Built for students, by students</div>
+=======
+  <!-- Bento-Style Final CTA -->
+  <div class="final-cta-section">
+    <div class="bento-cta-card">
+      <h2 class="bento-cta-title serif">Ready to study smarter?</h2>
+      <p class="bento-cta-desc">The only notes you need are the ones you've Notized.</p>
+      <button class="btn-bento-cta" onclick="location.href='input.html'">
+        Start Free
+        <span class="btn-arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Multi-Column Footer -->
+  <footer class="footer">
+    <div class="footer-content">
+      <div class="footer-col footer-brand">
+        <div class="footer-logo" onclick="location.href='index.html'" style="cursor: pointer;">
+          <span class="footer-logo-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+          </span>
+          <span class="footer-wordmark">Notized</span>
+        </div>
+        <p class="footer-mission">The only notes you need are the ones you've Notized.</p>
+        <div class="footer-socials">
+          <a href="#" class="social-link" aria-label="Twitter">𝕏</a>
+          <a href="#" class="social-link" aria-label="LinkedIn">in</a>
+          <a href="#" class="social-link" aria-label="GitHub">⚡</a>
+        </div>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-col-title">Product</h4>
+        <ul class="footer-links">
+          <li><a href="#">Features</a></li>
+          <li><a href="#">Pricing</a></li>
+          <li><a href="#">Roadmap</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-col-title">Resources</h4>
+        <ul class="footer-links">
+          <li><a href="#">Blog</a></li>
+          <li><a href="#">Study Guides</a></li>
+          <li><a href="#">Help Center</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4 class="footer-col-title">Legal</h4>
+        <ul class="footer-links">
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 Notized · Built for students, by students</p>
+    </div>
+  </footer>
+
+  <div id="auth-modal" class="modal-overlay" style="display: none; position: fixed; z-index: 99999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(28, 26, 22, 0.4); justify-content: center; align-items: center;">
+    <div class="modal-card" style="max-width: 380px; width: 100%; padding: 2.5rem; background: var(--white); border-radius: 16px; box-shadow: var(--shadow-lg);">
+      
+      <h3 class="serif" id="auth-modal-title" style="font-size: 24px; margin-bottom: 0.25rem;">Welcome Back</h3>
+      <p id="auth-modal-desc" style="font-size: 13px; color: var(--ink-muted); margin-bottom: 1.5rem;">Log in to sync your study notes across devices.</p>
+      
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)" style="display: flex; flex-direction: column; gap: 1rem;">
+        
+        <div id="auth-field-name" style="display: none; flex-direction: column; gap: 0.25rem;">
+          <label style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase;">Full Name</label>
+          <input type="text" id="auth-input-name" placeholder="e.g., Jessica" class="modal-input" style="margin: 0;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase;">Email Address</label>
+          <input type="email" id="auth-input-email" required placeholder="username@student.com" class="modal-input" style="margin: 0;">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+          <label style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase;">Password</label>
+          <input type="password" id="auth-input-password" required placeholder="••••••••" class="modal-input" style="margin: 0;">
+        </div>
+
+        <div class="modal-actions" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; padding: 0;">
+          <button type="submit" id="auth-btn-submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">Log In</button>
+          <button type="button" class="btn-secondary" onclick="closeAuthModal()" style="width: 100%; justify-content: center; padding: 0.75rem; border: 1px solid var(--border);">Cancel</button>
+        </div>
+      </form>
+
+      <div style="margin-top: 1.5rem; text-align: center; font-size: 12px; color: var(--ink-muted); border-top: 1px solid var(--border); padding-top: 1rem;">
+        <span id="auth-switch-text">Don't have an account?</span> 
+        <a href="javascript:void(0)" id="auth-switch-link" onclick="toggleAuthMode()" style="color: #6B8F71; font-weight: 600; text-decoration: none; margin-left: 0.25rem;">Sign Up Free</a>
+      </div>
+
+    </div>
+  </div>
+>>>>>>> Stashed changes
 </div>
 
 <script src="js/common.js"></script>
