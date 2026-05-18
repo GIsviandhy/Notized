@@ -1,7 +1,7 @@
-// ─── INJEKSI CSS UNTUK FIX TEXT AREA KOSONG & TEKS PANJANG ───
+// ─── INJEKSI CSS UNTUK FIX TEXT AREA, TEKS PANJANG & TOASTER ───
 const fixStyle = document.createElement('style');
 fixStyle.innerHTML = `
-  /* 1. Fix Teks Kepanjangan di Sidebar & Grid */
+  /* 1. Fix Teks Kepanjangan */
   .tree-folder-header > div { min-width: 0 !important; }
   .tree-folder-header strong, .tree-file-item span, .folder-grid-item span, .file-grid-item span {
     white-space: nowrap !important;
@@ -12,29 +12,55 @@ fixStyle.innerHTML = `
   .tree-svg-icon { flex-shrink: 0 !important; }
   .tree-file-item, .folder-grid-item, .file-grid-item { min-width: 0 !important; }
 
-  /* 2. Fix Text Area Form Input Kekecilan */
-  #input-form-workspace {
-    max-width: 100% !important; 
-    height: calc(100vh - 120px) !important; /* Penuhi sisa tinggi layar */
-    display: none;
-    flex-direction: column;
+  /* 2. Fix Text Area Form Input */
+  #input-form-workspace { max-width: 100% !important; height: calc(100vh - 120px) !important; display: none; flex-direction: column; }
+  #input-form-workspace[style*="display: block"] { display: flex !important; }
+  .modern-textarea-container { flex-grow: 1; display: flex; flex-direction: column; margin-bottom: 1.5rem; }
+  #notes-input { flex-grow: 1; resize: none; min-height: 200px; }
+
+  /* 3. TOASTER CSS */
+  #toast-container {
+    position: fixed !important; bottom: 24px !important; right: 24px !important; z-index: 2147483647 !important;
+    display: flex !important; flex-direction: column !important; gap: 12px !important; pointer-events: none !important;
   }
-  #input-form-workspace[style*="display: block"] {
-    display: flex !important; 
+  .notized-toast {
+    padding: 12px 20px !important; border-radius: 8px !important; color: white !important; font-weight: 600 !important; font-size: 14px !important;
+    opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2) !important; font-family: "Plus Jakarta Sans", sans-serif !important;
+    display: flex !important; align-items: center !important; gap: 8px !important; pointer-events: auto !important;
   }
-  .modern-textarea-container {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 1.5rem;
-  }
-  #notes-input {
-    flex-grow: 1; 
-    resize: none; 
-    min-height: 200px;
-  }
+  .notized-toast.show { opacity: 1 !important; transform: translateY(0) !important; }
+  .toast-success { background: #10b981 !important; }
+  .toast-error { background: #ef4444 !important; }
+  .toast-info { background: #0284c7 !important; }
 `;
 document.head.appendChild(fixStyle);
+
+// ─── TOASTER ENGINE ───
+function showToast(msg, type = 'success') {
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.className = `notized-toast toast-${type}`;
+  
+  let icon = '';
+  if (type === 'success') icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+  else if (type === 'error') icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
+  else icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
+
+  toast.innerHTML = `${icon} <span>${msg}</span>`;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('show'), 10);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -99,6 +125,7 @@ window.addEventListener('DOMContentLoaded', () => {
       notesInput.value = `Web Development: Laravel & React Integration\n\nWhen building modern web applications, combining Laravel as a backend API and React as a dynamic frontend yields high performance. Laravel handles routing, database ORM, and authentication smoothly. React consumes these APIs to render interactive UI components using Tailwind CSS for styling.`;
       updateWordCount();
     }
+    showToast("Entered Guest Mode (Try Sample)", "info");
   } else {
     refreshWorkspaceTree();
     setupSidebarResizer();
@@ -106,7 +133,13 @@ window.addEventListener('DOMContentLoaded', () => {
     const greetingEl = document.getElementById('user-greeting');
     if (greetingEl) {
       const user = JSON.parse(localStorage.getItem('notized_currentUser'));
-      if (user && user.name) greetingEl.textContent = `Hello, ${user.name}`;
+      if (user && user.name) {
+        greetingEl.textContent = `Hello, ${user.name}`;
+        if(!sessionStorage.getItem('notized_greeted')) {
+          showToast(`Welcome back, ${user.name}!`, "success");
+          sessionStorage.setItem('notized_greeted', 'true');
+        }
+      }
     }
   }
 });
@@ -339,7 +372,18 @@ function viewRoot() {
 
 function viewFolderNode(id, event) {
   if (event) event.stopPropagation(); currentViewedFolderId = id; currentViewedNoteId = null; hideAllViews();
-  const tree = getLibraryData(); const path = findPath(tree, id); const targetFolder = getTargetNode(tree, id);
+  
+  let tree = getLibraryData(); 
+  let targetFolder = getTargetNode(tree, id);
+  if(targetFolder && !targetFolder.expanded) {
+      targetFolder.expanded = true;
+      localStorage.setItem('notized_library_tree', JSON.stringify(tree));
+      refreshWorkspaceTree(); 
+      tree = getLibraryData(); 
+      targetFolder = getTargetNode(tree, id);
+  }
+  
+  const path = findPath(tree, id);
   document.getElementById('folder-view-workspace').style.display = 'block';
   document.getElementById('active-folder-title').textContent = targetFolder ? targetFolder.name : 'Folder';
   renderBreadcrumbs(path, 'breadcrumbs-folder');
@@ -461,8 +505,16 @@ function triggerFileUpload() { document.getElementById('file-input').click(); }
 async function handleFileUpload(event) {
   const file = event.target.files[0]; if (!file) return;
   const textarea = document.getElementById('notes-input'); textarea.value = "Extracting document content, please wait...";
-  try { if (file.name.toLowerCase().endsWith('.pdf')) textarea.value = await extractTextFromPDF(file); else textarea.value = await file.text(); updateWordCount(); } 
-  catch (e) { textarea.value = ""; customAlert("Error reading file. Ensure it's a valid text or PDF.", "System Error"); }
+  try { 
+      if (file.name.toLowerCase().endsWith('.pdf')) textarea.value = await extractTextFromPDF(file); 
+      else textarea.value = await file.text(); 
+      updateWordCount();
+      showToast("Document attached successfully", "info");
+  } 
+  catch (e) { 
+      textarea.value = ""; 
+      customAlert("Error reading file. Ensure it's a valid text or PDF.", "System Error"); 
+  }
 }
 
 async function handleSaveRaw() {
@@ -515,6 +567,7 @@ async function handleAnalyze() {
         const rawBody = document.getElementById('raw-notes-body');
         if(rawBody) { rawBody.style.display = 'none'; rawBody.textContent = result.rawText; }
         renderProjectContent(result);
+        showToast("Analysis complete!", "success");
         return;
     }
     
@@ -544,6 +597,7 @@ async function triggerAnalyzeFromRaw() {
       barEl.style.width = '100%'; pctEl.textContent = '100%'; await sleep(300); document.getElementById('loading-view').classList.remove('active');
       node.data = result; localStorage.setItem('notized_library_tree', JSON.stringify(tree));
       refreshWorkspaceTree(); loadSavedFileNode(node.id, node.name);
+      showToast("Quantum Analysis Complete", "success");
    } catch(e) { document.getElementById('loading-view').classList.remove('active'); await customAlert("Quantum Analysis failed.", "System Error"); }
 }
 
@@ -552,7 +606,6 @@ async function triggerEditNoteExplicit() {
   const tree = getLibraryData(); const node = getTargetNode(tree, currentViewedNoteId);
   let textToEdit = ""; 
   
-  // PENGECEKAN YANG LEBIH AMAN AGAR KODE TIDAK TERHAPUS
   if (node && node.data && node.data.rawText) { 
       textToEdit = node.data.rawText; 
       if (textToEdit === "Legacy Note: The original raw text was not saved in older versions. Click 'Edit Content' to overwrite with new content.") { 
@@ -572,10 +625,9 @@ function saveEditedNoteDirectly(newAnalysisData) {
   if (node) {
     node.data = newAnalysisData; localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData');
     isNoteEditingActive = false; noteEditingTargetId = null; refreshWorkspaceTree(); loadSavedFileNode(node.id, node.name);
+    showToast("Note content updated successfully!");
   }
 }
-
-// ─── FUNGSI TOMBOL EKSPLISIT DAN KLIK KANAN YANG SEMPAT HILANG ───
 
 async function handleContextRename(isFolder) {
   if (!currentRightClickedNodeId) return;
@@ -608,6 +660,7 @@ async function handleContextRename(isFolder) {
               renderBreadcrumbs(findPath(tree, currentRightClickedNodeId), 'breadcrumbs-project'); 
           }
           if (currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else viewRoot();
+          showToast("Note renamed successfully!");
       }
   }
 }
@@ -626,6 +679,7 @@ async function handleContextDelete(isFolder) {
       } else if (currentViewedFolderId !== "root_root") {
           viewFolderNode(currentViewedFolderId);
       } else { viewRoot(); }
+      showToast(isFolder ? "Folder deleted successfully!" : "Note deleted successfully!", "error");
   }
 }
 
@@ -645,7 +699,10 @@ async function triggerRenameFolderExplicit() {
 async function triggerDeleteFolderExplicit() {
   if (currentViewedFolderId === 'root_root') return;
   const isConfirmed = await customConfirm("Are you sure you want to completely delete this folder and its contents?", "Purge Directory"); if (!isConfirmed) return;
-  let treeData = getLibraryData(); if (deleteInTree(treeData, currentViewedFolderId)) { localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); viewRoot(); }
+  let treeData = getLibraryData(); if (deleteInTree(treeData, currentViewedFolderId)) { 
+      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); viewRoot(); 
+      showToast("Folder deleted successfully!", "error");
+  }
 }
 
 async function triggerRenameNoteExplicit() {
@@ -659,6 +716,7 @@ async function triggerRenameNoteExplicit() {
         refreshWorkspaceTree(); 
         document.getElementById('active-project-title').textContent = node.name; 
         renderBreadcrumbs(findPath(treeData, currentViewedNoteId), 'breadcrumbs-project'); 
+        showToast("Note renamed successfully!");
     }
   }
 }
@@ -668,7 +726,11 @@ async function triggerDeleteNoteExplicit() {
   const isConfirmed = await customConfirm("Delete this note permanently from the ledger?", "Purge Document"); if (!isConfirmed) return;
   let treeData = getLibraryData(); let parentPath = findPath(treeData, currentViewedNoteId);
   let parentFolderId = (parentPath && parentPath.length > 1) ? parentPath[parentPath.length - 2].id : 'root_root';
-  if (deleteInTree(treeData, currentViewedNoteId)) { localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); if(parentFolderId === 'root_root') viewRoot(); else viewFolderNode(parentFolderId); }
+  if (deleteInTree(treeData, currentViewedNoteId)) { 
+      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); 
+      if(parentFolderId === 'root_root') viewRoot(); else viewFolderNode(parentFolderId); 
+      showToast("Note deleted successfully!", "error");
+  }
 }
 
 function findPath(nodes, targetId, currentPath = []) {
@@ -802,6 +864,7 @@ function bindDragAndDropEvents() {
       localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
       refreshWorkspaceTree();
       if(currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else viewRoot();
+      showToast("Item moved successfully", "info");
     });
   });
 }
@@ -816,7 +879,7 @@ function buildTreeHTML(nodes) {
         <div class="tree-folder-block" data-id="${node.id}">
           <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.14)}; color: ${baseColor};" title="${esc(node.name)}">
             <div style="display: flex; gap: 0.4rem; align-items: center; flex: 1; min-width: 0;">
-              <div onclick="toggleFolderNode('${node.id}', event)" style="padding: 0 2px; cursor: pointer; font-size:11px; flex-shrink: 0;">${caret}</div>
+              <div onmousedown="event.stopPropagation()" onclick="toggleFolderNode('${node.id}', event)" style="cursor: pointer; font-size:14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: -4px;">${caret}</div>
               <div onclick="viewFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1; cursor: pointer; min-width: 0;">
                 <svg class="tree-svg-icon" style="flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(node.name)}</strong>
@@ -838,6 +901,12 @@ function buildTreeHTML(nodes) {
   }).join('');
 }
 
+function toggleFolderNode(nodeId, event) {
+  if (event) event.stopPropagation(); let treeData = getLibraryData();
+  function findAndToggle(nodes) { for (let node of nodes) { if (node.id === nodeId) { node.expanded = !node.expanded; return true; } if (node.children && findAndToggle(node.children)) return true; } return false; }
+  findAndToggle(treeData); localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree();
+}
+
 async function openFolderCreatorDirect(event) {
   if (event) event.preventDefault();
   const drop = document.getElementById('header-action-dropdown'); if (drop) drop.classList.remove('active');
@@ -855,11 +924,16 @@ function handleFolderSubmit() {
   if (!nameInput) { customAlert("Please enter a folder name!", "Validation"); return; }
   
   let treeData = getLibraryData();
-  if (isEditMode) { let node = getTargetNode(treeData, editingNodeId); if (node) { node.name = nameInput; node.color = selectedFolderColor || "#0284c7"; } } 
+  if (isEditMode) { 
+      let node = getTargetNode(treeData, editingNodeId); 
+      if (node) { node.name = nameInput; node.color = selectedFolderColor || "#0284c7"; } 
+      showToast("Folder renamed successfully!");
+  } 
   else {
     const newNode = { id: "node_" + Date.now(), name: nameInput, type: "folder", color: selectedFolderColor, expanded: false, children: [] };
     if (currentViewedFolderId === "root_root") treeData.push(newNode);
     else { let parent = getTargetNode(treeData, currentViewedFolderId); if (parent && parent.type === 'folder') { parent.children.push(newNode); parent.expanded = true; } else treeData.push(newNode); }
+    showToast("Folder created successfully!");
   }
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); closeFolderCreatorCard(); refreshWorkspaceTree();
   if (!isEditMode && currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else if (isEditMode) viewFolderNode(editingNodeId);
@@ -898,6 +972,7 @@ async function confirmSaveNotes() {
   else { let parent = getTargetNode(treeData, folderTargetId); if (parent) { if (!parent.children) parent.children = []; parent.children.push(newFileNode); parent.expanded = true; } }
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData'); localStorage.removeItem('notized_target_folder');
   closeSaveModal(); refreshWorkspaceTree(); loadSavedFileNode(newFileNode.id, titleInput);
+  showToast("Note created successfully!");
 }
 
 function renderProjectContent(data) {
