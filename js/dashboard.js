@@ -4,16 +4,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 // ─── STATE MANAGEMENT ────────────────────────────────────────────────────────
 let selectedFolderColor = "#6B8F71"; 
 let currentRightClickedNodeId = null; // Menyimpan ID item aktif untuk modal bawaan
-let draggedNodeId = null;             // Menyimpan ID item yang sedang di-drag
+let draggedNodeId = null;              // Menyimpan ID item yang sedang di-drag
 let isEditMode = false;      // Untuk mendeteksi apakah modal sedang dipakai untuk Create atau Edit
 let editingNodeId = null;    // Menyimpan ID folder yang sedang diedit
 let currentSelectedNodeId = null; // Menyimpan ID item yang sedang dipilih untuk preview
 
 // ─── INITIALIZATION ON LOAD ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  // 1. Render struktur pohon direktori multi-level pertama kali
-  refreshWorkspaceTree();
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  const greetingEl = document.getElementById('user-greeting');
+  if (greetingEl) {
+    if (currentUser && currentUser.name) {
+      greetingEl.textContent = `Halo, ${currentUser.name}`;
+    } else {
+      greetingEl.textContent = ""; // 👈 MURNI KOSONG JIKA BELUM LOGIN
+    }
+  }
 
+  // 2. Ambil data operan sementara jika ada data baru hasil input dari page sebelah
   const incomingData = localStorage.getItem('notizedData');
   
   if (incomingData) {
@@ -35,30 +43,28 @@ window.addEventListener('DOMContentLoaded', () => {
     return; 
   }
 
-  const treeData = getLibraryData();
-  let firstFileFound = null;
-
-  function findFirstFile(nodes) {
-    for (let node of nodes) {
-      if (node.type === "file") {
-        firstFileFound = node;
-        return true;
-      }
-      if (node.children && node.children.length > 0) {
-        if (findFirstFile(node.children)) return true;
-      }
+  // 🎯 KUNCI UTAMA: Hancurkan status expand folder yang tersimpan lama di storage biar sidebar melipat rapat
+  let savedTree = localStorage.getItem('notized_library_tree');
+  if (savedTree) {
+    let parsedTree = JSON.parse(savedTree);
+    function forceCollapseAll(nodes) {
+      nodes.forEach(node => {
+        if (node.type === "folder") {
+          node.expanded = false;
+          if (node.children) forceCollapseAll(node.children);
+        }
+      });
     }
-    return false;
+    forceCollapseAll(parsedTree);
+    localStorage.setItem('notized_library_tree', JSON.stringify(parsedTree));
   }
 
-  findFirstFile(treeData);
+  // 3. Render struktur pohon direktori sidebar
+  refreshWorkspaceTree();
 
-  if (firstFileFound) {
-    selectFileWorkspace(firstFileFound.id, firstFileFound.name);
-  } else {
-    document.getElementById('empty-workspace-state').style.display = 'flex';
-    document.getElementById('active-project-workspace').style.display = 'none';
-  }
+  // 4. Paksa halaman kanan merender overview utama (Root Workspace)
+  currentSelectedNodeId = null;
+  resetToEmptyState();
 });
 
 // ─── STORAGE ENGINE (MULTILEVEL NESTED SYSTEM) ───────────────────────────────
@@ -68,10 +74,10 @@ function getLibraryData() {
 
   const defaultTree = [
     {
-      id: "node_bio", name: "Biology", type: "folder", expanded: true,
+      id: "node_bio", name: "Biology", type: "folder", expanded: false,
       children: [
         {
-          id: "node_lec3", name: "Lecture 3", type: "folder", expanded: true,
+          id: "node_lec3", name: "Lecture 3", type: "folder", expanded: false,
           children: [
             { 
               id: "node_mitosis", 
@@ -125,7 +131,6 @@ function getLibraryData() {
   return defaultTree;
 }
 
-// 🆕 Helper untuk mencari node berdasarkan ID (Mencegah Error Breadcrumbs)
 function findNodeById(nodes, id) {
   for (let node of nodes) {
     if (node.id === id) return node;
@@ -137,7 +142,7 @@ function findNodeById(nodes, id) {
   return null;
 }
 
-// 🆕 Helper untuk mengecek apakah targetId adalah keturunan/anak dari folder yang di-drag
+// Menghindari eror "isNodeChildOf is not defined" pas drop folder
 function isNodeChildOf(nodes, folderId, targetId) {
   const folderNode = findNodeById(nodes, folderId);
   if (!folderNode || !folderNode.children) return false;
@@ -179,15 +184,18 @@ function toggleSidebar(event) {
 
 // ─── RECURSIVE SIDEBAR TREE RENDERING ────────────────────────────────────────
 function refreshWorkspaceTree() {
-  const treeData = getLibraryData();
-  const rootContainer = document.getElementById('nested-directory-root');
-  if (!rootContainer) return;
+  const treeContainer = document.getElementById('nested-directory-root');
+  if (!treeContainer) return;
 
-  rootContainer.innerHTML = buildTreeHTML(treeData);
-  if (typeof bindDragAndDropEvents === 'function') bindDragAndDropEvents();
+  const treeData = getLibraryData();
+  treeContainer.innerHTML = buildTreeHTML(treeData);
+
+  if (typeof bindDragAndDropEvents === 'function') {
+    bindDragAndDropEvents();
+  }
 }
 
-// ─── RECURSIVE ENGINE: MARKUP BUILDER ───
+// ─── RECURSIVE ENGINE: MARKUP BUILDER (FIX PANAH SIDEBAR & OVERVIEW SPLIT) ───
 function buildTreeHTML(nodes) {
   return nodes.map(node => {
     if (node.type === "folder") {
@@ -232,7 +240,6 @@ function buildTreeHTML(nodes) {
   }).join('');
 }
 
-// Buka tutup folder lokal node
 function toggleFolderNode(nodeId, event) {
   if (event) event.stopPropagation();
   let treeData = getLibraryData();
@@ -275,7 +282,6 @@ function handleFolderSubmit() {
       for (let node of nodes) {
         if (node.id === editingNodeId) {
           node.name = nameInput;
-          // Hanya update warna jika tipenya folder
           if (node.type === "folder") {
             node.color = selectedFolderColor || "#6B8F71";
           }
@@ -287,7 +293,6 @@ function handleFolderSubmit() {
     }
     updateNodeInTree(treeData);
   } else {
-    // Jalur aksi buat folder baru (Bawaan Lama)
     treeData.push({
       id: "node_" + Date.now(),
       name: nameInput,
@@ -302,21 +307,10 @@ function handleFolderSubmit() {
   closeFolderCreatorCard();
   refreshWorkspaceTree();
   
-  // Sinkronisasi Judul dan Breadcrumbs di halaman kanan secara instan
   if (isEditMode && currentSelectedNodeId === editingNodeId) {
     document.getElementById('active-project-title').innerText = nameInput;
     updateBreadcrumbs(editingNodeId);
   }
-}
-
-// Tambahan fungsi reset display color saat modal ditutup biasa
-const originalCloseFolderCard = closeFolderCreatorCard;
-closeFolderCreatorCard = function() {
-  originalCloseFolderCard();
-  const colorPickerLabel = document.querySelector('.color-picker-label');
-  const colorOptions = document.querySelectorAll('.color-palette-options');
-  if (colorPickerLabel) colorPickerLabel.style.display = 'block';
-  if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
 }
 
 function closeFolderCreatorCard() {
@@ -327,6 +321,10 @@ function closeFolderCreatorCard() {
     isEditMode = false;
     editingNodeId = null;
   }
+  const colorPickerLabel = document.querySelector('.color-picker-label');
+  const colorOptions = document.querySelectorAll('.color-palette-options');
+  if (colorPickerLabel) colorPickerLabel.style.display = 'block';
+  if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
 }
 
 function selectColorDot(element) {
@@ -336,7 +334,7 @@ function selectColorDot(element) {
   selectedFolderColor = element.getAttribute('data-color') || "#6B8F71";
 }
 
-// ─── 🛡️ ADAPTASI LOGIKA DRAG & DROP TEMAN (SUDAH SINKRON DENGAN NOTIZED) ───
+// ─── 🛡️ ADAPTASI LOGIKA DRAG & DROP TEMAN (SUDAH SINKRON) ────────────────────
 function bindDragAndDropEvents() {
   const rows = document.querySelectorAll('.tree-node-row');
   rows.forEach(row => {
@@ -364,7 +362,6 @@ function bindDragAndDropEvents() {
       const rect = row.getBoundingClientRect(); 
       const y = e.clientY - rect.top;
       
-      // Menggunakan warna --sage sesuai dengan tema Notized kamu
       if (row.getAttribute('data-type') === 'folder') { 
         if (y < rect.height * 0.25) row.style.borderTop = '2px solid var(--sage)'; 
         else if (y > rect.height * 0.75) row.style.borderBottom = '2px solid var(--sage)'; 
@@ -381,7 +378,6 @@ function bindDragAndDropEvents() {
       row.style.borderBottom = ''; 
     });
 
-// ─── UPDATE BLOK DROP EVENT (DI DALAM bindDragAndDropEvents) ───
     row.addEventListener('drop', (e) => {
       e.preventDefault(); 
       e.stopPropagation(); 
@@ -391,9 +387,8 @@ function bindDragAndDropEvents() {
 
       let treeData = getLibraryData(); 
       
-      // 🎯 SILENT VALIDATION: Langsung return / batalkan drop tanpa memunculkan pop-up alert
       if (typeof isNodeChildOf === 'function' && isNodeChildOf(treeData, draggedNodeId, targetId)) {
-        refreshWorkspaceTree(); // Reset visual border atau hover state ke semula
+        refreshWorkspaceTree(); 
         return;
       }
 
@@ -471,9 +466,7 @@ function bindDragAndDropEvents() {
   });
 }
 
-
-
-// ─── OVERVIEW ACTION HANDLERS ────────────────────────────────────────────────
+// ─── OVERVIEW ACTION HANDLERS (MODAL RENAME & DELETE INTEGRATION) ────────────
 function triggerRenameNode() {
   if (!currentRightClickedNodeId) return;
   
@@ -482,34 +475,27 @@ function triggerRenameNode() {
 
   if (!targetNode) return;
 
-  // Set status bahwa modal sedang dalam mode EDIT/RENAME
   isEditMode = true;
   editingNodeId = currentRightClickedNodeId;
 
-  // Tampilkan modal folder-creator yang sudah ada tapi diubah teksnya
   const folderModal = document.getElementById('folder-creator-card');
   if (folderModal) {
-    // Jika yang di-rename adalah FILE/NOTE
     if (targetNode.type === "file") {
       document.getElementById('modal-folder-title').textContent = "Rename Note";
       document.getElementById('btn-submit-folder').textContent = "Save Name";
-      // Sembunyikan color picker jika mere-name file biar tidak bingung
       const colorPickerLabel = document.querySelector('.color-picker-label');
       const colorOptions = document.querySelectorAll('.color-palette-options');
       if (colorPickerLabel) colorPickerLabel.style.display = 'none';
       if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'none');
     } else {
-      // Jika yang di-rename adalah FOLDER
       document.getElementById('modal-folder-title').textContent = "Rename Folder";
       document.getElementById('btn-submit-folder').textContent = "Save Changes";
       
-      // Munculkan kembali color picker untuk folder
       const colorPickerLabel = document.querySelector('.color-picker-label');
       const colorOptions = document.querySelectorAll('.color-palette-options');
       if (colorPickerLabel) colorPickerLabel.style.display = 'block';
       if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
       
-      // Set warna aktif sesuai warna folder saat ini
       document.querySelectorAll('.color-dot').forEach(dot => {
         dot.classList.remove('active');
         if (dot.getAttribute('data-color') === targetNode.color) {
@@ -527,12 +513,50 @@ function triggerRenameNode() {
 
 function triggerDeleteNode() {
   if (!currentRightClickedNodeId) return;
-  
-  // Langsung buka modal kustom konfirmasi delete tanpa confirm() browser
   const deleteModal = document.getElementById('delete-confirm-modal');
   if (deleteModal) {
     deleteModal.style.setProperty('display', 'flex', 'important');
   }
+}
+
+function closeDeleteModal() {
+  const deleteModal = document.getElementById('delete-confirm-modal');
+  if (deleteModal) {
+    deleteModal.style.setProperty('display', 'none', 'important');
+  }
+}
+
+function confirmDeleteNode() {
+  if (!currentRightClickedNodeId) return;
+
+  let treeData = getLibraryData();
+
+  function deleteInTree(nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === currentRightClickedNodeId) { 
+        nodes.splice(i, 1); 
+        return true; 
+      }
+      if (nodes[i].children && deleteInTree(nodes[i].children)) return true;
+    }
+    return false;
+  }
+
+  deleteInTree(treeData);
+  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+  
+  closeDeleteModal();
+  refreshWorkspaceTree();
+  
+  if (currentSelectedNodeId === currentRightClickedNodeId) {
+    resetToEmptyState();
+  }
+}
+
+function handleOverviewRename() {
+  if (!currentSelectedNodeId) return alert("Select a folder or file first!");
+  currentRightClickedNodeId = currentSelectedNodeId; 
+  triggerRenameNode();
 }
 
 // ─── RE-LINK PREVIEW FILES MECHANISM ─────────────────────────────────────────
@@ -550,19 +574,6 @@ function loadSavedFileNode(id, name, event) {
     return false;
   }
   
-  if (id === "node_mitosis" || id === "node_meiosis" || id === "node_optics") {
-    document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'flex'; 
-    document.getElementById('active-project-title').textContent = name;
-    
-    findFile(treeData);
-    if (foundFile && foundFile.data) {
-      renderProjectContent(foundFile.data);
-    }
-    switchWorkspaceTab('tab-raw'); 
-    return;
-  }
-
   findFile(treeData);
   if (foundFile && foundFile.data) {
     document.getElementById('empty-workspace-state').style.display = 'none';
@@ -652,42 +663,13 @@ function confirmSaveNotes() {
   document.getElementById('btn-trigger-save').style.display = 'none';
   closeSaveModal();
   refreshWorkspaceTree();
-  selectFileWorkspace(newFileNode.id, titleInput);
+  resetToEmptyState();
 }
 
-function closeDeleteModal() {
-  const deleteModal = document.getElementById('delete-confirm-modal');
-  if (deleteModal) {
-    deleteModal.style.setProperty('display', 'none', 'important');
-  }
-}
-
-function confirmDeleteNode() {
-  if (!currentRightClickedNodeId) return;
-
-  let treeData = getLibraryData();
-
-  function deleteInTree(nodes) {
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].id === currentRightClickedNodeId) { 
-        nodes.splice(i, 1); 
-        return true; 
-      }
-      if (nodes[i].children && deleteInTree(nodes[i].children)) return true;
-    }
-    return false;
-  }
-
-  deleteInTree(treeData);
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-  
-  closeDeleteModal(); // Tutup modalnya
-  refreshWorkspaceTree(); // Render ulang sidebar
-  
-  // Balikkan ke empty/root state jika item yang sedang aktif dibuka barusan dihapus
-  if (currentSelectedNodeId === currentRightClickedNodeId) {
-    resetToEmptyState();
-  }
+function handleOverviewDelete() {
+  if (!currentSelectedNodeId) return alert("Select a folder or file first!");
+  currentRightClickedNodeId = currentSelectedNodeId; 
+  triggerDeleteNode();
 }
 
 // ─── CONTENT RENDERING PANEL CORE ────────────────────────────────────────────
@@ -755,23 +737,12 @@ function esc(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Fungsi Tab Navigation
-function switchWorkspaceTab(targetTabId) {
-  document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
-  const clickedBtn = document.querySelector(`[onclick="switchWorkspaceTab('${targetTabId}')"]`);
-  if (clickedBtn) clickedBtn.classList.add('active');
-  const targetPanel = document.getElementById(targetTabId);
-  if (targetPanel) targetPanel.classList.add('active');
-}
-
-// ─── BREADCRUMBS LOGIC ───────────────────────────────────────────────────────
+// ─── BREADCRUMBS LOGIC (FIX ACCURATE RECURSIVE) ──────────────────────────────
 function findNodePath(nodes, targetId) {
   for (let node of nodes) {
     if (node.id === targetId) {
       return [node.name];
     }
-    
     if (node.children && node.children.length > 0) {
       const childPath = findNodePath(node.children, targetId);
       if (childPath) {
@@ -779,45 +750,36 @@ function findNodePath(nodes, targetId) {
       }
     }
   }
-  // Jika di silsilah cabang ini buntu, kembalikan null agar tidak merusak jalur lain
   return null;
 }
 
-// ─── 🔗 FIX MUTLAK: BREADCRUMBS BISA DIKLIK UNTUK NAVIGASI MUNDUR ───
+// ─── 🔗 BREADCRUMBS CLICKABLE ROUTING SYSTEM ─────────────────────────────────
 function updateBreadcrumbs(nodeId) {
   const container = document.getElementById('workspace-breadcrumbs');
   if (!container) return;
 
-  // 1. Tombol Dashboard paling depan selalu ada dan bisa diklik
   let html = `
     <span onclick="resetToEmptyState()" style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-muted)'">
       Dashboard
     </span>
   `;
 
-  // Jika sedang di root dashboard (nodeId null/empty), langsung cetak Dashboard saja
   if (!nodeId) {
     container.innerHTML = html;
     return;
   }
 
   const treeData = getLibraryData();
-  
-  // 2. Ambil silsilah node path berupa Array of Objects (ID dan Name)
-  // Kita butuh ID-nya juga biar pas diklik tahu harus lari ke folder mana
   const nodePathObjects = findNodePathWithIds(treeData, nodeId);
 
   if (nodePathObjects && nodePathObjects.length > 0) {
     nodePathObjects.forEach((crumb, index) => {
       html += ` <span style="margin: 0 0.25rem; color: var(--border); font-size: 11px;">/</span> `;
-      
       const isLast = index === nodePathObjects.length - 1;
       
       if (isLast) {
-        // Crumb terakhir (page aktif sekarang) tebal dan gak usah diklik
         html += `<span style="font-weight: 600; color: var(--ink);">${esc(crumb.name)}</span>`;
       } else {
-        // Crumb folder di tengah-tengah bisa diklik untuk mundur!
         html += `
           <span onclick="selectFolderWorkspace('${crumb.id}', event)" 
                 style="cursor: pointer; transition: color 0.2s;" 
@@ -833,13 +795,11 @@ function updateBreadcrumbs(nodeId) {
   container.innerHTML = html;
 }
 
-// Helper untuk mencari silsilah lengkap folder beserta ID-nya
 function findNodePathWithIds(nodes, targetId) {
   for (let node of nodes) {
     if (node.id === targetId) {
       return [{ id: node.id, name: node.name }];
     }
-    
     if (node.children && node.children.length > 0) {
       const childPath = findNodePathWithIds(node.children, targetId);
       if (childPath) {
@@ -870,7 +830,6 @@ function selectFolderWorkspace(folderId, event) {
     tabsContainer.style.setProperty('display', 'none', 'important');
   }
   
-  // Reset style card notes agar polos saat folder overview dibuka
   const notesCard = document.querySelector('#tab-raw .card');
   if (notesCard) {
     notesCard.style.background = 'transparent';
@@ -881,6 +840,9 @@ function selectFolderWorkspace(folderId, event) {
   const notesCardHeader = document.querySelector('#tab-raw .card-header');
   if (notesCardHeader) notesCardHeader.style.setProperty('display', 'none', 'important');
 
+  if (document.getElementById('note-card-wrapper')) document.getElementById('note-card-wrapper').style.display = 'none';
+  if (document.getElementById('folder-overview-wrapper')) document.getElementById('folder-overview-wrapper').style.display = 'block';
+
   const treeData = getLibraryData();
   const folderNode = findNodeById(treeData, folderId);
   
@@ -888,21 +850,17 @@ function selectFolderWorkspace(folderId, event) {
     const titleEl = document.getElementById('active-project-title');
     if (titleEl) {
       titleEl.innerText = folderNode.name;
-      titleEl.style.setProperty('margin-bottom', '1rem', 'important'); 
+      titleEl.style.setProperty('margin-bottom', '1.5rem', 'important'); 
     }
     
     const children = folderNode.children || [];
-    
     if (children.length === 0) {
-      document.getElementById('raw-notes-content-area').innerHTML = `
+      document.getElementById('folder-overview-wrapper').innerHTML = `
         <div style="color: var(--ink-muted); font-style: italic; padding: 3rem; text-align: center; font-size: 14px; width: 100%;">
           📁 Folder ini kosong.
         </div>`;
     } else {
-      let folderOverviewHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; padding: 0.5rem 0; width: 100%;">
-      `;
-      
+      let folderOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; width: 100%;">`;
       children.forEach(child => {
         if (child.type === "folder") {
           const folderColor = child.color || "#6B8F71";
@@ -919,38 +877,27 @@ function selectFolderWorkspace(folderId, event) {
             </div>`;
         }
       });
-      
       folderOverviewHTML += `</div>`;
-      document.getElementById('raw-notes-content-area').innerHTML = folderOverviewHTML;
+      document.getElementById('folder-overview-wrapper').innerHTML = folderOverviewHTML;
     }
   }
-  
   document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
   document.getElementById('tab-raw').classList.add('active');
   updateBreadcrumbs(folderId);
 }
 
-// Seleksi File Klik Kiri
 function selectFileWorkspace(fileId, fileName, event) {
   if (event) event.stopPropagation();
-  
   currentSelectedNodeId = fileId;
   currentRightClickedNodeId = fileId; 
   
+  const overviewActions = document.getElementById('overview-actions');
+  if (overviewActions) overviewActions.style.setProperty('display', 'flex', 'important');
   const tabsContainer = document.querySelector('.workspace-tabs-container');
-  if (tabsContainer) {
-    tabsContainer.style.setProperty('display', 'flex', 'important');
-  }
+  if (tabsContainer) tabsContainer.style.setProperty('display', 'flex', 'important');
   
-  const notesCard = document.querySelector('#tab-raw .card');
-  if (notesCard) {
-    notesCard.style.background = 'var(--white)';
-    notesCard.style.border = '1px solid var(--border)';
-    notesCard.style.boxShadow = 'var(--shadow-sm)';
-    notesCard.style.padding = '2.25rem';
-  }
-  const notesCardHeader = document.querySelector('#tab-raw .card-header');
-  if (notesCardHeader) notesCardHeader.style.display = 'flex';
+  if (document.getElementById('note-card-wrapper')) document.getElementById('note-card-wrapper').style.display = 'block';
+  if (document.getElementById('folder-overview-wrapper')) document.getElementById('folder-overview-wrapper').style.display = 'none';
   
   if (typeof loadSavedFileNode === 'function') {
     loadSavedFileNode(fileId, fileName, event);
@@ -959,18 +906,7 @@ function selectFileWorkspace(fileId, fileName, event) {
     document.getElementById('active-project-workspace').style.display = 'flex';
     document.getElementById('active-project-title').innerText = fileName;
   }
-  
   updateBreadcrumbs(fileId);
-}
-
-function handleOverviewRename() {
-  if (!currentSelectedNodeId) return alert("Select a folder or file first!");
-  triggerRenameNode();
-}
-
-function handleOverviewDelete() {
-  if (!currentSelectedNodeId) return alert("Select a folder or file first!");
-  triggerDeleteNode();
 }
 
 function resetToEmptyState() {
@@ -979,19 +915,17 @@ function resetToEmptyState() {
   
   document.getElementById('empty-workspace-state').style.display = 'none';
   document.getElementById('active-project-workspace').style.display = 'flex';
-  document.getElementById('active-project-title').innerText = "Project Workspace";
+  document.getElementById('active-project-title').innerText = "Root Workspace";
   
-  // 🎯 PAKSA SEMBUNYIKAN tombol Rename & Delete di halaman paling depan!
   const overviewActions = document.getElementById('overview-actions');
   if (overviewActions) {
+    // 🎯 FIX TYPO SAKRAL: Parameter dibetulkan dari ('none', 'none') menjadi ('display', 'none')
     overviewActions.style.setProperty('display', 'none', 'important');
   }
   
-  // Sembunyikan barisan tab atas
   const tabsContainer = document.querySelector('.workspace-tabs-container');
   if (tabsContainer) tabsContainer.style.setProperty('display', 'none', 'important');
   
-  // (Sisa kode render grid treeData milikmu ke bawahnya biarkan tetap berjalan seperti biasa...)
   const notesCard = document.querySelector('#tab-raw .card');
   if (notesCard) {
     notesCard.style.background = 'transparent';
@@ -1002,6 +936,9 @@ function resetToEmptyState() {
   const notesCardHeader = document.querySelector('#tab-raw .card-header');
   if (notesCardHeader) notesCardHeader.style.setProperty('display', 'none', 'important');
   
+  if (document.getElementById('note-card-wrapper')) document.getElementById('note-card-wrapper').style.display = 'none';
+  if (document.getElementById('folder-overview-wrapper')) document.getElementById('folder-overview-wrapper').style.display = 'block';
+  
   const treeData = getLibraryData();
   if (treeData.length === 0) {
     document.getElementById('empty-workspace-state').style.display = 'flex';
@@ -1009,7 +946,7 @@ function resetToEmptyState() {
     return;
   }
   
-  let rootOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; padding: 0.5rem 0; width: 100%;">`;
+  let rootOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; width: 100%;">`;
   treeData.forEach(node => {
     if (node.type === "folder") {
       const folderColor = node.color || "#6B8F71";
@@ -1030,8 +967,18 @@ function resetToEmptyState() {
   
   document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
   document.getElementById('tab-raw').classList.add('active');
-  document.getElementById('raw-notes-content-area').innerHTML = rootOverviewHTML;
+  document.getElementById('folder-overview-wrapper').innerHTML = rootOverviewHTML;
   
   const breadcrumbsContainer = document.getElementById('workspace-breadcrumbs');
   if (breadcrumbsContainer) breadcrumbsContainer.innerHTML = `<span style="font-weight: 600; color: var(--ink);">Dashboard</span>`;
+}
+
+// Fungsi Tab Navigation Bawaan Lama
+function switchWorkspaceTab(targetTabId) {
+  document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
+  const clickedBtn = document.querySelector(`[onclick="switchWorkspaceTab('${targetTabId}')"]`);
+  if (clickedBtn) clickedBtn.classList.add('active');
+  const targetPanel = document.getElementById(targetTabId);
+  if (targetPanel) targetPanel.classList.add('active');
 }
