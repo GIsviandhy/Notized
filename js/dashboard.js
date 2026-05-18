@@ -1,3 +1,41 @@
+// ─── INJEKSI CSS UNTUK FIX TEXT AREA KOSONG & TEKS PANJANG ───
+const fixStyle = document.createElement('style');
+fixStyle.innerHTML = `
+  /* 1. Fix Teks Kepanjangan di Sidebar & Grid */
+  .tree-folder-header > div { min-width: 0 !important; }
+  .tree-folder-header strong, .tree-file-item span, .folder-grid-item span, .file-grid-item span {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block;
+  }
+  .tree-svg-icon { flex-shrink: 0 !important; }
+  .tree-file-item, .folder-grid-item, .file-grid-item { min-width: 0 !important; }
+
+  /* 2. Fix Text Area Form Input Kekecilan */
+  #input-form-workspace {
+    max-width: 100% !important; 
+    height: calc(100vh - 120px) !important; /* Penuhi sisa tinggi layar */
+    display: none;
+    flex-direction: column;
+  }
+  #input-form-workspace[style*="display: block"] {
+    display: flex !important; 
+  }
+  .modern-textarea-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+  }
+  #notes-input {
+    flex-grow: 1; 
+    resize: none; 
+    min-height: 200px;
+  }
+`;
+document.head.appendChild(fixStyle);
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 let selectedFolderColor = "#0284c7"; 
@@ -73,7 +111,6 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ─── SIDEBAR RESIZER ───
 function setupSidebarResizer() {
   const sidebar = document.getElementById('workspace-sidebar');
   if (!sidebar || document.getElementById('sidebar-resizer')) return;
@@ -195,6 +232,8 @@ function customPrompt(msg, defaultValue = "", title = "Input Required") {
     document.getElementById('cd-msg').textContent = msg;
     const inputField = document.getElementById('cd-input');
     inputField.style.display = 'block'; inputField.value = defaultValue;
+    inputField.setAttribute('maxlength', '40');
+    inputField.oninput = function() { if (this.value.length > 40) this.value = this.value.substring(0, 40); };
     setTimeout(() => inputField.focus(), 50);
     const btnCancel = document.getElementById('cd-btn-cancel');
     const btnConfirm = document.getElementById('cd-btn-confirm');
@@ -280,8 +319,18 @@ function viewRoot() {
   if (tree && tree.length > 0) {
     emptyHint.style.display = 'none'; grid.style.display = 'grid';
     tree.forEach(child => {
-      if (child.type === 'folder') { html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true"><svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>${esc(child.name)}</span></div>`; } 
-      else { html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true"><svg class="tree-svg-icon" style="color: var(--text-muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(child.name)}</span></div>`; }
+      if (child.type === 'folder') { 
+          html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
+              <svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
+          </div>`; 
+      } 
+      else { 
+          html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
+              <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
+          </div>`; 
+      }
     });
     grid.innerHTML = html;
   } else { grid.style.display = 'none'; emptyHint.style.display = 'flex'; }
@@ -298,8 +347,18 @@ function viewFolderNode(id, event) {
   let html = '';
   if (targetFolder && targetFolder.children && targetFolder.children.length > 0) {
     targetFolder.children.forEach(child => {
-      if (child.type === 'folder') { html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true"><svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>${esc(child.name)}</span></div>`; } 
-      else { html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true"><svg class="tree-svg-icon" style="color: var(--text-muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(child.name)}</span></div>`; }
+      if (child.type === 'folder') { 
+          html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
+              <svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
+          </div>`; 
+      } 
+      else { 
+          html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
+              <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
+          </div>`; 
+      }
     });
   } else { html = `<p style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; padding: 1.5rem; text-align: center; border: 1px dashed var(--border); border-radius: 12px;">This directory is empty.</p>`; }
   grid.innerHTML = html;
@@ -491,10 +550,21 @@ async function triggerAnalyzeFromRaw() {
 async function triggerEditNoteExplicit() {
   if (!currentViewedNoteId) return;
   const tree = getLibraryData(); const node = getTargetNode(tree, currentViewedNoteId);
-  let textToEdit = ""; if (node && node.data && node.data.rawText) { textToEdit = node.data.rawText; if (textToEdit.includes("Legacy Note: The original raw text was not saved")) { textToEdit = ""; } }
+  let textToEdit = ""; 
+  
+  // PENGECEKAN YANG LEBIH AMAN AGAR KODE TIDAK TERHAPUS
+  if (node && node.data && node.data.rawText) { 
+      textToEdit = node.data.rawText; 
+      if (textToEdit === "Legacy Note: The original raw text was not saved in older versions. Click 'Edit Content' to overwrite with new content.") { 
+          textToEdit = ""; 
+      } 
+  }
+  
   isNoteEditingActive = true; noteEditingTargetId = currentViewedNoteId; hideAllViews();
   document.getElementById('input-form-workspace').style.display = 'block';
-  document.getElementById('intake-form-title').textContent = `Editing Note: ${node.name}`; document.getElementById('notes-input').value = textToEdit; updateWordCount();
+  document.getElementById('intake-form-title').textContent = `Editing Note: ${node.name}`; 
+  document.getElementById('notes-input').value = textToEdit; 
+  updateWordCount();
 }
 
 function saveEditedNoteDirectly(newAnalysisData) {
@@ -505,12 +575,70 @@ function saveEditedNoteDirectly(newAnalysisData) {
   }
 }
 
+// ─── FUNGSI TOMBOL EKSPLISIT DAN KLIK KANAN YANG SEMPAT HILANG ───
+
+async function handleContextRename(isFolder) {
+  if (!currentRightClickedNodeId) return;
+  const tree = getLibraryData();
+  const node = getTargetNode(tree, currentRightClickedNodeId);
+  if (!node) return;
+  
+  if (isFolder) {
+      isEditMode = true; 
+      editingNodeId = currentRightClickedNodeId; 
+      const folderModal = document.getElementById('folder-creator-card');
+      if (folderModal) {
+          document.getElementById('modal-folder-title').textContent = "Rename Folder"; 
+          document.getElementById('btn-submit-folder').textContent = "Save Changes";
+          const nInput = document.getElementById('new-folder-name-input');
+          nInput.value = node.name; 
+          nInput.setAttribute('maxlength', '40'); 
+          nInput.oninput = function() { if (this.value.length > 40) this.value = this.value.substring(0, 40); };
+          folderModal.style.setProperty('display', 'flex', 'important');
+      }
+  } else {
+      const newName = await customPrompt("Enter a new name for this note:", node.name, "Rename Segment");
+      if (newName && newName.trim()) { 
+          node.name = newName.trim().substring(0, 40); 
+          localStorage.setItem('notized_library_tree', JSON.stringify(tree)); 
+          refreshWorkspaceTree(); 
+          if (currentViewedNoteId === currentRightClickedNodeId) {
+              const pTitle = document.getElementById('active-project-title');
+              if (pTitle) pTitle.textContent = node.name; 
+              renderBreadcrumbs(findPath(tree, currentRightClickedNodeId), 'breadcrumbs-project'); 
+          }
+          if (currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else viewRoot();
+      }
+  }
+}
+
+async function handleContextDelete(isFolder) {
+  if (!currentRightClickedNodeId) return;
+  const typeText = isFolder ? "folder and its contents" : "note";
+  const isConfirmed = await customConfirm(`Are you sure you want to completely delete this ${typeText}?`, "Purge Directory"); 
+  if (!isConfirmed) return;
+  let treeData = getLibraryData(); 
+  if (deleteInTree(treeData, currentRightClickedNodeId)) { 
+      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
+      refreshWorkspaceTree(); 
+      if (currentViewedFolderId === currentRightClickedNodeId || currentViewedNoteId === currentRightClickedNodeId) {
+          viewRoot();
+      } else if (currentViewedFolderId !== "root_root") {
+          viewFolderNode(currentViewedFolderId);
+      } else { viewRoot(); }
+  }
+}
+
 async function triggerRenameFolderExplicit() {
   if (currentViewedFolderId === 'root_root') return;
   isEditMode = true; editingNodeId = currentViewedFolderId; const tree = getLibraryData(); const node = getTargetNode(tree, currentViewedFolderId);
   if (node) {
     document.getElementById('modal-folder-title').textContent = "Rename Folder"; document.getElementById('btn-submit-folder').textContent = "Save Changes";
-    document.getElementById('new-folder-name-input').value = node.name; document.getElementById('folder-creator-card').style.setProperty('display', 'flex', 'important');
+    const nInput = document.getElementById('new-folder-name-input');
+    nInput.value = node.name; 
+    nInput.setAttribute('maxlength', '40'); 
+    nInput.oninput = function() { if (this.value.length > 40) this.value = this.value.substring(0, 40); };
+    document.getElementById('folder-creator-card').style.setProperty('display', 'flex', 'important');
   }
 }
 
@@ -525,7 +653,13 @@ async function triggerRenameNoteExplicit() {
   const treeData = getLibraryData(); const node = getTargetNode(treeData, currentViewedNoteId);
   if (node) {
     const newName = await customPrompt("Enter a new name for this note:", node.name, "Rename Segment");
-    if (newName && newName.trim()) { node.name = newName.trim(); localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); document.getElementById('active-project-title').textContent = node.name; renderBreadcrumbs(findPath(treeData, currentViewedNoteId), 'breadcrumbs-project'); }
+    if (newName && newName.trim()) { 
+        node.name = newName.trim().substring(0, 40); 
+        localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
+        refreshWorkspaceTree(); 
+        document.getElementById('active-project-title').textContent = node.name; 
+        renderBreadcrumbs(findPath(treeData, currentViewedNoteId), 'breadcrumbs-project'); 
+    }
   }
 }
 
@@ -558,7 +692,6 @@ function renderBreadcrumbs(pathArray, containerId) {
   } else { html = `<span class="crumb active-crumb">Dashboard</span>`; } container.innerHTML = html;
 }
 
-// ─── HANDLER DRAG & DROP DENGAN UBAH URUTAN GRID TENGAH ───
 function bindDragAndDropEvents() {
   const draggables = document.querySelectorAll('.tree-node-row, .folder-grid-item, .file-grid-item');
   draggables.forEach(row => {
@@ -681,12 +814,15 @@ function buildTreeHTML(nodes) {
       const caret = node.children && node.children.length > 0 ? (node.expanded ? "▾" : "▸") : " "; const baseColor = node.color || "#0284c7"; 
       return `
         <div class="tree-folder-block" data-id="${node.id}">
-          <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.14)}; color: ${baseColor};">
-            <div style="display: flex; gap: 0.4rem; align-items: center; flex: 1;">
-              <div onclick="toggleFolderNode('${node.id}', event)" style="padding: 0 2px; cursor: pointer; font-size:11px;">${caret}</div>
-              <div onclick="viewFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1; cursor: pointer;"><svg class="tree-svg-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><strong>${esc(node.name)}</strong></div>
+          <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.14)}; color: ${baseColor};" title="${esc(node.name)}">
+            <div style="display: flex; gap: 0.4rem; align-items: center; flex: 1; min-width: 0;">
+              <div onclick="toggleFolderNode('${node.id}', event)" style="padding: 0 2px; cursor: pointer; font-size:11px; flex-shrink: 0;">${caret}</div>
+              <div onclick="viewFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1; cursor: pointer; min-width: 0;">
+                <svg class="tree-svg-icon" style="flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(node.name)}</strong>
+              </div>
             </div>
-            <span class="tree-count">${node.children ? node.children.length : 0}</span>
+            <span class="tree-count" style="flex-shrink: 0;">${node.children ? node.children.length : 0}</span>
           </div>
           <div id="children-${node.id}" class="tree-folder-contents" style="${node.expanded ? 'display:flex;' : 'display:none;'} padding-left: 0.75rem; flex-direction: column; gap: 0.25rem;">
             ${node.children && node.children.length > 0 ? buildTreeHTML(node.children) : ''}
@@ -694,17 +830,12 @@ function buildTreeHTML(nodes) {
         </div>`;
     } else {
       return `
-        <div class="tree-file-item tree-node-row" draggable="true" data-id="${node.id}" data-type="file" onclick="loadSavedFileNode('${node.id}', '${esc(node.name)}', event)">
-          <svg class="tree-svg-icon" style="color: var(--text-muted);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(node.name)}</span>
+        <div class="tree-file-item tree-node-row" draggable="true" data-id="${node.id}" data-type="file" onclick="loadSavedFileNode('${node.id}', '${esc(node.name)}', event)" title="${esc(node.name)}" style="display: flex; align-items: center; gap: 0.5rem; min-width: 0;">
+          <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(node.name)}</span>
         </div>`;
     }
   }).join('');
-}
-
-function toggleFolderNode(nodeId, event) {
-  if (event) event.stopPropagation(); let treeData = getLibraryData();
-  function findAndToggle(nodes) { for (let node of nodes) { if (node.id === nodeId) { node.expanded = !node.expanded; return true; } if (node.children && findAndToggle(node.children)) return true; } return false; }
-  findAndToggle(treeData); localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree();
 }
 
 async function openFolderCreatorDirect(event) {
@@ -712,11 +843,17 @@ async function openFolderCreatorDirect(event) {
   const drop = document.getElementById('header-action-dropdown'); if (drop) drop.classList.remove('active');
   isEditMode = false; editingNodeId = null; const folderModal = document.getElementById('folder-creator-card');
   document.getElementById('modal-folder-title').textContent = "Create New Folder"; document.getElementById('btn-submit-folder').textContent = "Create Folder";
-  document.getElementById('new-folder-name-input').value = ''; folderModal.style.setProperty('display', 'flex', 'important');
+  const nInput = document.getElementById('new-folder-name-input');
+  nInput.value = ''; 
+  nInput.setAttribute('maxlength', '40'); 
+  nInput.oninput = function() { if (this.value.length > 40) this.value = this.value.substring(0, 40); };
+  folderModal.style.setProperty('display', 'flex', 'important');
 }
 
 function handleFolderSubmit() {
-  const nameInput = document.getElementById('new-folder-name-input').value.trim(); if (!nameInput) { customAlert("Please enter a folder name!", "Validation"); return; }
+  const nameInput = document.getElementById('new-folder-name-input').value.trim().substring(0, 40); 
+  if (!nameInput) { customAlert("Please enter a folder name!", "Validation"); return; }
+  
   let treeData = getLibraryData();
   if (isEditMode) { let node = getTargetNode(treeData, editingNodeId); if (node) { node.name = nameInput; node.color = selectedFolderColor || "#0284c7"; } } 
   else {
@@ -733,7 +870,12 @@ function selectColorDot(el) { document.querySelectorAll('.color-dot').forEach(d 
 
 function openSaveModal() {
   const incoming = localStorage.getItem('notizedData'); if (!incoming) return;
-  document.getElementById('save-modal').style.display = 'flex'; document.getElementById('save-notes-name').value = JSON.parse(incoming).title || '';
+  document.getElementById('save-modal').style.display = 'flex'; 
+  const sName = document.getElementById('save-notes-name');
+  sName.value = JSON.parse(incoming).title || '';
+  sName.setAttribute('maxlength', '40');
+  sName.oninput = function() { if (this.value.length > 40) this.value = this.value.substring(0, 40); };
+  
   const selectEl = document.getElementById('save-folder-select'); let optionsArray = [`<option value="root_root">Save to Root (Luar Folder)</option>`];
   function injectFolderOptions(nodes, depth = 0) { nodes.forEach(node => { if (node.type === "folder") { optionsArray.push(`<option value="${node.id}">${"&nbsp;&nbsp;".repeat(depth)}Folder: ${node.name}</option>`); if (node.children) injectFolderOptions(node.children, depth + 1); } }); }
   injectFolderOptions(getLibraryData()); 
@@ -746,8 +888,10 @@ function openSaveModal() {
 function closeSaveModal() { document.getElementById('save-modal').style.display = 'none'; }
 
 async function confirmSaveNotes() {
-  const titleInput = document.getElementById('save-notes-name').value.trim(); const folderTargetId = document.getElementById('save-folder-select').value;
+  const titleInput = document.getElementById('save-notes-name').value.trim().substring(0, 40); 
+  const folderTargetId = document.getElementById('save-folder-select').value;
   if (!titleInput) { await customAlert('Please enter a project name.', "Validation"); return; }
+  
   const incomingData = JSON.parse(localStorage.getItem('notizedData')); let treeData = getLibraryData();
   const newFileNode = { id: "node_" + Date.now(), name: titleInput, type: "file", data: incomingData };
   if (folderTargetId === "root_root" || folderTargetId.startsWith("mock_pad_")) treeData.push(newFileNode);
