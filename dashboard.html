@@ -73,7 +73,7 @@
     
     <!-- Top Navigation -->
     <nav class="nav dashboard-nav">
-      <div class="nav-logo" style="display: flex; align-items: center; gap: 0.75rem;">
+      <div class="nav-logo" onclick="location.href='index.html'" style="cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
         
         <button type="button" id="sidebar-toggle-btn" onclick="toggleSidebar(event)" title="Toggle Sidebar" style="display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px; transition: background 0.2s;">
           <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
@@ -115,9 +115,8 @@
 
         <div class="sidebar-header">
           <button type="button" class="btn-add-folder" onclick="openFolderCreatorDirect(event)">
-            <span style="display: flex; align-items: center; justify-content: center;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-            </span>          
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            New Folder
           </button>
         </div>
         
@@ -142,9 +141,9 @@
           <p>Select a note from the sidebar or create a new one to get started.</p>
         </div>
 
-        <div id="active-project-workspace" style="display: none; flex-direction: column; height: 100%; overflow: hidden;">
+        <div id="active-project-workspace" style="display: none; flex-direction: column;">
 
-          <div class="workspace-header-sticky" style="padding: 2rem 4rem 1rem 4rem; background: var(--cream); border-bottom: 1px solid var(--border);">
+          <div class="workspace-header-sticky">
 
             <div id="workspace-breadcrumbs" class="breadcrumbs-bar" style="font-size: 13px; color: var(--ink-muted); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;"></div>
 
@@ -162,7 +161,7 @@
             </div>
           </div>
 
-          <div class="workspace-tab-body-scroll" style="flex: 1; overflow-y: auto; padding: 3rem 4rem;">
+          <div class="workspace-tab-body-scroll">
   
             <div id="tab-raw" class="tab-content-panel active" style="width: 100%;">
   
