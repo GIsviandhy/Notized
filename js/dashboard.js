@@ -3,33 +3,61 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 
 // ─── STATE MANAGEMENT ────────────────────────────────────────────────────────
 let selectedFolderColor = "#6B8F71"; 
-let currentRightClickedNodeId = null; // Menyimpan ID item yang di-klik kanan
+let currentRightClickedNodeId = null; // Menyimpan ID item aktif untuk modal bawaan
 let draggedNodeId = null;             // Menyimpan ID item yang sedang di-drag
 let isEditMode = false;      // Untuk mendeteksi apakah modal sedang dipakai untuk Create atau Edit
 let editingNodeId = null;    // Menyimpan ID folder yang sedang diedit
+let currentSelectedNodeId = null; // Menyimpan ID item yang sedang dipilih untuk preview
 
 // ─── INITIALIZATION ON LOAD ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // 1. Render struktur pohon direktori multi-level pertama kali
   refreshWorkspaceTree();
 
   const incomingData = localStorage.getItem('notizedData');
+  
   if (incomingData) {
     document.getElementById('btn-trigger-save').style.display = 'block';
     const parsed = JSON.parse(incomingData);
     
     const sessionRawText = localStorage.getItem('current_raw_text');
     if (sessionRawText) {
-      parsed.rawText = sessionRawText; // Paksa suntik ke object parsed preview
+      parsed.rawText = sessionRawText;
+      parsed.notes = sessionRawText;
     }
     
     document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'flex'; // Paksa pakai flex
+    document.getElementById('active-project-workspace').style.display = 'flex';
     
     renderProjectContent(parsed);
     document.getElementById('active-project-title').textContent = "Preview: " + (parsed.title || "Unsaved Note");
-    
-    // Otomatis arahkan ke tab pertama
     switchWorkspaceTab('tab-raw');
+    return; 
+  }
+
+  const treeData = getLibraryData();
+  let firstFileFound = null;
+
+  function findFirstFile(nodes) {
+    for (let node of nodes) {
+      if (node.type === "file") {
+        firstFileFound = node;
+        return true;
+      }
+      if (node.children && node.children.length > 0) {
+        if (findFirstFile(node.children)) return true;
+      }
+    }
+    return false;
+  }
+
+  findFirstFile(treeData);
+
+  if (firstFileFound) {
+    selectFileWorkspace(firstFileFound.id, firstFileFound.name);
+  } else {
+    document.getElementById('empty-workspace-state').style.display = 'flex';
+    document.getElementById('active-project-workspace').style.display = 'none';
   }
 });
 
@@ -97,6 +125,33 @@ function getLibraryData() {
   return defaultTree;
 }
 
+// 🆕 Helper untuk mencari node berdasarkan ID (Mencegah Error Breadcrumbs)
+function findNodeById(nodes, id) {
+  for (let node of nodes) {
+    if (node.id === id) return node;
+    if (node.children && node.children.length > 0) {
+      const found = findNodeById(node.children, id);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+// 🆕 Helper untuk mengecek apakah targetId adalah keturunan/anak dari folder yang di-drag
+function isNodeChildOf(nodes, folderId, targetId) {
+  const folderNode = findNodeById(nodes, folderId);
+  if (!folderNode || !folderNode.children) return false;
+  
+  function checkDeep(children) {
+    for (let child of children) {
+      if (child.id === targetId) return true;
+      if (child.children && checkDeep(child.children)) return true;
+    }
+    return false;
+  }
+  return checkDeep(folderNode.children);
+}
+
 function hexToRgbaTint(hex, opacity = 0.15) {
   let c;
   if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
@@ -110,13 +165,11 @@ function hexToRgbaTint(hex, opacity = 0.15) {
   return 'rgba(107, 143, 113, 0.15)'; 
 }
 
-// ─── SIDEBAR RETRACTABLE CONTROLLER (BUKA TUTUP PANEL) ──────────────────────
+// ─── SIDEBAR RETRACTABLE CONTROLLER ──────────────────────────────────────────
 function toggleSidebar(event) {
   if (event) event.preventDefault();
-  
   const sidebar = document.getElementById('workspace-sidebar');
   if (!sidebar) return;
-
   if (sidebar.classList.contains('collapsed')) {
     sidebar.classList.remove('collapsed');
   } else {
@@ -131,34 +184,38 @@ function refreshWorkspaceTree() {
   if (!rootContainer) return;
 
   rootContainer.innerHTML = buildTreeHTML(treeData);
-  bindDragAndDropEvents();
-  bindContextMenuEvents();
+  if (typeof bindDragAndDropEvents === 'function') bindDragAndDropEvents();
 }
 
-// ─── RECURSIVE ENGINE: FULL BACKGROUND TINT ACCORDING TO USER COLOR ───
+// ─── RECURSIVE ENGINE: MARKUP BUILDER ───
 function buildTreeHTML(nodes) {
   return nodes.map(node => {
     if (node.type === "folder") {
       const caretIcon = node.children && node.children.length > 0 ? (node.expanded ? "▾" : "▸") : " ";
       const displayStyle = node.expanded ? "display: flex;" : "display: none;";
-      const baseColor = node.color || selectedFolderColor || "#6B8F71";
+      const baseColor = node.color || "#6B8F71";
       const backgroundColorBlock = hexToRgbaTint(baseColor, 0.15);
       const textColorSolid = baseColor;
 
       return `
         <div class="tree-folder-block" data-id="${node.id}">
           <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" 
-               style="background-color: ${backgroundColorBlock} !important; color: ${textColorSolid} !important; border-color: ${hexToRgbaTint(baseColor, 0.1)} !important;">
+               onclick="selectFolderWorkspace('${node.id}', event)"
+               style="background-color: ${backgroundColorBlock} !important; color: ${textColorSolid} !important; border-color: ${hexToRgbaTint(baseColor, 0.1)} !important; display: flex; justify-content: space-between; align-items: center;">
             
-            <div onclick="toggleFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1;">
-              <span style="font-size: 11px; width: 10px; display: inline-block; text-align: center;">${caretIcon}</span>
+            <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; overflow: hidden;">
+              <span onclick="event.stopPropagation(); toggleFolderNode('${node.id}', event);" 
+                    style="font-size: 14px; width: 16px; display: inline-block; text-align: center; cursor: pointer; font-weight: bold; padding: 2px 4px; border-radius: 4px;" 
+                    onmouseover="this.style.background='rgba(0,0,0,0.08)'" 
+                    onmouseout="this.style.background='transparent'">
+                ${caretIcon}
+              </span>
+              
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <strong>${esc(node.name)}</strong>
+              <strong style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; cursor: pointer;">${esc(node.name)}</strong>
             </div>
-            
             <span class="tree-count">${node.children ? node.children.length : 0}</span>
           </div>
-          
           <div id="children-${node.id}" class="tree-folder-contents" style="${displayStyle} padding-left: 0.75rem; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem;">
             ${node.children && node.children.length > 0 ? buildTreeHTML(node.children) : '<div class="tree-empty-hint">No projects inside</div>'}
           </div>
@@ -166,8 +223,8 @@ function buildTreeHTML(nodes) {
       `;
     } else {
       return `
-        <div class="tree-file-item tree-node-row" draggable="true" data-id="${node.id}" data-type="file" onclick="loadSavedFileNode('${node.id}', '${esc(node.name)}', event)" style="padding: 0.5rem 0.75rem; font-size: 13px; color: var(--ink); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; text-align: left;">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <div class="tree-file-item tree-node-row" draggable="true" data-id="${node.id}" data-type="file" onclick="selectFileWorkspace('${node.id}', '${esc(node.name)}', event)" style="padding: 0.5rem 0.75rem; font-size: 13px; color: var(--ink); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; text-align: left;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
           <span>${esc(node.name)}</span>
         </div>
       `;
@@ -195,17 +252,13 @@ function toggleFolderNode(nodeId, event) {
 // ─── MODAL CONTROLLERS ───────────────────────────────────────────────────────
 function openFolderCreatorDirect(event) {
   if (event) event.preventDefault();
-  
   isEditMode = false;
   editingNodeId = null;
-  
   const folderModal = document.getElementById('folder-creator-card');
   if (folderModal) {
-    // ⚡ FIX UTAMA: Paksa teks modal & tombol kembali ke status default pembuatan baru
     document.getElementById('modal-folder-title').textContent = "Create New Folder";
     document.getElementById('btn-submit-folder').textContent = "Create Folder";
     document.getElementById('new-folder-name-input').value = '';
-    
     folderModal.style.setProperty('display', 'flex', 'important');
     setTimeout(() => document.getElementById('new-folder-name-input').focus(), 50);
   }
@@ -213,26 +266,28 @@ function openFolderCreatorDirect(event) {
 
 function handleFolderSubmit() {
   const nameInput = document.getElementById('new-folder-name-input').value.trim();
-  if (!nameInput) return alert("Please enter a folder name!");
+  if (!nameInput) return alert("Name cannot be empty!");
 
   let treeData = getLibraryData();
 
   if (isEditMode) {
-    // === JALUR AKSI EDIT FOLDER ===
-    function updateFolderInTree(nodes) {
+    function updateNodeInTree(nodes) {
       for (let node of nodes) {
         if (node.id === editingNodeId) {
           node.name = nameInput;
-          node.color = selectedFolderColor || "#6B8F71";
+          // Hanya update warna jika tipenya folder
+          if (node.type === "folder") {
+            node.color = selectedFolderColor || "#6B8F71";
+          }
           return true;
         }
-        if (node.children && updateFolderInTree(node.children)) return true;
+        if (node.children && updateNodeInTree(node.children)) return true;
       }
       return false;
     }
-    updateFolderInTree(treeData);
+    updateNodeInTree(treeData);
   } else {
-    // === JALUR AKSI CREATE NEW FOLDER (Bawaan Lama) ===
+    // Jalur aksi buat folder baru (Bawaan Lama)
     treeData.push({
       id: "node_" + Date.now(),
       name: nameInput,
@@ -246,6 +301,22 @@ function handleFolderSubmit() {
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
   closeFolderCreatorCard();
   refreshWorkspaceTree();
+  
+  // Sinkronisasi Judul dan Breadcrumbs di halaman kanan secara instan
+  if (isEditMode && currentSelectedNodeId === editingNodeId) {
+    document.getElementById('active-project-title').innerText = nameInput;
+    updateBreadcrumbs(editingNodeId);
+  }
+}
+
+// Tambahan fungsi reset display color saat modal ditutup biasa
+const originalCloseFolderCard = closeFolderCreatorCard;
+closeFolderCreatorCard = function() {
+  originalCloseFolderCard();
+  const colorPickerLabel = document.querySelector('.color-picker-label');
+  const colorOptions = document.querySelectorAll('.color-palette-options');
+  if (colorPickerLabel) colorPickerLabel.style.display = 'block';
+  if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
 }
 
 function closeFolderCreatorCard() {
@@ -265,156 +336,190 @@ function selectColorDot(element) {
   selectedFolderColor = element.getAttribute('data-color') || "#6B8F71";
 }
 
-// ─── REAL-TIME DRAG & DROP API ENGINE ───
+// ─── 🛡️ ADAPTASI LOGIKA DRAG & DROP TEMAN (SUDAH SINKRON DENGAN NOTIZED) ───
 function bindDragAndDropEvents() {
   const rows = document.querySelectorAll('.tree-node-row');
-  
   rows.forEach(row => {
-    row.addEventListener('dragstart', (e) => {
-      e.stopPropagation();
-      draggedNodeId = row.getAttribute('data-id');
-      row.classList.add('dragging');
+    row.addEventListener('dragstart', (e) => { 
+      e.stopPropagation(); 
+      draggedNodeId = row.getAttribute('data-id'); 
+      row.classList.add('dragging'); 
     });
 
-    row.addEventListener('dragend', () => {
-      row.classList.remove('dragging');
-      document.querySelectorAll('.tree-node-row').forEach(r => r.classList.remove('drag-over'));
+    row.addEventListener('dragend', () => { 
+      row.classList.remove('dragging'); 
+      document.querySelectorAll('.tree-node-row').forEach(r => { 
+        r.classList.remove('drag-over'); 
+        r.style.borderTop = ''; 
+        r.style.borderBottom = ''; 
+      }); 
     });
 
     row.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      row.classList.add('drag-over');
+      e.preventDefault(); 
+      e.stopPropagation(); 
+      row.style.borderTop = ''; 
+      row.style.borderBottom = ''; 
+      
+      const rect = row.getBoundingClientRect(); 
+      const y = e.clientY - rect.top;
+      
+      // Menggunakan warna --sage sesuai dengan tema Notized kamu
+      if (row.getAttribute('data-type') === 'folder') { 
+        if (y < rect.height * 0.25) row.style.borderTop = '2px solid var(--sage)'; 
+        else if (y > rect.height * 0.75) row.style.borderBottom = '2px solid var(--sage)'; 
+        else row.classList.add('drag-over'); 
+      } else { 
+        if (y < rect.height * 0.5) row.style.borderTop = '2px solid var(--sage)'; 
+        else row.style.borderBottom = '2px solid var(--sage)'; 
+      }
     });
 
-    row.addEventListener('dragleave', () => {
-      row.classList.remove('drag-over');
+    row.addEventListener('dragleave', () => { 
+      row.classList.remove('drag-over'); 
+      row.style.borderTop = ''; 
+      row.style.borderBottom = ''; 
     });
 
+// ─── UPDATE BLOK DROP EVENT (DI DALAM bindDragAndDropEvents) ───
     row.addEventListener('drop', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      row.classList.remove('drag-over');
+      e.preventDefault(); 
+      e.stopPropagation(); 
       
-      const targetId = row.getAttribute('data-id');
-      const targetType = row.getAttribute('data-type');
-      
+      const targetId = row.getAttribute('data-id'); 
       if (draggedNodeId === targetId) return;
 
-      let treeData = getLibraryData();
-      let movingNode = null;
-
-      function removeNode(nodes) {
-        for (let i = 0; i < nodes.length; i++) {
-          if (nodes[i].id === draggedNodeId) {
-            movingNode = nodes.splice(i, 1)[0];
-            return true;
-          }
-          if (nodes[i].children && removeNode(nodes[i].children)) return true;
-        }
-        return false;
+      let treeData = getLibraryData(); 
+      
+      // 🎯 SILENT VALIDATION: Langsung return / batalkan drop tanpa memunculkan pop-up alert
+      if (typeof isNodeChildOf === 'function' && isNodeChildOf(treeData, draggedNodeId, targetId)) {
+        refreshWorkspaceTree(); // Reset visual border atau hover state ke semula
+        return;
       }
-      removeNode(treeData);
 
+      let movingNode = null; 
+      let sourceArray = null; 
+      let sourceIndex = -1;
+      
+      function extractNode(nodes) { 
+        for (let i = 0; i < nodes.length; i++) { 
+          if (nodes[i].id === draggedNodeId) { 
+            sourceArray = nodes; 
+            sourceIndex = i; 
+            movingNode = nodes.splice(i, 1)[0]; 
+            return true; 
+          } 
+          if (nodes[i].children && extractNode(nodes[i].children)) return true; 
+        } 
+        return false; 
+      } 
+      
+      extractNode(treeData); 
       if (!movingNode) return;
 
-      function insertNode(nodes) {
-        for (let node of nodes) {
-          if (node.id === targetId) {
-            if (node.type === "folder") {
-              if (!node.children) node.children = [];
-              node.children.push(movingNode);
-              node.expanded = true;
-            } else {
-              nodes.push(movingNode);
-            }
-            return true;
-          }
-          if (node.children && insertNode(node.children)) return true;
-        }
-        return false;
-      }
-
-      if (targetType === "folder") {
-        insertNode(treeData);
-      } else {
-        treeData.push(movingNode);
-      }
-
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-      refreshWorkspaceTree();
-    });
-  });
-}
-
-// ─── RIGHT-CLICK CONTEXT MENU CONTROLLER ────────────────────────────────────
-function bindContextMenuEvents() {
-  const rows = document.querySelectorAll('.tree-node-row');
-  const menu = document.getElementById('custom-context-menu');
-  if (!menu) return;
-
-  rows.forEach(row => {
-    row.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      currentRightClickedNodeId = row.getAttribute('data-id');
+      let targetArray = null; 
+      let targetIndex = -1; 
+      let targetNodeRef = null; 
+      let targetIsFolder = false;
       
-      menu.style.left = `${e.pageX}px`;
-      menu.style.top = `${e.pageY}px`;
-      menu.style.display = 'block';
+      function findTarget(nodes) { 
+        for (let i = 0; i < nodes.length; i++) { 
+          if (nodes[i].id === targetId) { 
+            targetArray = nodes; 
+            targetIndex = i; 
+            targetNodeRef = nodes[i]; 
+            targetIsFolder = nodes[i].type === 'folder'; 
+            return true; 
+          } 
+          if (nodes[i].children && findTarget(nodes[i].children)) return true; 
+        } 
+        return false; 
+      } 
+      
+      findTarget(treeData);
+      
+      if (!targetArray) { 
+        sourceArray.splice(sourceIndex, 0, movingNode); 
+        localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+        refreshWorkspaceTree();
+        return; 
+      }
+      
+      const rect = row.getBoundingClientRect(); 
+      const y = e.clientY - rect.top;
+      
+      if (targetIsFolder) { 
+        if (y < rect.height * 0.25) {
+          targetArray.splice(targetIndex, 0, movingNode); 
+        } else if (y > rect.height * 0.75) {
+          targetArray.splice(targetIndex + 1, 0, movingNode); 
+        } else { 
+          if (!targetNodeRef.children) targetNodeRef.children = []; 
+          targetNodeRef.children.push(movingNode); 
+          targetNodeRef.expanded = true; 
+        } 
+      } else { 
+        if (y < rect.height * 0.5) targetArray.splice(targetIndex, 0, movingNode); 
+        else targetArray.splice(targetIndex + 1, 0, movingNode); 
+      }
+      
+      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
+      refreshWorkspaceTree();
+      
+      if (currentSelectedNodeId) updateBreadcrumbs(currentSelectedNodeId);
     });
-  });
-
-  document.addEventListener('click', () => {
-    menu.style.display = 'none';
   });
 }
 
+
+
+// ─── OVERVIEW ACTION HANDLERS ────────────────────────────────────────────────
 function triggerRenameNode() {
   if (!currentRightClickedNodeId) return;
   
   let treeData = getLibraryData();
-  let targetNode = null;
-
-  function findNode(nodes) {
-    for (let node of nodes) {
-      if (node.id === currentRightClickedNodeId) { targetNode = node; return true; }
-      if (node.children && findNode(node.children)) return true; // Typo findFile sudah diganti ke findNode secara rekursif
-    }
-    return false;
-  }
-  findNode(treeData);
+  let targetNode = findNodeById(treeData, currentRightClickedNodeId);
 
   if (!targetNode) return;
 
-  if (targetNode.type === "file") {
-    const newFileName = prompt("Enter new note name:", targetNode.name);
-    if (newFileName && newFileName.trim()) {
-      targetNode.name = newFileName.trim();
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-      refreshWorkspaceTree();
-    }
-    return;
-  }
-
+  // Set status bahwa modal sedang dalam mode EDIT/RENAME
   isEditMode = true;
   editingNodeId = currentRightClickedNodeId;
 
+  // Tampilkan modal folder-creator yang sudah ada tapi diubah teksnya
   const folderModal = document.getElementById('folder-creator-card');
   if (folderModal) {
-    document.getElementById('modal-folder-title').textContent = "Edit Folder";
-    document.getElementById('btn-submit-folder').textContent = "Save Changes";
-    document.getElementById('new-folder-name-input').value = targetNode.name;
-    
-    document.querySelectorAll('.color-dot').forEach(dot => {
-      dot.classList.remove('active');
-      if (dot.getAttribute('data-color') === targetNode.color) {
-        dot.classList.add('active');
-        selectedFolderColor = targetNode.color;
-      }
-    });
+    // Jika yang di-rename adalah FILE/NOTE
+    if (targetNode.type === "file") {
+      document.getElementById('modal-folder-title').textContent = "Rename Note";
+      document.getElementById('btn-submit-folder').textContent = "Save Name";
+      // Sembunyikan color picker jika mere-name file biar tidak bingung
+      const colorPickerLabel = document.querySelector('.color-picker-label');
+      const colorOptions = document.querySelectorAll('.color-palette-options');
+      if (colorPickerLabel) colorPickerLabel.style.display = 'none';
+      if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'none');
+    } else {
+      // Jika yang di-rename adalah FOLDER
+      document.getElementById('modal-folder-title').textContent = "Rename Folder";
+      document.getElementById('btn-submit-folder').textContent = "Save Changes";
+      
+      // Munculkan kembali color picker untuk folder
+      const colorPickerLabel = document.querySelector('.color-picker-label');
+      const colorOptions = document.querySelectorAll('.color-palette-options');
+      if (colorPickerLabel) colorPickerLabel.style.display = 'block';
+      if (colorOptions) colorOptions.forEach(opt => opt.style.display = 'flex');
+      
+      // Set warna aktif sesuai warna folder saat ini
+      document.querySelectorAll('.color-dot').forEach(dot => {
+        dot.classList.remove('active');
+        if (dot.getAttribute('data-color') === targetNode.color) {
+          dot.classList.add('active');
+          selectedFolderColor = targetNode.color;
+        }
+      });
+    }
 
+    document.getElementById('new-folder-name-input').value = targetNode.name;
     folderModal.style.setProperty('display', 'flex', 'important');
     setTimeout(() => document.getElementById('new-folder-name-input').focus(), 50);
   }
@@ -422,21 +527,12 @@ function triggerRenameNode() {
 
 function triggerDeleteNode() {
   if (!currentRightClickedNodeId) return;
-  if (!confirm("Are you sure you want to delete this item?")) return;
-
-  let treeData = getLibraryData();
-
-  function deleteInTree(nodes) {
-    for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].id === currentRightClickedNodeId) { nodes.splice(i, 1); return true; }
-      if (nodes[i].children && deleteInTree(nodes[i].children)) return true;
-    }
-    return false;
+  
+  // Langsung buka modal kustom konfirmasi delete tanpa confirm() browser
+  const deleteModal = document.getElementById('delete-confirm-modal');
+  if (deleteModal) {
+    deleteModal.style.setProperty('display', 'flex', 'important');
   }
-
-  deleteInTree(treeData);
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-  refreshWorkspaceTree();
 }
 
 // ─── RE-LINK PREVIEW FILES MECHANISM ─────────────────────────────────────────
@@ -463,7 +559,6 @@ function loadSavedFileNode(id, name, event) {
     if (foundFile && foundFile.data) {
       renderProjectContent(foundFile.data);
     }
-    
     switchWorkspaceTab('tab-raw'); 
     return;
   }
@@ -471,16 +566,12 @@ function loadSavedFileNode(id, name, event) {
   findFile(treeData);
   if (foundFile && foundFile.data) {
     document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'flex'; // Wajib flex
+    document.getElementById('active-project-workspace').style.display = 'flex'; 
     document.getElementById('active-project-title').textContent = name;
-    
-    // Render data asli hasil simpanan (termasuk .rawText di dalamnya)
     renderProjectContent(foundFile.data);
-    
     switchWorkspaceTab('tab-raw'); 
   }
 }
-
 
 // ─── SAVE PARSED NOTE TO CHOSEN NODE RECURSIVE ENGINE ───
 function openSaveModal() {
@@ -493,10 +584,8 @@ function openSaveModal() {
   
   let treeData = getLibraryData();
   const selectEl = document.getElementById('save-folder-select');
-  
   let optionsHTML = `<option value="root_root">📁 Save to Root (Luar Folder)</option>`;
   
-  // Fungsi pembantu rekursif untuk menyuntikkan daftar folder bersarang ke dalam select tag
   function injectFolderOptions(nodes, depth = 0) {
     nodes.forEach(node => {
       if (node.type === "folder") {
@@ -528,7 +617,6 @@ function confirmSaveNotes() {
   let treeData = getLibraryData();
 
   const savedRawText = localStorage.getItem('current_raw_text') || "";
-  
   incomingData.rawText = savedRawText; 
   incomingData.notes = savedRawText; 
 
@@ -557,22 +645,56 @@ function confirmSaveNotes() {
     insertToTargetFolder(treeData);
   }
 
-  // Simpan database permanen dan bersihkan cache operan sementara
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
   localStorage.removeItem('notizedData');
-  localStorage.removeItem('current_raw_text'); // Bersihkan memori operan
+  localStorage.removeItem('current_raw_text'); 
   
   document.getElementById('btn-trigger-save').style.display = 'none';
   closeSaveModal();
   refreshWorkspaceTree();
-  loadSavedFileNode(newFileNode.id, titleInput);
+  selectFileWorkspace(newFileNode.id, titleInput);
+}
+
+function closeDeleteModal() {
+  const deleteModal = document.getElementById('delete-confirm-modal');
+  if (deleteModal) {
+    deleteModal.style.setProperty('display', 'none', 'important');
+  }
+}
+
+function confirmDeleteNode() {
+  if (!currentRightClickedNodeId) return;
+
+  let treeData = getLibraryData();
+
+  function deleteInTree(nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === currentRightClickedNodeId) { 
+        nodes.splice(i, 1); 
+        return true; 
+      }
+      if (nodes[i].children && deleteInTree(nodes[i].children)) return true;
+    }
+    return false;
+  }
+
+  deleteInTree(treeData);
+  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+  
+  closeDeleteModal(); // Tutup modalnya
+  refreshWorkspaceTree(); // Render ulang sidebar
+  
+  // Balikkan ke empty/root state jika item yang sedang aktif dibuka barusan dihapus
+  if (currentSelectedNodeId === currentRightClickedNodeId) {
+    resetToEmptyState();
+  }
 }
 
 // ─── CONTENT RENDERING PANEL CORE ────────────────────────────────────────────
 function renderProjectContent(data) {
   if (!data) return;
 
-const rawNotesArea = document.getElementById('raw-notes-content-area');
+  const rawNotesArea = document.getElementById('raw-notes-content-area');
   if (rawNotesArea) {
     rawNotesArea.textContent = data.rawText || data.notes || "No raw text content available for this session.";
   }  
@@ -628,28 +750,288 @@ const rawNotesArea = document.getElementById('raw-notes-content-area');
   }
 }
 
-// Escape HTML utility helper
 function esc(str) {
   if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// Fungsi Tab Navigation
 function switchWorkspaceTab(targetTabId) {
-  // 1. Matikan status aktif di seluruh tombol tab header atas
   document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
-  
-  // 2. Sembunyikan seluruh isi panel konten tab body
   document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
-  
-  // 3. Nyalakan tombol tab yang sedang di-klik user
   const clickedBtn = document.querySelector(`[onclick="switchWorkspaceTab('${targetTabId}')"]`);
   if (clickedBtn) clickedBtn.classList.add('active');
-  
-  // 4. Munculkan isi panel target secara instan
   const targetPanel = document.getElementById(targetTabId);
   if (targetPanel) targetPanel.classList.add('active');
+}
+
+// ─── BREADCRUMBS LOGIC ───────────────────────────────────────────────────────
+function findNodePath(nodes, targetId) {
+  for (let node of nodes) {
+    if (node.id === targetId) {
+      return [node.name];
+    }
+    
+    if (node.children && node.children.length > 0) {
+      const childPath = findNodePath(node.children, targetId);
+      if (childPath) {
+        return [node.name, ...childPath];
+      }
+    }
+  }
+  // Jika di silsilah cabang ini buntu, kembalikan null agar tidak merusak jalur lain
+  return null;
+}
+
+// ─── 🔗 FIX MUTLAK: BREADCRUMBS BISA DIKLIK UNTUK NAVIGASI MUNDUR ───
+function updateBreadcrumbs(nodeId) {
+  const container = document.getElementById('workspace-breadcrumbs');
+  if (!container) return;
+
+  // 1. Tombol Dashboard paling depan selalu ada dan bisa diklik
+  let html = `
+    <span onclick="resetToEmptyState()" style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-muted)'">
+      Dashboard
+    </span>
+  `;
+
+  // Jika sedang di root dashboard (nodeId null/empty), langsung cetak Dashboard saja
+  if (!nodeId) {
+    container.innerHTML = html;
+    return;
+  }
+
+  const treeData = getLibraryData();
+  
+  // 2. Ambil silsilah node path berupa Array of Objects (ID dan Name)
+  // Kita butuh ID-nya juga biar pas diklik tahu harus lari ke folder mana
+  const nodePathObjects = findNodePathWithIds(treeData, nodeId);
+
+  if (nodePathObjects && nodePathObjects.length > 0) {
+    nodePathObjects.forEach((crumb, index) => {
+      html += ` <span style="margin: 0 0.25rem; color: var(--border); font-size: 11px;">/</span> `;
+      
+      const isLast = index === nodePathObjects.length - 1;
+      
+      if (isLast) {
+        // Crumb terakhir (page aktif sekarang) tebal dan gak usah diklik
+        html += `<span style="font-weight: 600; color: var(--ink);">${esc(crumb.name)}</span>`;
+      } else {
+        // Crumb folder di tengah-tengah bisa diklik untuk mundur!
+        html += `
+          <span onclick="selectFolderWorkspace('${crumb.id}', event)" 
+                style="cursor: pointer; transition: color 0.2s;" 
+                onmouseover="this.style.color='var(--ink)'" 
+                onmouseout="this.style.color='var(--ink-muted)'">
+            ${esc(crumb.name)}
+          </span>
+        `;
+      }
+    });
+  }
+
+  container.innerHTML = html;
+}
+
+// Helper untuk mencari silsilah lengkap folder beserta ID-nya
+function findNodePathWithIds(nodes, targetId) {
+  for (let node of nodes) {
+    if (node.id === targetId) {
+      return [{ id: node.id, name: node.name }];
+    }
+    
+    if (node.children && node.children.length > 0) {
+      const childPath = findNodePathWithIds(node.children, targetId);
+      if (childPath) {
+        return [{ id: node.id, name: node.name }, ...childPath];
+      }
+    }
+  }
+  return null;
+}
+
+// ─── 📂 RENDER FOLDER: SEMBUNYIKAN TAB ANALISIS, HANYA TAMPILKAN ISI ───
+function selectFolderWorkspace(folderId, event) {
+  if (event) event.stopPropagation();
+  
+  currentSelectedNodeId = folderId;
+  currentRightClickedNodeId = folderId; 
+
+  document.getElementById('empty-workspace-state').style.display = 'none';
+  document.getElementById('active-project-workspace').style.display = 'flex';
+  
+  const overviewActions = document.getElementById('overview-actions');
+  if (overviewActions) {
+    overviewActions.style.setProperty('display', 'flex', 'important');
+  }
+  
+  const tabsContainer = document.querySelector('.workspace-tabs-container');
+  if (tabsContainer) {
+    tabsContainer.style.setProperty('display', 'none', 'important');
+  }
+  
+  // Reset style card notes agar polos saat folder overview dibuka
+  const notesCard = document.querySelector('#tab-raw .card');
+  if (notesCard) {
+    notesCard.style.background = 'transparent';
+    notesCard.style.border = 'none';
+    notesCard.style.boxShadow = 'none';
+    notesCard.style.padding = '0';
+  }
+  const notesCardHeader = document.querySelector('#tab-raw .card-header');
+  if (notesCardHeader) notesCardHeader.style.setProperty('display', 'none', 'important');
+
+  const treeData = getLibraryData();
+  const folderNode = findNodeById(treeData, folderId);
+  
+  if (folderNode) {
+    const titleEl = document.getElementById('active-project-title');
+    if (titleEl) {
+      titleEl.innerText = folderNode.name;
+      titleEl.style.setProperty('margin-bottom', '1rem', 'important'); 
+    }
+    
+    const children = folderNode.children || [];
+    
+    if (children.length === 0) {
+      document.getElementById('raw-notes-content-area').innerHTML = `
+        <div style="color: var(--ink-muted); font-style: italic; padding: 3rem; text-align: center; font-size: 14px; width: 100%;">
+          📁 Folder ini kosong.
+        </div>`;
+    } else {
+      let folderOverviewHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; padding: 0.5rem 0; width: 100%;">
+      `;
+      
+      children.forEach(child => {
+        if (child.type === "folder") {
+          const folderColor = child.color || "#6B8F71";
+          folderOverviewHTML += `
+            <div onclick="selectFolderWorkspace('${child.id}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span style="font-weight: 600; font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(child.name)}</span>
+            </div>`;
+        } else {
+          folderOverviewHTML += `
+            <div onclick="selectFileWorkspace('${child.id}', '${esc(child.name)}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <span style="font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(child.name)}</span>
+            </div>`;
+        }
+      });
+      
+      folderOverviewHTML += `</div>`;
+      document.getElementById('raw-notes-content-area').innerHTML = folderOverviewHTML;
+    }
+  }
+  
+  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
+  document.getElementById('tab-raw').classList.add('active');
+  updateBreadcrumbs(folderId);
+}
+
+// Seleksi File Klik Kiri
+function selectFileWorkspace(fileId, fileName, event) {
+  if (event) event.stopPropagation();
+  
+  currentSelectedNodeId = fileId;
+  currentRightClickedNodeId = fileId; 
+  
+  const tabsContainer = document.querySelector('.workspace-tabs-container');
+  if (tabsContainer) {
+    tabsContainer.style.setProperty('display', 'flex', 'important');
+  }
+  
+  const notesCard = document.querySelector('#tab-raw .card');
+  if (notesCard) {
+    notesCard.style.background = 'var(--white)';
+    notesCard.style.border = '1px solid var(--border)';
+    notesCard.style.boxShadow = 'var(--shadow-sm)';
+    notesCard.style.padding = '2.25rem';
+  }
+  const notesCardHeader = document.querySelector('#tab-raw .card-header');
+  if (notesCardHeader) notesCardHeader.style.display = 'flex';
+  
+  if (typeof loadSavedFileNode === 'function') {
+    loadSavedFileNode(fileId, fileName, event);
+  } else {
+    document.getElementById('empty-workspace-state').style.display = 'none';
+    document.getElementById('active-project-workspace').style.display = 'flex';
+    document.getElementById('active-project-title').innerText = fileName;
+  }
+  
+  updateBreadcrumbs(fileId);
+}
+
+function handleOverviewRename() {
+  if (!currentSelectedNodeId) return alert("Select a folder or file first!");
+  triggerRenameNode();
+}
+
+function handleOverviewDelete() {
+  if (!currentSelectedNodeId) return alert("Select a folder or file first!");
+  triggerDeleteNode();
+}
+
+function resetToEmptyState() {
+  currentSelectedNodeId = null;
+  currentRightClickedNodeId = null;
+  
+  document.getElementById('empty-workspace-state').style.display = 'none';
+  document.getElementById('active-project-workspace').style.display = 'flex';
+  document.getElementById('active-project-title').innerText = "Project Workspace";
+  
+  // 🎯 PAKSA SEMBUNYIKAN tombol Rename & Delete di halaman paling depan!
+  const overviewActions = document.getElementById('overview-actions');
+  if (overviewActions) {
+    overviewActions.style.setProperty('display', 'none', 'important');
+  }
+  
+  // Sembunyikan barisan tab atas
+  const tabsContainer = document.querySelector('.workspace-tabs-container');
+  if (tabsContainer) tabsContainer.style.setProperty('display', 'none', 'important');
+  
+  // (Sisa kode render grid treeData milikmu ke bawahnya biarkan tetap berjalan seperti biasa...)
+  const notesCard = document.querySelector('#tab-raw .card');
+  if (notesCard) {
+    notesCard.style.background = 'transparent';
+    notesCard.style.border = 'none';
+    notesCard.style.boxShadow = 'none';
+    notesCard.style.padding = '0';
+  }
+  const notesCardHeader = document.querySelector('#tab-raw .card-header');
+  if (notesCardHeader) notesCardHeader.style.setProperty('display', 'none', 'important');
+  
+  const treeData = getLibraryData();
+  if (treeData.length === 0) {
+    document.getElementById('empty-workspace-state').style.display = 'flex';
+    document.getElementById('active-project-workspace').style.display = 'none';
+    return;
+  }
+  
+  let rootOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; padding: 0.5rem 0; width: 100%;">`;
+  treeData.forEach(node => {
+    if (node.type === "folder") {
+      const folderColor = node.color || "#6B8F71";
+      rootOverviewHTML += `
+        <div onclick="selectFolderWorkspace('${node.id}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span style="font-weight: 600; font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(node.name)}</span>
+        </div>`;
+    } else {
+      rootOverviewHTML += `
+        <div onclick="selectFileWorkspace('${node.id}', '${esc(node.name)}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          <span style="font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(node.name)}</span>
+        </div>`;
+    }
+  });
+  rootOverviewHTML += `</div>`;
+  
+  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
+  document.getElementById('tab-raw').classList.add('active');
+  document.getElementById('raw-notes-content-area').innerHTML = rootOverviewHTML;
+  
+  const breadcrumbsContainer = document.getElementById('workspace-breadcrumbs');
+  if (breadcrumbsContainer) breadcrumbsContainer.innerHTML = `<span style="font-weight: 600; color: var(--ink);">Dashboard</span>`;
 }
