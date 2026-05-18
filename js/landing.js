@@ -182,3 +182,20 @@ function toggleAuthMode() {
   if (currentAuthMode === "login") openAuthModal("signup");
   else openAuthModal("login");
 }
+
+// Testimonial Carousel Navigation
+document.addEventListener('DOMContentLoaded', function() {
+  const carousel = document.querySelector('.testimonial-carousel');
+  const leftArrow = document.querySelector('.carousel-arrow-left');
+  const rightArrow = document.querySelector('.carousel-arrow-right');
+  
+  if (carousel && leftArrow && rightArrow) {
+    leftArrow.addEventListener('click', () => {
+      carousel.scrollBy({ left: -420, behavior: 'smooth' });
+    });
+    
+    rightArrow.addEventListener('click', () => {
+      carousel.scrollBy({ left: 420, behavior: 'smooth' });
+    });
+  }
+});
