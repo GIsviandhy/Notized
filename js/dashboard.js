@@ -6,15 +6,12 @@ let draggedNodeId = null;
 let isEditMode = false;      
 let editingNodeId = null;    
 
-// Lacak state layar saat ini
 let currentViewedFolderId = "root_root"; 
 let currentViewedNoteId = null;
 
-// State pembantu untuk proses Edit Notes
 let isNoteEditingActive = false;
 let noteEditingTargetId = null;
 
-// Variabel Global pendeteksi Guest
 let isGuestMode = false;
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -22,21 +19,16 @@ window.addEventListener('DOMContentLoaded', () => {
   isGuestMode = urlParams.get('loadExample') === 'true';
 
   if (isGuestMode) {
-    // ─── LOGIKA TRY SAMPLE (GUEST MODE MURNI) ───
-    // Pastikan status akun benar-benar kosong
     localStorage.removeItem('notized_currentUser');
-
     setupGuestUI();
     startNewIntake('root_root');
     
-    // Set teks otomatis
     const notesInput = document.getElementById('notes-input');
     if (notesInput) {
       notesInput.value = `Web Development: Laravel & React Integration\n\nWhen building modern web applications, combining Laravel as a backend API and React as a dynamic frontend yields high performance. Laravel handles routing, database ORM, and authentication smoothly. React consumes these APIs to render interactive UI components using Tailwind CSS for styling.`;
       updateWordCount();
     }
   } else {
-    // ─── LOGIKA NORMAL (USER LOGIN) ───
     refreshWorkspaceTree();
     viewRoot();
     
@@ -57,12 +49,11 @@ window.addEventListener('DOMContentLoaded', () => {
 
 function setupGuestUI() {
   const sidebar = document.getElementById('workspace-sidebar');
-  if (sidebar) sidebar.style.display = 'none'; // Sembunyikan sidebar kiri
+  if (sidebar) sidebar.style.display = 'none';
   
   const hamburger = document.getElementById('sidebar-toggle-btn');
   if (hamburger) hamburger.style.display = 'none';
 
-  // Sembunyikan Nama & Tombol Dropdown Create New, ganti dengan Login
   const topbarRight = document.querySelector('.topbar-right-cluster');
   if (topbarRight) {
     topbarRight.innerHTML = `
@@ -75,7 +66,6 @@ function setupGuestUI() {
     `;
   }
 
-  // Jika layout menggunakan grid, buat area utama selebar mungkin
   const mainLayout = document.querySelector('.workspace-layout');
   if (mainLayout) {
       mainLayout.style.display = 'block';
@@ -89,7 +79,6 @@ function toggleHeaderDropdown(event) {
   if (drop) drop.classList.toggle('active');
 }
 
-// ─── HANDLER TOMBOL BACK (TUTUP & KEMBALI) ───────────────────────────
 function handleFolderBack() {
   if (currentViewedFolderId === 'root_root') return;
   const tree = getLibraryData();
@@ -128,7 +117,6 @@ function handleCancelInput() {
   }
 }
 
-// ─── CUSTOM DIALOG ENGINE ────────────────────────────────────────────
 function customAlert(msg, title = "Notification") {
   return new Promise(resolve => {
     const overlay = document.getElementById('custom-dialog-overlay');
@@ -189,7 +177,6 @@ function customPrompt(msg, defaultValue = "", title = "Input Required") {
   });
 }
 
-// ─── STORAGE ENGINE ──────────────────────────────────────────────────
 function getLibraryData() {
   const data = localStorage.getItem('notized_library_tree');
   if (data) return JSON.parse(data);
@@ -249,7 +236,6 @@ function toggleSidebar(event) {
   if (sidebar) sidebar.classList.toggle('collapsed');
 }
 
-// ─── ROUTING LAYAR & BREADCRUMBS ─────────────────────────────────────
 function hideAllViews() {
   document.getElementById('empty-workspace-state').style.display = 'none';
   document.getElementById('active-project-workspace').style.display = 'none';
@@ -338,7 +324,6 @@ function startNewIntake(targetId) {
   document.getElementById('notes-input').value = '';
   updateWordCount(); 
   
-  // LOGIKA OVERRIDE UI JIKA SEDANG GUEST MODE
   if (isGuestMode) {
       document.getElementById('intake-form-title').textContent = "Try Sample Concept";
       const subtitle = document.querySelector('#input-form-workspace .entry-subtitle');
@@ -409,7 +394,6 @@ async function handleAnalyze() {
     const result = await analyzeNotes(notes); result.rawText = notes; result.isRawOnly = false;
     barEl.style.width = '100%'; pctEl.textContent = '100%'; await sleep(300); document.getElementById('loading-view').classList.remove('active');
     
-    // ─── LOGIKA GUEST KETIKA SELESAI ANALYZE ───
     if (isGuestMode) {
         hideAllViews();
         document.getElementById('active-project-workspace').style.display = 'block';
@@ -442,7 +426,7 @@ async function handleAnalyze() {
         const rawBody = document.getElementById('raw-notes-body');
         if(rawBody) { rawBody.style.display = 'none'; rawBody.textContent = result.rawText; }
         renderProjectContent(result);
-        return; // Hentikan fungsi di sini, jangan buka save modal
+        return;
     }
     
     localStorage.setItem('notizedData', JSON.stringify(result));
@@ -461,7 +445,7 @@ function triggerViewRawExplicit() {
 }
 
 async function triggerAnalyzeFromRaw() {
-   const tree = getLibraryData(); const node = getTargetNode(tree, currentViewedNoteId); const rawText = node.data.rawText;
+   const tree = getLibraryData(); const node = getTargetNode(currentViewedNoteId); const rawText = node.data.rawText;
    if(rawText.split(/\s+/).length < 10) { await customAlert("This raw note is too short to analyze (minimum 10 words). Please edit and add more context.", "Analysis Blocked"); return; }
    document.getElementById('loading-view').classList.add('active');
    const barEl = document.getElementById('progress-bar'); const pctEl = document.getElementById('progress-pct');
@@ -575,6 +559,7 @@ function bindDragAndDropEvents() {
 
 function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData); bindDragAndDropEvents(); }
 
+// ─── PENGHAPUSAN TEKS "EMPTY" PADA SIDEBAR ───
 function buildTreeHTML(nodes) {
   return nodes.map(node => {
     if (node.type === "folder") {
@@ -588,7 +573,9 @@ function buildTreeHTML(nodes) {
             </div>
             <span class="tree-count">${node.children ? node.children.length : 0}</span>
           </div>
-          <div id="children-${node.id}" class="tree-folder-contents" style="${node.expanded ? 'display:flex;' : 'display:none;'} padding-left: 0.75rem; flex-direction: column; gap: 0.25rem;">${node.children && node.children.length > 0 ? buildTreeHTML(node.children) : '<div class="tree-empty-hint">Empty</div>'}</div>
+          <div id="children-${node.id}" class="tree-folder-contents" style="${node.expanded ? 'display:flex;' : 'display:none;'} padding-left: 0.75rem; flex-direction: column; gap: 0.25rem;">
+            ${node.children && node.children.length > 0 ? buildTreeHTML(node.children) : ''}
+          </div>
         </div>`;
     } else {
       return `
