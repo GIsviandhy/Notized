@@ -8,11 +8,45 @@ let editingNodeId = null;
 
 let currentViewedFolderId = "root_root"; 
 let currentViewedNoteId = null;
-
 let isNoteEditingActive = false;
 let noteEditingTargetId = null;
-
 let isGuestMode = false;
+
+// ─── GLOBAL CONTEXT MENU ENGINE ───
+document.addEventListener('contextmenu', function(e) {
+    const targetEl = e.target.closest('.tree-folder-header, .tree-file-item, .folder-grid-item, .file-grid-item');
+    if (targetEl) {
+        e.preventDefault(); 
+        currentRightClickedNodeId = targetEl.getAttribute('data-id');
+        const isFolder = targetEl.classList.contains('tree-folder-header') || targetEl.classList.contains('folder-grid-item');
+        
+        let menu = document.getElementById('notized-context-menu');
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = 'notized-context-menu';
+            menu.style.cssText = 'position: fixed; display: none; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; z-index: 999999; padding: 0.5rem; min-width: 160px; flex-direction: column; gap: 0.25rem; font-family: "Plus Jakarta Sans", sans-serif;';
+            document.body.appendChild(menu);
+        }
+        
+        menu.innerHTML = `
+            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #0f172a; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.color='#0284c7';" onmouseout="this.style.background='transparent'; this.style.color='#0f172a';" onclick="handleContextRename(${isFolder})">✎ Rename</div>
+            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #ef4444; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='transparent'" onclick="handleContextDelete(${isFolder})">🗑 Delete</div>
+        `;
+        menu.style.display = 'flex';
+        let x = e.clientX; let y = e.clientY;
+        const rect = menu.getBoundingClientRect();
+        if (x + rect.width > window.innerWidth) x -= rect.width;
+        if (y + rect.height > window.innerHeight) y -= rect.height;
+        menu.style.left = x + 'px'; menu.style.top = y + 'px';
+    }
+});
+
+document.addEventListener('click', (e) => {
+    const menu = document.getElementById('notized-context-menu');
+    if (menu) menu.style.display = 'none';
+    const drop = document.getElementById('header-action-dropdown');
+    if (drop && !e.target.closest('.dropdown-wrapper')) drop.classList.remove('active');
+});
 
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
@@ -22,7 +56,6 @@ window.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('notized_currentUser');
     setupGuestUI();
     startNewIntake('root_root');
-    
     const notesInput = document.getElementById('notes-input');
     if (notesInput) {
       notesInput.value = `Web Development: Laravel & React Integration\n\nWhen building modern web applications, combining Laravel as a backend API and React as a dynamic frontend yields high performance. Laravel handles routing, database ORM, and authentication smoothly. React consumes these APIs to render interactive UI components using Tailwind CSS for styling.`;
@@ -30,88 +63,97 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   } else {
     refreshWorkspaceTree();
+    setupSidebarResizer();
     viewRoot();
-    
     const greetingEl = document.getElementById('user-greeting');
     if (greetingEl) {
       const user = JSON.parse(localStorage.getItem('notized_currentUser'));
-      if (user && user.name) {
-        greetingEl.textContent = `Hello, ${user.name}`;
-      }
+      if (user && user.name) greetingEl.textContent = `Hello, ${user.name}`;
     }
   }
-
-  document.addEventListener('click', () => {
-    const drop = document.getElementById('header-action-dropdown');
-    if (drop) drop.classList.remove('active');
-  });
 });
+
+// ─── SIDEBAR RESIZER ───
+function setupSidebarResizer() {
+  const sidebar = document.getElementById('workspace-sidebar');
+  if (!sidebar || document.getElementById('sidebar-resizer')) return;
+
+  const resizer = document.createElement('div');
+  resizer.id = 'sidebar-resizer';
+  resizer.style.cssText = 'width: 6px; cursor: col-resize; position: absolute; right: 0; top: 0; bottom: 0; z-index: 100; transition: background 0.2s;';
+  
+  resizer.onmouseover = () => resizer.style.background = 'rgba(2, 132, 199, 0.2)';
+  resizer.onmouseout = () => resizer.style.background = 'transparent';
+
+  sidebar.style.position = 'relative';
+  sidebar.appendChild(resizer);
+
+  let isResizing = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    isResizing = true;
+    document.body.style.userSelect = 'none'; 
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isResizing) return;
+    let newWidth = e.clientX - sidebar.getBoundingClientRect().left;
+    if (newWidth < 200) newWidth = 200;
+    if (newWidth > 600) newWidth = 600;
+    sidebar.style.width = newWidth + 'px';
+    sidebar.style.minWidth = newWidth + 'px'; 
+    sidebar.style.flex = 'none'; 
+  });
+
+  document.addEventListener('mouseup', () => {
+    isResizing = false;
+    document.body.style.userSelect = '';
+  });
+}
 
 function setupGuestUI() {
   const sidebar = document.getElementById('workspace-sidebar');
   if (sidebar) sidebar.style.display = 'none';
-  
   const hamburger = document.getElementById('sidebar-toggle-btn');
   if (hamburger) hamburger.style.display = 'none';
-
   const topbarRight = document.querySelector('.topbar-right-cluster');
   if (topbarRight) {
     topbarRight.innerHTML = `
       <button type="button" class="btn-secondary" onclick="window.location.href='index.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> Back to Home
       </button>
-      <button type="button" class="btn-primary" onclick="window.location.href='index.html'">
-         Login / Register
-      </button>
+      <button type="button" class="btn-primary" onclick="window.location.href='index.html'">Login / Register</button>
     `;
   }
-
   const mainLayout = document.querySelector('.workspace-layout');
-  if (mainLayout) {
-      mainLayout.style.display = 'block';
-  }
+  if (mainLayout) mainLayout.style.display = 'block';
 }
 
 function toggleHeaderDropdown(event) {
-  event.preventDefault();
-  event.stopPropagation();
+  event.preventDefault(); event.stopPropagation();
   const drop = document.getElementById('header-action-dropdown');
   if (drop) drop.classList.toggle('active');
 }
 
 function handleFolderBack() {
   if (currentViewedFolderId === 'root_root') return;
-  const tree = getLibraryData();
-  const path = findPath(tree, currentViewedFolderId);
-  if (path && path.length > 1) {
-    viewFolderNode(path[path.length - 2].id);
-  } else {
-    viewRoot();
-  }
+  const tree = getLibraryData(); const path = findPath(tree, currentViewedFolderId);
+  if (path && path.length > 1) viewFolderNode(path[path.length - 2].id); else viewRoot();
 }
 
 function handleNoteBack() {
   if (!currentViewedNoteId) return;
-  const tree = getLibraryData();
-  const path = findPath(tree, currentViewedNoteId);
-  if (path && path.length > 1) {
-    viewFolderNode(path[path.length - 2].id);
-  } else {
-    viewRoot();
-  }
+  const tree = getLibraryData(); const path = findPath(tree, currentViewedNoteId);
+  if (path && path.length > 1) viewFolderNode(path[path.length - 2].id); else viewRoot();
 }
 
 function handleCancelInput() {
   if (isNoteEditingActive && noteEditingTargetId) {
-    const targetId = noteEditingTargetId;
-    isNoteEditingActive = false;
-    noteEditingTargetId = null;
-    const treeData = getLibraryData();
-    const node = getTargetNode(treeData, targetId);
+    const targetId = noteEditingTargetId; isNoteEditingActive = false; noteEditingTargetId = null;
+    const treeData = getLibraryData(); const node = getTargetNode(treeData, targetId);
     if (node) loadSavedFileNode(node.id, node.name); else viewRoot();
   } else {
-    isNoteEditingActive = false;
-    noteEditingTargetId = null;
+    isNoteEditingActive = false; noteEditingTargetId = null;
     const targetId = localStorage.getItem('notized_target_folder');
     if (targetId && targetId !== 'root_root') viewFolderNode(targetId); else viewRoot();
   }
@@ -124,11 +166,9 @@ function customAlert(msg, title = "Notification") {
     document.getElementById('cd-msg').textContent = msg;
     document.getElementById('cd-input').style.display = 'none';
     document.getElementById('cd-btn-cancel').style.display = 'none';
-    
     const btnConfirm = document.getElementById('cd-btn-confirm');
     btnConfirm.textContent = 'OK';
     btnConfirm.onclick = () => { overlay.style.display = 'none'; resolve(true); };
-    
     overlay.style.display = 'flex';
   });
 }
@@ -139,16 +179,11 @@ function customConfirm(msg, title = "Confirm Action") {
     document.getElementById('cd-title').textContent = title;
     document.getElementById('cd-msg').textContent = msg;
     document.getElementById('cd-input').style.display = 'none';
-    
     const btnCancel = document.getElementById('cd-btn-cancel');
     const btnConfirm = document.getElementById('cd-btn-confirm');
-    
-    btnCancel.style.display = 'block';
-    btnConfirm.textContent = 'Confirm';
-    
+    btnCancel.style.display = 'block'; btnConfirm.textContent = 'Confirm';
     btnCancel.onclick = () => { overlay.style.display = 'none'; resolve(false); };
     btnConfirm.onclick = () => { overlay.style.display = 'none'; resolve(true); };
-    
     overlay.style.display = 'flex';
   });
 }
@@ -158,21 +193,14 @@ function customPrompt(msg, defaultValue = "", title = "Input Required") {
     const overlay = document.getElementById('custom-dialog-overlay');
     document.getElementById('cd-title').textContent = title;
     document.getElementById('cd-msg').textContent = msg;
-    
     const inputField = document.getElementById('cd-input');
-    inputField.style.display = 'block';
-    inputField.value = defaultValue;
+    inputField.style.display = 'block'; inputField.value = defaultValue;
     setTimeout(() => inputField.focus(), 50);
-    
     const btnCancel = document.getElementById('cd-btn-cancel');
     const btnConfirm = document.getElementById('cd-btn-confirm');
-    
-    btnCancel.style.display = 'block';
-    btnConfirm.textContent = 'Save';
-    
+    btnCancel.style.display = 'block'; btnConfirm.textContent = 'Save';
     btnCancel.onclick = () => { overlay.style.display = 'none'; resolve(null); };
     btnConfirm.onclick = () => { overlay.style.display = 'none'; resolve(inputField.value); };
-    
     overlay.style.display = 'flex';
   });
 }
@@ -252,11 +280,12 @@ function viewRoot() {
   if (tree && tree.length > 0) {
     emptyHint.style.display = 'none'; grid.style.display = 'grid';
     tree.forEach(child => {
-      if (child.type === 'folder') { html += `<div class="folder-grid-item" onclick="viewFolderNode('${child.id}')"><svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>${esc(child.name)}</span></div>`; } 
-      else { html += `<div class="file-grid-item" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')"><svg class="tree-svg-icon" style="color: var(--text-muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(child.name)}</span></div>`; }
+      if (child.type === 'folder') { html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true"><svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>${esc(child.name)}</span></div>`; } 
+      else { html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true"><svg class="tree-svg-icon" style="color: var(--text-muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(child.name)}</span></div>`; }
     });
     grid.innerHTML = html;
   } else { grid.style.display = 'none'; emptyHint.style.display = 'flex'; }
+  bindDragAndDropEvents();
 }
 
 function viewFolderNode(id, event) {
@@ -269,11 +298,12 @@ function viewFolderNode(id, event) {
   let html = '';
   if (targetFolder && targetFolder.children && targetFolder.children.length > 0) {
     targetFolder.children.forEach(child => {
-      if (child.type === 'folder') { html += `<div class="folder-grid-item" onclick="viewFolderNode('${child.id}')"><svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>${esc(child.name)}</span></div>`; } 
-      else { html += `<div class="file-grid-item" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')"><svg class="tree-svg-icon" style="color: var(--text-muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(child.name)}</span></div>`; }
+      if (child.type === 'folder') { html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true"><svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><span>${esc(child.name)}</span></div>`; } 
+      else { html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true"><svg class="tree-svg-icon" style="color: var(--text-muted)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg><span>${esc(child.name)}</span></div>`; }
     });
   } else { html = `<p style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; padding: 1.5rem; text-align: center; border: 1px dashed var(--border); border-radius: 12px;">This directory is empty.</p>`; }
   grid.innerHTML = html;
+  bindDragAndDropEvents();
 }
 
 function loadSavedFileNode(id, name, event) {
@@ -445,7 +475,7 @@ function triggerViewRawExplicit() {
 }
 
 async function triggerAnalyzeFromRaw() {
-   const tree = getLibraryData(); const node = getTargetNode(currentViewedNoteId); const rawText = node.data.rawText;
+   const tree = getLibraryData(); const node = getTargetNode(tree, currentViewedNoteId); const rawText = node.data.rawText;
    if(rawText.split(/\s+/).length < 10) { await customAlert("This raw note is too short to analyze (minimum 10 words). Please edit and add more context.", "Analysis Blocked"); return; }
    document.getElementById('loading-view').classList.add('active');
    const barEl = document.getElementById('progress-bar'); const pctEl = document.getElementById('progress-pct');
@@ -528,30 +558,116 @@ function renderBreadcrumbs(pathArray, containerId) {
   } else { html = `<span class="crumb active-crumb">Dashboard</span>`; } container.innerHTML = html;
 }
 
+// ─── HANDLER DRAG & DROP DENGAN UBAH URUTAN GRID TENGAH ───
 function bindDragAndDropEvents() {
-  const rows = document.querySelectorAll('.tree-node-row');
-  rows.forEach(row => {
-    row.addEventListener('dragstart', (e) => { e.stopPropagation(); draggedNodeId = row.getAttribute('data-id'); row.classList.add('dragging'); });
-    row.addEventListener('dragend', () => { row.classList.remove('dragging'); document.querySelectorAll('.tree-node-row').forEach(r => { r.classList.remove('drag-over'); r.style.borderTop = ''; r.style.borderBottom = ''; }); });
-    row.addEventListener('dragover', (e) => {
-      e.preventDefault(); e.stopPropagation(); row.style.borderTop = ''; row.style.borderBottom = ''; const rect = row.getBoundingClientRect(); const y = e.clientY - rect.top;
-      if (row.getAttribute('data-type') === 'folder') { if (y < rect.height * 0.25) row.style.borderTop = '2px solid var(--primary)'; else if (y > rect.height * 0.75) row.style.borderBottom = '2px solid var(--primary)'; else row.classList.add('drag-over'); }
-      else { if (y < rect.height * 0.5) row.style.borderTop = '2px solid var(--primary)'; else row.style.borderBottom = '2px solid var(--primary)'; }
+  const draggables = document.querySelectorAll('.tree-node-row, .folder-grid-item, .file-grid-item');
+  draggables.forEach(row => {
+    if (row.dataset.dndBound) return;
+    row.dataset.dndBound = "true";
+
+    row.addEventListener('dragstart', (e) => { 
+        e.stopPropagation(); 
+        draggedNodeId = row.getAttribute('data-id'); 
+        row.classList.add('dragging'); 
     });
-    row.addEventListener('dragleave', () => { row.classList.remove('drag-over'); row.style.borderTop = ''; row.style.borderBottom = ''; });
+    
+    row.addEventListener('dragend', () => { 
+        row.classList.remove('dragging'); 
+        document.querySelectorAll('.tree-node-row, .folder-grid-item, .file-grid-item').forEach(r => { 
+            r.classList.remove('drag-over'); r.style.borderTop = ''; r.style.borderBottom = ''; r.style.borderLeft = ''; r.style.borderRight = '';
+        }); 
+    });
+    
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault(); e.stopPropagation(); 
+      row.style.borderTop = ''; row.style.borderBottom = ''; row.style.borderLeft = ''; row.style.borderRight = ''; 
+      const rect = row.getBoundingClientRect(); 
+      const y = e.clientY - rect.top; const x = e.clientX - rect.left;
+      const isGrid = row.classList.contains('folder-grid-item') || row.classList.contains('file-grid-item');
+
+      if (row.getAttribute('data-type') === 'folder') { 
+          if (isGrid) {
+              if (x < rect.width * 0.25) row.style.borderLeft = '2px solid var(--primary)';
+              else if (x > rect.width * 0.75) row.style.borderRight = '2px solid var(--primary)';
+              else row.classList.add('drag-over');
+          } else {
+              if (y < rect.height * 0.25) row.style.borderTop = '2px solid var(--primary)'; 
+              else if (y > rect.height * 0.75) row.style.borderBottom = '2px solid var(--primary)'; 
+              else row.classList.add('drag-over'); 
+          }
+      } else { 
+          if (isGrid) {
+              if (x < rect.width * 0.5) row.style.borderLeft = '2px solid var(--primary)'; 
+              else row.style.borderRight = '2px solid var(--primary)'; 
+          } else {
+              if (y < rect.height * 0.5) row.style.borderTop = '2px solid var(--primary)'; 
+              else row.style.borderBottom = '2px solid var(--primary)'; 
+          }
+      }
+    });
+    
+    row.addEventListener('dragleave', () => { 
+        row.classList.remove('drag-over'); row.style.borderTop = ''; row.style.borderBottom = ''; row.style.borderLeft = ''; row.style.borderRight = ''; 
+    });
+    
     row.addEventListener('drop', (e) => {
-      e.preventDefault(); e.stopPropagation(); const targetId = row.getAttribute('data-id'); if (draggedNodeId === targetId) return;
-      let treeData = getLibraryData(); let movingNode = null; let sourceArray = null; let sourceIndex = -1;
-      function extractNode(nodes) { for (let i = 0; i < nodes.length; i++) { if (nodes[i].id === draggedNodeId) { sourceArray = nodes; sourceIndex = i; movingNode = nodes.splice(i, 1)[0]; return true; } if (nodes[i].children && extractNode(nodes[i].children)) return true; } return false; }
+      e.preventDefault(); e.stopPropagation(); 
+      const targetId = row.getAttribute('data-id'); 
+      if (draggedNodeId === targetId) return;
+      
+      let treeData = getLibraryData(); 
+      let movingNode = null; let sourceArray = null; let sourceIndex = -1;
+      
+      function extractNode(nodes) { 
+          for (let i = 0; i < nodes.length; i++) { 
+              if (nodes[i].id === draggedNodeId) { sourceArray = nodes; sourceIndex = i; movingNode = nodes.splice(i, 1)[0]; return true; } 
+              if (nodes[i].children && extractNode(nodes[i].children)) return true; 
+          } return false; 
+      }
       extractNode(treeData); if (!movingNode) return;
+      
       let targetArray = null; let targetIndex = -1; let targetNodeRef = null; let targetIsFolder = false;
-      function findTarget(nodes) { for (let i = 0; i < nodes.length; i++) { if (nodes[i].id === targetId) { targetArray = nodes; targetIndex = i; targetNodeRef = nodes[i]; targetIsFolder = nodes[i].type === 'folder'; return true; } if (nodes[i].children && findTarget(nodes[i].children)) return true; } return false; }
+      function findTarget(nodes) { 
+          for (let i = 0; i < nodes.length; i++) { 
+              if (nodes[i].id === targetId) { targetArray = nodes; targetIndex = i; targetNodeRef = nodes[i]; targetIsFolder = nodes[i].type === 'folder'; return true; } 
+              if (nodes[i].children && findTarget(nodes[i].children)) return true; 
+          } return false; 
+      }
       findTarget(treeData);
+      
       if (!targetArray) { sourceArray.splice(sourceIndex, 0, movingNode); return; }
-      const rect = row.getBoundingClientRect(); const y = e.clientY - rect.top;
-      if (targetIsFolder) { if (y < rect.height * 0.25) targetArray.splice(targetIndex, 0, movingNode); else if (y > rect.height * 0.75) targetArray.splice(targetIndex + 1, 0, movingNode); else { if (!targetNodeRef.children) targetNodeRef.children = []; targetNodeRef.children.push(movingNode); targetNodeRef.expanded = true; } }
-      else { if (y < rect.height * 0.5) targetArray.splice(targetIndex, 0, movingNode); else targetArray.splice(targetIndex + 1, 0, movingNode); }
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree();
+      
+      const rect = row.getBoundingClientRect(); 
+      const y = e.clientY - rect.top; const x = e.clientX - rect.left;
+      const isGrid = row.classList.contains('folder-grid-item') || row.classList.contains('file-grid-item');
+
+      if (targetIsFolder) { 
+          if (isGrid) {
+              if (x < rect.width * 0.25) targetArray.splice(targetIndex, 0, movingNode);
+              else if (x > rect.width * 0.75) targetArray.splice(targetIndex + 1, 0, movingNode);
+              else { 
+                  if (!targetNodeRef.children) targetNodeRef.children = []; 
+                  targetNodeRef.children.push(movingNode); targetNodeRef.expanded = true; 
+              }
+          } else {
+              if (y < rect.height * 0.25) targetArray.splice(targetIndex, 0, movingNode); 
+              else if (y > rect.height * 0.75) targetArray.splice(targetIndex + 1, 0, movingNode); 
+              else { 
+                  if (!targetNodeRef.children) targetNodeRef.children = []; 
+                  targetNodeRef.children.push(movingNode); targetNodeRef.expanded = true; 
+              } 
+          }
+      } else { 
+          if (isGrid) {
+              if (x < rect.width * 0.5) targetArray.splice(targetIndex, 0, movingNode); 
+              else targetArray.splice(targetIndex + 1, 0, movingNode); 
+          } else {
+              if (y < rect.height * 0.5) targetArray.splice(targetIndex, 0, movingNode); 
+              else targetArray.splice(targetIndex + 1, 0, movingNode); 
+          }
+      }
+      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
+      refreshWorkspaceTree();
       if(currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else viewRoot();
     });
   });
@@ -559,7 +675,6 @@ function bindDragAndDropEvents() {
 
 function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData); bindDragAndDropEvents(); }
 
-// ─── PENGHAPUSAN TEKS "EMPTY" PADA SIDEBAR ───
 function buildTreeHTML(nodes) {
   return nodes.map(node => {
     if (node.type === "folder") {
