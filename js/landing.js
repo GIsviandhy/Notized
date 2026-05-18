@@ -87,13 +87,11 @@ function handleAuthSubmit(event) {
     const foundUser = usersDb.find(user => user.email === email);
 
     if (!foundUser) {
-      // 🎯 MODAL ALERT KUSTOM
       showCustomAlert("Email belum terdaftar! Silakan klik 'Sign Up Free' di bawah untuk buat akun dulu ya.");
       return;
     }
 
     if (foundUser.password !== password) {
-      // 🎯 MODAL ALERT KUSTOM
       showCustomAlert("Password salah! Silakan coba lagi.");
       return;
     }
@@ -114,7 +112,6 @@ function handleAuthSubmit(event) {
 
     const isEmailExist = usersDb.some(user => user.email === email);
     if (isEmailExist) {
-      // 🎯 MODAL ALERT KUSTOM
       showCustomAlert("Email ini sudah terdaftar! Silakan langsung ganti ke mode Log In.");
       return;
     }
