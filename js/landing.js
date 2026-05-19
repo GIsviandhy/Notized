@@ -76,32 +76,41 @@ window.addEventListener('click', () => {
 });
 
 // ─── 🔥 HANDLER VALIDATION & REGISTRATION DATA ───
-function handleAuthSubmit(event) {
+// ─── 🔥 HANDLER VALIDATION & REGISTRATION VIA MYSQL XAMPP ───
+async function handleAuthSubmit(event) {
   event.preventDefault();
   
   const email = document.getElementById('auth-input-email').value.trim().toLowerCase();
   const password = document.getElementById('auth-input-password').value;
-  let usersDb = getRegisteredUsers();
 
   if (currentAuthMode === "login") {
-    const foundUser = usersDb.find(user => user.email === email);
+    try {
+      // Kirim data request login ke api.php
+      const response = await fetch('api.php?action=login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email, password: password })
+      });
+      const result = await response.json();
 
-    if (!foundUser) {
-      showCustomAlert("Email belum terdaftar! Silakan klik 'Sign Up Free' di bawah untuk buat akun dulu ya.");
-      return;
+      if (result.status === "error") {
+        showCustomAlert(result.message);
+        return;
+      }
+
+      // Ikat data user hasil tarikan MySQL ke session browser
+      localStorage.setItem('currentUser', JSON.stringify(result.user));
+      closeAuthModal();
+      renderNavbarAuth();
+      window.location.href = 'dashboard.html';
+
+    } catch (error) {
+      console.error("Eror database login engine:", error);
+      showCustomAlert("Terjadi gangguan koneksi ke database XAMPP.");
     }
-
-    if (foundUser.password !== password) {
-      showCustomAlert("Password salah! Silakan coba lagi.");
-      return;
-    }
-
-    localStorage.setItem('currentUser', JSON.stringify({ name: foundUser.name, email: foundUser.email }));
-    closeAuthModal();
-    renderNavbarAuth();
-    window.location.href = 'dashboard.html';
 
   } else {
+    // Mode: "signup" / Register
     const nameInput = document.getElementById('auth-input-name');
     const name = nameInput ? nameInput.value.trim() : "User";
 
@@ -110,21 +119,31 @@ function handleAuthSubmit(event) {
       return;
     }
 
-    const isEmailExist = usersDb.some(user => user.email === email);
-    if (isEmailExist) {
-      showCustomAlert("Email ini sudah terdaftar! Silakan langsung ganti ke mode Log In.");
-      return;
+    try {
+      // Kirim data pendaftaran ke api.php untuk dimasukkan ke MySQL
+      const response = await fetch('api.php?action=register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, email: email, password: password })
+      });
+      const result = await response.json();
+
+      if (result.status === "error") {
+        showCustomAlert(result.message);
+        return;
+      }
+
+      // Pas pendaftaran sukses, langsung set sebagai user aktif saat ini
+      localStorage.setItem('currentUser', JSON.stringify({ name: name, email: email }));
+      
+      closeAuthModal();
+      renderNavbarAuth();
+      window.location.href = 'dashboard.html';
+
+    } catch (error) {
+      console.error("Eror database register engine:", error);
+      showCustomAlert("Gagal terhubung ke server MySQL XAMPP.");
     }
-
-    const newUser = { name: name, email: email, password: password };
-    usersDb.push(newUser);
-    localStorage.setItem('notized_users_db', JSON.stringify(usersDb));
-
-    localStorage.setItem('currentUser', JSON.stringify({ name: name, email: email }));
-    
-    closeAuthModal();
-    renderNavbarAuth();
-    window.location.href = 'dashboard.html';
   }
 }
 

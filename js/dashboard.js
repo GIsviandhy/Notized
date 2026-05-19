@@ -8,10 +8,10 @@ let draggedNodeId = null;              // Menyimpan ID item yang sedang di-drag
 let isEditMode = false;      // Untuk mendeteksi apakah modal sedang dipakai untuk Create atau Edit
 let editingNodeId = null;    // Menyimpan ID folder yang sedang diedit
 let currentSelectedNodeId = null; // Menyimpan ID item yang sedang dipilih untuk preview
+let currentAccountTreeData = []; // Tempat menampung data hasil tarikan MySQL phpMyAdmin
 
 // ─── INITIALIZATION ON LOAD ──────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  // 1. Suntikkan teks user secara dinamis (tanpa nama default)
+window.addEventListener('DOMContentLoaded', async () => {
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
   const greetingEl = document.getElementById('user-greeting');
   if (greetingEl) {
@@ -22,17 +22,14 @@ window.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 2. Ambil data operan sementara jika ada data baru hasil input dari page sebelah
   const incomingData = localStorage.getItem('notizedData');
   
   if (incomingData) {
-    // FORCE SHOW: Paksa memunculkan tombol Save Note pas lagi Preview baru
     const saveBtn = document.getElementById('btn-trigger-save');
     if (saveBtn) {
       saveBtn.style.setProperty('display', 'flex', 'important');
     }
 
-    // FIX MUTLAK: Sembunyikan tombol "New Note" di navbar khusus pas lagi Preview
     const navButtons = document.querySelectorAll('.dashboard-nav button');
     navButtons.forEach(btn => {
       if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
@@ -62,89 +59,61 @@ window.addEventListener('DOMContentLoaded', () => {
     return; 
   }
 
-  // Lipat semua folder default biar masuk ke root overview
-  let savedTree = localStorage.getItem('notized_library_tree');
-  if (savedTree) {
-    let parsedTree = JSON.parse(savedTree);
-    function forceCollapseAll(nodes) {
-      nodes.forEach(node => {
-        if (node.type === "folder") {
-          node.expanded = false;
-          if (node.children) forceCollapseAll(node.children);
-        }
-      });
-    }
-    forceCollapseAll(parsedTree);
-    localStorage.setItem('notized_library_tree', JSON.stringify(parsedTree));
+  await loadLibraryFromDatabase();
+
+  function forceCollapseAll(nodes) {
+    nodes.forEach(node => {
+      if (node.type === "folder") {
+        node.expanded = false;
+        if (node.children) forceCollapseAll(node.children);
+      }
+    });
   }
+  forceCollapseAll(currentAccountTreeData);
 
   refreshWorkspaceTree();
   currentSelectedNodeId = null;
   resetToEmptyState();
 });
 
-// ─── STORAGE ENGINE (MULTILEVEL NESTED SYSTEM) ───────────────────────────────
+async function loadLibraryFromDatabase() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if (!currentUser || !currentUser.email) {
+    currentAccountTreeData = [];
+    return;
+  }
+  try {
+    const response = await fetch(`api.php?action=get_tree&email=${encodeURIComponent(currentUser.email)}`);
+    const data = await response.json();
+    currentAccountTreeData = Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Gagal sinkronisasi database MySQL XAMPP:", error);
+    currentAccountTreeData = [];
+  }
+}
+
 function getLibraryData() {
-  const data = localStorage.getItem('notized_library_tree');
-  if (data) return JSON.parse(data);
+  return currentAccountTreeData;
+}
 
-  const defaultTree = [
-    {
-      id: "node_bio", name: "Biology", type: "folder", expanded: false,
-      children: [
-        {
-          id: "node_lec3", name: "Lecture 3", type: "folder", expanded: false,
-          children: [
-            { 
-              id: "node_mitosis", 
-              name: "Mitosis", 
-              type: "file",
-              data: {
-                rawText: "Mitosis is a process of cell duplication, or reproduction, during which one cell gives rise to two genetically identical daughter cells. Strictly applied, the term mitosis is used to describe the duplication and distribution of chromosomes, the structures that carry the genetic information.",
-                summary: ["Mitosis results in two identical daughter cells.", "Core checkpoint processes align chromatids perfectly.", "Crucial for growth and tissue repair."],
-                keywords: ["Mitosis", "Cell Division", "Chromatids", "Chromosomes"],
-                clusters: [{ name: "Core Cycles", color: "sage", topics: ["Prophase", "Metaphase", "Anaphase", "Telophase"] }],
-                learningPath: [{ step: 1, title: "Replication Baseline", tip: "Understand G1/S phases before moving to M phase." }]
-              }
-            },
-            { 
-              id: "node_meiosis", 
-              name: "Meiosis", 
-              type: "file",
-              data: {
-                rawText: "Meiosis is a special type of cell division of germ cells in sexually-reproducing organisms used to produce the gametes, such as sperm or egg cells. It involves two rounds of division that ultimately result in four cells with only one copy of each chromosome.",
-                summary: ["Meiosis creates genetic diversity via 4 haploid gametes.", "Involves two successive nuclear divisions (Meiosis I and II).", "Essential for sexual reproduction."],
-                keywords: ["Meiosis", "Gametes", "Haploid", "Genetic Diversity"],
-                clusters: [{ name: "Reduction Division", color: "indigo", topics: ["Crossing Over", "Homologous Pairs"] }],
-                learningPath: [{ step: 1, title: "Meiotic Stages", tip: "Study the critical crossing-over phase in Prophase I." }]
-              }
-            }
-          ]
-        },
-        { id: "node_lec5", name: "Lecture 5", type: "folder", expanded: false, children: [] }
-      ]
-    },
-    {
-      id: "node_phys", name: "Physics", type: "folder", expanded: false,
-      children: [
-        { 
-          id: "node_optics", 
-          name: "Optics", 
-          type: "file",
-          data: {
-            rawText: "Optics is the branch of physics that studies the behaviour and properties of light, including its interactions with matter and the construction of instruments that use or detect it. Optics usually describes the behaviour of visible, ultraviolet, and infrared light.",
-            summary: ["Studies the behavior and properties of light waves.", "Covers reflection, refraction, and diffraction phenomena.", "Governs the build of lenses and microscopes."],
-            keywords: ["Optics", "Light Waves", "Refraction", "Lenses"],
-            clusters: [{ name: "Wave Phenomena", color: "amber", topics: ["Geometric Optics", "Physical Optics"] }],
-            learningPath: [{ step: 1, title: "Light Fundamentals", tip: "Master Snell's Law before calculating lens matrix focal points." }]
-          }
-        }
-      ]
-    }
-  ];
-
-  localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
-  return defaultTree;
+async function saveLibraryData(updatedTree) {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if (!currentUser || !currentUser.email) return;
+  currentAccountTreeData = updatedTree;
+  try {
+    const response = await fetch('api.php?action=save_tree', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: currentUser.email,
+        tree_data: updatedTree
+      })
+    });
+    const result = await response.json();
+    console.log("MySQL Engine Response:", result.message);
+  } catch (error) {
+    console.error("Gagal menyuntikkan update data ke MySQL database:", error);
+  }
 }
 
 function findNodeById(nodes, id) {
@@ -158,10 +127,76 @@ function findNodeById(nodes, id) {
   return null;
 }
 
+function renderProjectContent(data) {
+  if (!data) return;
+  
+  const rawNotesArea = document.getElementById('raw-notes-content-area');
+  if (rawNotesArea) {
+    rawNotesArea.innerHTML = data.rawText || data.notes || "No raw text content available.";
+  }  
+
+  const keywordChips = document.getElementById('keyword-chips');
+  if (keywordChips) {
+    if (data.keywords && data.keywords.length > 0) {
+      keywordChips.innerHTML = data.keywords.map((kw, i) => `
+        <span class="chip c${i % 3}">
+          ${esc(kw)}
+        </span>`).join('');
+    } else {
+      keywordChips.innerHTML = `<span style="color: var(--ink-muted); font-size: 13px; font-style: italic;">No key concepts extracted.</span>`;
+    }
+  }
+
+  const summaryList = document.getElementById('summary-list');
+  if (summaryList) {
+    if (data.summary && data.summary.length > 0) {
+      summaryList.innerHTML = data.summary.map(point => `
+        <li class="summary-item" style="font-size: 14px; line-height: 1.8; display: flex; gap: 0.5rem; align-items: flex-start;">
+          <span class="summary-arrow">→</span> 
+          <span>${point}</span>
+        </li>`).join('');
+    } else {
+      summaryList.innerHTML = `<li style="color: var(--ink-muted); font-size: 13px; font-style: italic;">No summary points available.</li>`;
+    }
+  }
+
+  if (document.getElementById('stat-keywords')) document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
+  if (document.getElementById('stat-clusters')) document.getElementById('stat-clusters').textContent = data.clusters ? data.clusters.length : "0";
+  if (document.getElementById('stat-steps')) document.getElementById('stat-steps').textContent = (data.learningPath || []).length;
+
+  const clustersGrid = document.getElementById('clusters-grid');
+  if (clustersGrid) {
+    if (data.clusters && data.clusters.length > 0) {
+      clustersGrid.innerHTML = data.clusters.map(cluster => `
+        <div class="cluster-card" style="width: 100%;">
+          <div class="cluster-header"><span class="cluster-name">${esc(cluster.name)}</span></div>
+          <div class="cluster-topics">${(cluster.topics || []).map(topic => `<div class="cluster-topic">${esc(topic)}</div>`).join('')}</div>
+        </div>`).join('');
+    } else {
+      clustersGrid.innerHTML = `<div style="grid-column: 1/-1; color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No topic clusters analyzed.</div>`;
+    }
+  }
+
+  const pathList = document.getElementById('path-list');
+  if (pathList) {
+    if (data.learningPath && data.learningPath.length > 0) {
+      pathList.innerHTML = data.learningPath.map((step) => `
+        <div class="path-item" style="width: 100%;">
+          <div class="path-num">${step.step}</div>
+          <div class="path-card" style="width: 100%;">
+            <div class="path-card-header"><span class="path-card-title">${esc(step.title || step.step)}</span></div>
+            <p class="path-tip">💡 ${esc(step.tip || '')}</p>
+          </div>
+        </div>`).join('');
+    } else {
+      pathList.innerHTML = `<div style="color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No learning path generated.</div>`;
+    }
+  }
+}
+
 function isNodeChildOf(nodes, folderId, targetId) {
   const folderNode = findNodeById(nodes, folderId);
   if (!folderNode || !folderNode.children) return false;
-  
   function checkDeep(children) {
     for (let child of children) {
       if (child.id === targetId) return true;
@@ -176,9 +211,7 @@ function hexToRgbaTint(hex, opacity = 0.15) {
   let c;
   if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
     c= hex.substring(1).split('');
-    if(c.length== 3){
-      c= [c[0], c[0], c[1], c[1], c[2], c[2]];
-    }
+    if(c.length== 3){ c= [c[0], c[0], c[1], c[1], c[2], c[2]]; }
     c= '0x'+c.join('');
     return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+opacity+')';
   }
@@ -189,23 +222,119 @@ function toggleSidebar(event) {
   if (event) event.preventDefault();
   const sidebar = document.getElementById('workspace-sidebar');
   if (!sidebar) return;
-  if (sidebar.classList.contains('collapsed')) {
-    sidebar.classList.remove('collapsed');
-  } else {
-    sidebar.classList.add('collapsed');
-  }
+  sidebar.classList.toggle('collapsed');
 }
 
 function refreshWorkspaceTree() {
   const treeContainer = document.getElementById('nested-directory-root');
   if (!treeContainer) return;
-
   const treeData = getLibraryData();
   treeContainer.innerHTML = buildTreeHTML(treeData);
+  if (typeof bindDragAndDropEvents === 'function') { bindDragAndDropEvents(); }
+}
 
-  if (typeof bindDragAndDropEvents === 'function') {
-    bindDragAndDropEvents();
+function selectFolderWorkspace(folderId, event) {
+  if (event) event.stopPropagation();
+  currentSelectedNodeId = folderId;
+  currentRightClickedNodeId = folderId; 
+
+  const saveBtn = document.getElementById('btn-trigger-save');
+  if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
+
+  document.getElementById('empty-workspace-state').style.display = 'none';
+  document.getElementById('active-project-workspace').style.display = 'flex';
+
+  const treeData = getLibraryData();
+  const folderNode = findNodeById(treeData, folderId);
+  
+  if (folderNode) {
+    const stickyHeader = document.querySelector('.workspace-header-sticky');
+    if (stickyHeader) {
+      stickyHeader.innerHTML = `
+        <div id="workspace-breadcrumbs" class="breadcrumbs-bar"></div>
+        <div class="folder-header-aligner">
+          <h1 id="active-project-title" class="serif" style="margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--ink); line-height: 1.2;">${esc(folderNode.name)}</h1>
+          <div id="overview-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+              Rename
+            </button>
+            <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              Delete
+            </button>
+          </div>
+        </div>
+      `;
+    }
+    
+    const children = folderNode.children || [];
+    if (children.length === 0) {
+      document.getElementById('folder-overview-wrapper').innerHTML = `
+        <div style="color: var(--ink-muted); padding: 4rem 2rem; text-align: center; font-size: 14px; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;">
+          <span style="color: var(--ink-muted); opacity: 0.5; display: inline-flex; align-items: center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </span>
+          <span style="font-style: italic; font-weight: 500;">Folder ini kosong.</span>
+        </div>`;
+    } else {
+      let folderOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; width: 100%;">`;
+      children.forEach(child => {
+        if (child.type === "folder") {
+          const folderColor = child.color || "#6B8F71";
+          folderOverviewHTML += `
+            <div onclick="selectFolderWorkspace('${child.id}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span style="font-weight: 600; font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(child.name)}</span>
+            </div>`;
+        } else {
+          folderOverviewHTML += `
+            <div onclick="selectFileWorkspace('${child.id}', '${esc(child.name)}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="17" y1="17" x2="8" y2="17"></line></svg>
+              <span style="font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(child.name)}</span>
+            </div>`;
+        }
+      });
+      folderOverviewHTML += `</div>`;
+      document.getElementById('folder-overview-wrapper').innerHTML = folderOverviewHTML;
+    }
   }
+  
+  const masterNoteBox = document.getElementById('master-note-view-box');
+  if (masterNoteBox) masterNoteBox.style.setProperty('display', 'none', 'important');
+  
+  const folderWrapper = document.getElementById('folder-overview-wrapper');
+  if (folderWrapper) folderWrapper.style.setProperty('display', 'block', 'important');
+
+  const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+  if (scrollContainer) scrollContainer.scrollTop = 0;
+
+  updateBreadcrumbs(folderId);
+}
+
+function selectFileWorkspace(fileId, fileName, event) {
+  if (event) event.stopPropagation();
+  currentSelectedNodeId = fileId;
+  currentRightClickedNodeId = fileId; 
+  const saveBtn = document.getElementById('btn-trigger-save');
+  if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
+  openCardNoteDirect(fileId, event);
 }
 
 function buildTreeHTML(nodes) {
@@ -216,21 +345,13 @@ function buildTreeHTML(nodes) {
       const baseColor = node.color || "#6B8F71";
       const backgroundColorBlock = hexToRgbaTint(baseColor, 0.15);
       const textColorSolid = baseColor;
-
       return `
         <div class="tree-folder-block" data-id="${node.id}">
           <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" 
                onclick="selectFolderWorkspace('${node.id}', event)"
                style="background-color: ${backgroundColorBlock} !important; color: ${textColorSolid} !important; border-color: ${hexToRgbaTint(baseColor, 0.1)} !important; display: flex; justify-content: space-between; align-items: center;">
-            
             <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; overflow: hidden;">
-              <span onclick="event.stopPropagation(); toggleFolderNode('${node.id}', event);" 
-                    style="font-size: 14px; width: 16px; display: inline-block; text-align: center; cursor: pointer; font-weight: bold; padding: 2px 4px; border-radius: 4px;" 
-                    onmouseover="this.style.background='rgba(0,0,0,0.08)'" 
-                    onmouseout="this.style.background='transparent'">
-                ${caretIcon}
-              </span>
-              
+              <span onclick="event.stopPropagation(); toggleFolderNode('${node.id}', event);" style="font-size: 14px; width: 16px; display: inline-block; text-align: center; cursor: pointer; font-weight: bold; padding: 2px 4px; border-radius: 4px;">${caretIcon}</span>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               <strong style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; cursor: pointer;">${esc(node.name)}</strong>
             </div>
@@ -239,15 +360,13 @@ function buildTreeHTML(nodes) {
           <div id="children-${node.id}" class="tree-folder-contents" style="${displayStyle} padding-left: 0.75rem; flex-direction: column; gap: 0.25rem; margin-bottom: 0.5rem;">
             ${node.children && node.children.length > 0 ? buildTreeHTML(node.children) : '<div class="tree-empty-hint">No projects inside</div>'}
           </div>
-        </div>
-      `;
+        </div>`;
     } else {
       return `
         <div class="tree-file-item tree-node-row" draggable="true" data-id="${node.id}" data-type="file" onclick="selectFileWorkspace('${node.id}', '${esc(node.name)}', event)" style="padding: 0.5rem 0.75rem; font-size: 13px; color: var(--ink); border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; text-align: left;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
           <span>${esc(node.name)}</span>
-        </div>
-      `;
+        </div>`;
     }
   }).join('');
 }
@@ -255,7 +374,6 @@ function buildTreeHTML(nodes) {
 function toggleFolderNode(nodeId, event) {
   if (event) event.stopPropagation();
   let treeData = getLibraryData();
-  
   function findAndToggle(nodes) {
     for (let node of nodes) {
       if (node.id === nodeId) { node.expanded = !node.expanded; return true; }
@@ -264,11 +382,10 @@ function toggleFolderNode(nodeId, event) {
     return false;
   }
   findAndToggle(treeData);
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+  saveLibraryData(treeData); 
   refreshWorkspaceTree();
 }
 
-// ─── MODAL CONTROLLERS ───────────────────────────────────────────────────────
 function openFolderCreatorDirect(event) {
   if (event) event.preventDefault();
   isEditMode = false;
@@ -278,6 +395,10 @@ function openFolderCreatorDirect(event) {
     document.getElementById('modal-folder-title').textContent = "Create New Folder";
     document.getElementById('btn-submit-folder').textContent = "Create Folder";
     document.getElementById('new-folder-name-input').value = '';
+    const colorPickerLabel = document.querySelector('.color-picker-label');
+    const colorOptions = document.querySelectorAll('.color-palette-options');
+    if (colorPickerLabel) colorPickerLabel.style.setProperty('display', 'block', 'important');
+    if (colorOptions) colorOptions.forEach(opt => opt.style.setProperty('display', 'flex', 'important'));
     folderModal.style.setProperty('display', 'flex', 'important');
     setTimeout(() => document.getElementById('new-folder-name-input').focus(), 50);
   }
@@ -286,17 +407,13 @@ function openFolderCreatorDirect(event) {
 function handleFolderSubmit() {
   const nameInput = document.getElementById('new-folder-name-input').value.trim();
   if (!nameInput) return alert("Name cannot be empty!");
-
   let treeData = getLibraryData();
-
   if (isEditMode) {
     function updateNodeInTree(nodes) {
       for (let node of nodes) {
         if (node.id === editingNodeId) {
           node.name = nameInput;
-          if (node.type === "folder") {
-            node.color = selectedFolderColor || "#6B8F71";
-          }
+          if (node.type === "folder") { node.color = selectedFolderColor || "#6B8F71"; }
           return true;
         }
         if (node.children && updateNodeInTree(node.children)) return true;
@@ -314,11 +431,9 @@ function handleFolderSubmit() {
       children: []
     });
   }
-
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+  saveLibraryData(treeData); 
   closeFolderCreatorCard();
-  refreshWorkspaceTree();
-  
+  refreshWorkspaceTree(); 
   if (isEditMode && currentSelectedNodeId === editingNodeId) {
     document.getElementById('active-project-title').innerText = nameInput;
     updateBreadcrumbs(editingNodeId);
@@ -345,155 +460,77 @@ function selectColorDot(element) {
 function bindDragAndDropEvents() {
   const rows = document.querySelectorAll('.tree-node-row');
   rows.forEach(row => {
-    row.addEventListener('dragstart', (e) => { 
-      e.stopPropagation(); 
-      draggedNodeId = row.getAttribute('data-id'); 
-      row.classList.add('dragging'); 
-    });
-
-    row.addEventListener('dragend', () => { 
-      row.classList.remove('dragging'); 
-      document.querySelectorAll('.tree-node-row').forEach(r => { 
-        r.classList.remove('drag-over'); 
-        r.style.borderTop = ''; 
-        r.style.borderBottom = ''; 
-      }); 
-    });
-
-    row.addEventListener('dragover', (e) => {
-      e.preventDefault(); 
-      e.stopPropagation(); 
-      row.style.borderTop = ''; 
-      row.style.borderBottom = ''; 
-      
-      const rect = row.getBoundingClientRect(); 
-      const y = e.clientY - rect.top;
-      
-      if (row.getAttribute('data-type') === 'folder') { 
-        if (y < rect.height * 0.25) row.style.borderTop = '2px solid var(--sage)'; 
-        else if (y > rect.height * 0.75) row.style.borderBottom = '2px solid var(--sage)'; 
-        else row.classList.add('drag-over'); 
-      } else { 
-        if (y < rect.height * 0.5) row.style.borderTop = '2px solid var(--sage)'; 
-        else row.style.borderBottom = '2px solid var(--sage)'; 
-      }
-    });
-
-    row.addEventListener('dragleave', () => { 
-      row.classList.remove('drag-over'); 
-      row.style.borderTop = ''; 
-      row.style.borderBottom = ''; 
-    });
-
+    row.addEventListener('dragstart', (e) => { e.stopPropagation(); draggedNodeId = row.getAttribute('data-id'); row.classList.add('dragging'); });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); document.querySelectorAll('.tree-node-row').forEach(r => r.classList.remove('drag-over')); });
+    row.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); row.classList.add('drag-over'); });
+    row.addEventListener('dragleave', () => { row.classList.remove('drag-over'); });
     row.addEventListener('drop', (e) => {
-      e.preventDefault(); 
-      e.stopPropagation(); 
-      
-      const targetId = row.getAttribute('data-id'); 
-      if (draggedNodeId === targetId) return;
-
-      let treeData = getLibraryData(); 
-      
-      if (typeof isNodeChildOf === 'function' && isNodeChildOf(treeData, draggedNodeId, targetId)) {
-        refreshWorkspaceTree(); 
-        return;
+      e.preventDefault(); e.stopPropagation();
+      const targetId = row.getAttribute('data-id'); if (draggedNodeId === targetId) return;
+      let treeData = getLibraryData();
+      if (typeof isNodeChildOf === 'function' && isNodeChildOf(treeData, draggedNodeId, targetId)) { refreshWorkspaceTree(); return; }
+      let movingNode = null;
+      function extractNode(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i].id === draggedNodeId) { movingNode = nodes.splice(i, 1)[0]; return true; }
+          if (nodes[i].children && extractNode(nodes[i].children)) return true;
+        }
+        return false;
       }
-
-      let movingNode = null; 
-      let sourceArray = null; 
-      let sourceIndex = -1;
-      
-      function extractNode(nodes) { 
-        for (let i = 0; i < nodes.length; i++) { 
-          if (nodes[i].id === draggedNodeId) { 
-            sourceArray = nodes; 
-            sourceIndex = i; 
-            movingNode = nodes.splice(i, 1)[0]; 
-            return true; 
-          } 
-          if (nodes[i].children && extractNode(nodes[i].children)) return true; 
-        } 
-        return false; 
-      } 
-      
-      extractNode(treeData); 
-      if (!movingNode) return;
-
-      let targetArray = null; 
-      let targetIndex = -1; 
-      let targetNodeRef = null; 
-      let targetIsFolder = false;
-      
-      function findTarget(nodes) { 
-        for (let i = 0; i < nodes.length; i++) { 
-          if (nodes[i].id === targetId) { 
-            targetArray = nodes; 
-            targetIndex = i; 
-            targetNodeRef = nodes[i]; 
-            targetIsFolder = nodes[i].type === 'folder'; 
-            return true; 
-          } 
-          if (nodes[i].children && findTarget(nodes[i].children)) return true; 
-        } 
-        return false; 
-      } 
-      
+      extractNode(treeData); if (!movingNode) return;
+      let targetNodeRef = null;
+      function findTarget(nodes) {
+        for (let i = 0; i < nodes.length; i++) {
+          if (nodes[i].id === targetId) { targetNodeRef = nodes[i]; return true; }
+          if (nodes[i].children && findTarget(nodes[i].children)) return true;
+        }
+        return false;
+      }
       findTarget(treeData);
-      
-      if (!targetArray) { 
-        sourceArray.splice(sourceIndex, 0, movingNode); 
-        localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-        refreshWorkspaceTree();
-        return; 
+      if (targetNodeRef && targetNodeRef.type === 'folder') {
+        if (!targetNodeRef.children) targetNodeRef.children = [];
+        targetNodeRef.children.push(movingNode);
+        targetNodeRef.expanded = true;
+      } else {
+        treeData.push(movingNode);
       }
-      
-      const rect = row.getBoundingClientRect(); 
-      const y = e.clientY - rect.top;
-      
-      if (targetIsFolder) { 
-        if (y < rect.height * 0.25) {
-          targetArray.splice(targetIndex, 0, movingNode); 
-        } else if (y > rect.height * 0.75) {
-          targetArray.splice(targetIndex + 1, 0, movingNode); 
-        } else { 
-          if (!targetNodeRef.children) targetNodeRef.children = []; 
-          targetNodeRef.children.push(movingNode); 
-          targetNodeRef.expanded = true; 
-        } 
-      } else { 
-        if (y < rect.height * 0.5) targetArray.splice(targetIndex, 0, movingNode); 
-        else targetArray.splice(targetIndex + 1, 0, movingNode); 
-      }
-      
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
+      saveLibraryData(treeData); 
       refreshWorkspaceTree();
-      
-      if (currentSelectedNodeId) updateBreadcrumbs(currentSelectedNodeId);
     });
   });
 }
 
 function triggerRenameNode() {
   if (!currentRightClickedNodeId) return;
-  
   let treeData = getLibraryData();
   let targetNode = findNodeById(treeData, currentRightClickedNodeId);
-
   if (!targetNode) return;
-
-  isEditMode = true;
+  isEditMode = true; 
   editingNodeId = currentRightClickedNodeId;
-
   const folderModal = document.getElementById('folder-creator-card');
   if (folderModal) {
+    const colorPickerLabel = document.querySelector('.color-picker-label');
+    const colorOptions = document.querySelector('.color-palette-options');
+    const modalDesc = folderModal.querySelector('p');
     if (targetNode.type === "file") {
       document.getElementById('modal-folder-title').textContent = "Rename Note";
       document.getElementById('btn-submit-folder').textContent = "Save Name";
+      if (modalDesc) modalDesc.textContent = "Give your document note a clear and concise new name.";
+      if (colorPickerLabel) colorPickerLabel.style.display = 'none';
+      if (colorOptions) colorOptions.style.setProperty('display', 'none', 'important');
     } else {
       document.getElementById('modal-folder-title').textContent = "Rename Folder";
       document.getElementById('btn-submit-folder').textContent = "Save Changes";
+      if (modalDesc) modalDesc.textContent = "Give your new folder a name and choose a color theme.";
+      if (colorPickerLabel) colorPickerLabel.style.display = 'block';
+      if (colorOptions) colorOptions.style.setProperty('display', 'flex', 'important');
+      const oldColor = targetNode.color || "#6B8F71";
+      selectedFolderColor = oldColor; 
+      document.querySelectorAll('.color-dot').forEach(dot => {
+        dot.classList.remove('active');
+        if (dot.getAttribute('data-color') === oldColor) { dot.classList.add('active'); }
+      });
     }
-
     document.getElementById('new-folder-name-input').value = targetNode.name;
     folderModal.style.setProperty('display', 'flex', 'important');
     setTimeout(() => document.getElementById('new-folder-name-input').focus(), 50);
@@ -503,68 +540,40 @@ function triggerRenameNode() {
 function triggerDeleteNode() {
   if (!currentRightClickedNodeId) return;
   const deleteModal = document.getElementById('delete-confirm-modal');
-  if (deleteModal) {
-    deleteModal.style.setProperty('display', 'flex', 'important');
-  }
+  if (deleteModal) { deleteModal.style.setProperty('display', 'flex', 'important'); }
 }
 
 function closeDeleteModal() {
   const deleteModal = document.getElementById('delete-confirm-modal');
-  if (deleteModal) {
-    deleteModal.style.setProperty('display', 'none', 'important');
-  }
+  if (deleteModal) { deleteModal.style.setProperty('display', 'none', 'important'); }
 }
 
 function confirmDeleteNode() {
   if (!currentRightClickedNodeId) return;
-
   let treeData = getLibraryData();
-
   function deleteInTree(nodes) {
     for (let i = 0; i < nodes.length; i++) {
-      if (nodes[i].id === currentRightClickedNodeId) { 
-        nodes.splice(i, 1); 
-        return true; 
-      }
+      if (nodes[i].id === currentRightClickedNodeId) { nodes.splice(i, 1); return true; }
       if (nodes[i].children && deleteInTree(nodes[i].children)) return true;
     }
     return false;
   }
-
   deleteInTree(treeData);
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-  
+  saveLibraryData(treeData); 
   closeDeleteModal();
   refreshWorkspaceTree();
-  
-  if (currentSelectedNodeId === currentRightClickedNodeId) {
-    resetToEmptyState();
-  }
+  if (currentSelectedNodeId === currentRightClickedNodeId) { resetToEmptyState(); }
 }
 
 function handleOverviewRename() {
-  const incomingData = localStorage.getItem('notizedData');
-
-  if (incomingData && !currentSelectedNodeId) {
-    showCustomAlert("You need to save this preview note to a project folder first before you can rename it!");
-    return;
-  }
-
-  if (!currentSelectedNodeId) {
-    showCustomAlert("Select a folder or file first!");
-    return;
-  }
-
+  if (!currentSelectedNodeId) { showCustomAlert("Select a folder or file first!"); return; }
   currentRightClickedNodeId = currentSelectedNodeId; 
   triggerRenameNode();
 }
 
 function loadSavedFileNode(id, name, event) {
   if (event) event.stopPropagation();
-  
-  let treeData = getLibraryData();
-  let foundFile = null;
-
+  let treeData = getLibraryData(); let foundFile = null;
   function findFile(nodes) {
     for (let node of nodes) {
       if (node.id === id && node.type === "file") { foundFile = node; return true; }
@@ -572,7 +581,6 @@ function loadSavedFileNode(id, name, event) {
     }
     return false;
   }
-  
   findFile(treeData);
   if (foundFile && foundFile.data) {
     document.getElementById('empty-workspace-state').style.display = 'none';
@@ -586,67 +594,41 @@ function loadSavedFileNode(id, name, event) {
 function openSaveModal() {
   const incoming = localStorage.getItem('notizedData');
   if (!incoming) return;
-
   document.getElementById('save-modal').style.display = 'flex';
   const parsed = JSON.parse(incoming);
   document.getElementById('save-notes-name').value = parsed.title || '';
-  
   let treeData = getLibraryData();
   const selectEl = document.getElementById('save-folder-select');
   let optionsHTML = `<option value="root_root">📁 Save to Root (Luar Folder)</option>`;
-  
   function injectFolderOptions(nodes, depth = 0) {
     nodes.forEach(node => {
       if (node.type === "folder") {
-        const indent = "&nbsp;&nbsp;".repeat(depth);
-        optionsHTML += `<option value="${node.id}">${indent}📁 Folder: ${node.name}</option>`;
+        optionsHTML += `<option value="${node.id}">&nbsp;&nbsp;`.repeat(depth) + `📁 Folder: ${node.name}</option>`;
         if (node.children) injectFolderOptions(node.children, depth + 1);
       }
     });
   }
-  
-  injectFolderOptions(treeData);
-  selectEl.innerHTML = optionsHTML;
+  injectFolderOptions(treeData); selectEl.innerHTML = optionsHTML;
 }
 
 function handleSaveNote() {
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-
-  if (!currentUser || !currentUser.name) {
-    showCustomAlert("You need to log in first to save your analyzed notes!");
-    return;
-  }
-
+  if (!currentUser || !currentUser.name) { showCustomAlert("You need to log in first to save your analyzed notes!"); return; }
   openSaveModal();
 }
 
-function closeSaveModal() {
-  document.getElementById('save-modal').style.display = 'none';
-}
+function closeSaveModal() { document.getElementById('save-modal').style.display = 'none'; }
 
 function confirmSaveNotes() {
   const titleInput = document.getElementById('save-notes-name').value.trim();
   const folderTargetId = document.getElementById('save-folder-select').value;
-  
   if (!titleInput) return alert('Please enter a valid project name.');
-
-  const incoming = localStorage.getItem('notizedData');
-  if (!incoming) return;
-  
+  const incoming = localStorage.getItem('notizedData'); if (!incoming) return;
   let incomingData = JSON.parse(incoming);
   let treeData = getLibraryData();
-
   const savedRawText = localStorage.getItem('current_raw_text') || "";
-  incomingData.rawText = savedRawText; 
-  incomingData.notes = savedRawText; 
-
-  const newFileNode = {
-    id: "node_" + Date.now(),
-    name: titleInput,
-    type: "file",
-    data: incomingData
-  };
-
+  incomingData.rawText = savedRawText; incomingData.notes = savedRawText; 
+  const newFileNode = { id: "node_" + Date.now(), name: titleInput, type: "file", data: incomingData };
   if (folderTargetId === "root_root") {
     treeData.push(newFileNode);
   } else {
@@ -654,9 +636,7 @@ function confirmSaveNotes() {
       for (let node of nodes) {
         if (node.id === folderTargetId && node.type === "folder") {
           if (!node.children) node.children = [];
-          node.children.push(newFileNode);
-          node.expanded = true;
-          return true;
+          node.children.push(newFileNode); node.expanded = true; return true;
         }
         if (node.children && insertToTargetFolder(node.children)) return true;
       }
@@ -664,56 +644,218 @@ function confirmSaveNotes() {
     }
     insertToTargetFolder(treeData);
   }
-
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-  localStorage.removeItem('notizedData');
-  localStorage.removeItem('current_raw_text'); 
-  
+  saveLibraryData(treeData); 
+  localStorage.removeItem('notizedData'); localStorage.removeItem('current_raw_text'); 
   document.getElementById('btn-trigger-save').style.display = 'none';
-  closeSaveModal();
-  refreshWorkspaceTree();
-  resetToEmptyState();
+  closeSaveModal(); refreshWorkspaceTree(); resetToEmptyState();
 }
 
 function handleOverviewDelete() {
-  const incomingData = localStorage.getItem('notizedData');
-
-  if (incomingData && !currentSelectedNodeId) {
-    localStorage.removeItem('notizedData');
-    localStorage.removeItem('current_raw_text');
-    resetToEmptyState();
-    showCustomAlert("Preview note cleared successfully.");
-    return;
-  }
-
-  if (!currentSelectedNodeId) {
-    showCustomAlert("Select a folder or file first!");
-    return;
-  }
-
+  if (!currentSelectedNodeId) { showCustomAlert("Select a folder or file first!"); return; }
   currentRightClickedNodeId = currentSelectedNodeId; 
   triggerDeleteNode();
 }
 
+function esc(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function resetToEmptyState() {
+  currentSelectedNodeId = null; currentRightClickedNodeId = null;
+  const saveBtn = document.getElementById('btn-trigger-save');
+  if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
+  document.getElementById('empty-workspace-state').style.display = 'block';
+  document.getElementById('active-project-workspace').style.display = 'none';
+  const overviewActions = document.getElementById('overview-actions');
+  if (overviewActions) overviewActions.innerHTML = "";
+  renderDashboardCards();
+}
+
+function switchWorkspaceTab(targetTabId) {
+  document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+  const clickedBtn = document.querySelector(`[onclick="switchWorkspaceTab('${targetTabId}')"]`);
+  if (clickedBtn) clickedBtn.classList.add('active');
+  const targetPanel = document.getElementById(targetTabId);
+  if (targetPanel) {
+    targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+function renderDashboardCards() {
+  const cardsGrid = document.getElementById('dashboard-cards-grid');
+  if (!cardsGrid) return;
+  const treeData = getLibraryData() || [];
+  const rootFolders = treeData.filter(node => node.type === "folder");
+  const rootTitle = document.querySelector('#empty-workspace-state h2');
+  if (rootTitle) {
+    rootTitle.textContent = "Root Workspace";
+    rootTitle.className = "serif";
+    rootTitle.style.setProperty('font-size', '32px', 'important');
+    rootTitle.style.setProperty('color', 'var(--ink)', 'important');
+  }
+  if (rootFolders.length === 0) {
+    cardsGrid.innerHTML = `
+      <div class="empty-placeholder-card" style="grid-column: 1 / -1; background: rgba(247, 245, 240, 0.6); border: 2px dashed var(--border); border-radius: 12px; padding: 4rem 2rem; text-align: center; width: 100%;">
+        <p style="color: var(--ink-muted); font-size: 14px; margin-bottom: 1rem;">Your Root Workspace is empty.</p>
+        <button class="btn-primary" onclick="openFolderCreatorDirect(event)" style="font-size: 12px; padding: 0.5rem 1rem;">+ Create First Folder</button>
+      </div>`;
+    return;
+  }
+  cardsGrid.innerHTML = rootFolders.map(folder => {
+    const folderColor = folder.color || "#6B8F71"; 
+    return `
+      <div onclick="selectFolderWorkspace('${folder.id}', event)" 
+           style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" 
+           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='${folderColor}';" 
+           onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border)';">
+        <div style="background: ${hexToRgbaTint(folderColor, 0.15)}; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <span style="font-weight: 600; font-size: 15px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+          ${esc(folder.name)}
+        </span>
+      </div>`;
+  }).join('');
+}
+
+function openCardNoteDirect(fileId, event) {
+  if (event) event.stopPropagation();
+  let treeData = getLibraryData();
+  let foundFile = null;
+  function findFile(nodes) {
+    for (let node of nodes) {
+      if (node.id === fileId && node.type === "file") { foundFile = node; return true; }
+      if (node.children && findFile(node.children)) return true;
+    }
+    return false;
+  }
+  findFile(treeData);
+  if (foundFile && foundFile.data) {
+    currentSelectedNodeId = fileId;
+    currentRightClickedNodeId = fileId;
+    document.getElementById('empty-workspace-state').style.display = 'none';
+    document.getElementById('active-project-workspace').style.display = 'flex'; 
+    
+    const stickyHeader = document.querySelector('.workspace-header-sticky');
+    if (stickyHeader) {
+      stickyHeader.innerHTML = `
+        <div id="workspace-breadcrumbs" class="breadcrumbs-bar"></div>
+        <div class="folder-header-aligner">
+          <h1 id="active-project-title" class="serif" style="margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--ink); line-height: 1.2;">${esc(foundFile.name)}</h1>
+          <div id="overview-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+              Rename
+            </button>
+            <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+              Delete
+            </button>
+          </div>
+        </div>
+        <div class="workspace-tabs-container" style="display: flex !important; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
+          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
+          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
+          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
+        </div>`;
+    }
+
+    renderProjectContent(foundFile.data);
+    
+    const masterNoteBox = document.getElementById('master-note-view-box');
+    if (masterNoteBox) masterNoteBox.style.setProperty('display', 'block', 'important');
+    
+    const folderWrapper = document.getElementById('folder-overview-wrapper');
+    if (folderWrapper) folderWrapper.style.setProperty('display', 'none', 'important');
+    
+    document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+    const initialActiveBtn = document.querySelector(`[onclick="switchWorkspaceTab('tab-raw')"]`);
+    if (initialActiveBtn) initialActiveBtn.classList.add('active');
+
+    const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+    if (scrollContainer) scrollContainer.scrollTop = 0;
+    updateBreadcrumbs(fileId);
+  } else {
+    alert("Error: Data catatan tidak ditemukan di database.");
+  }
+}
+
+function updateBreadcrumbs(nodeId) {
+  const container = document.getElementById('workspace-breadcrumbs');
+  if (!container) return;
+  let html = `<span onclick="resetToEmptyState()" style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-muted)'">Dashboard</span>`;
+  if (!nodeId) { container.innerHTML = html; return; }
+  const treeData = getLibraryData() || [];
+  const nodePathObjects = findNodePathWithIds(treeData, nodeId);
+  if (nodePathObjects && nodePathObjects.length > 0) {
+    nodePathObjects.forEach((crumb, index) => {
+      html += ` <span style="margin: 0 0.25rem; color: var(--border); font-size: 11px;">/</span> `;
+      if (index === nodePathObjects.length - 1) {
+        html += `<span style="font-weight: 600; color: var(--ink);">${esc(crumb.name)}</span>`;
+      } else {
+        html += `<span onclick="selectFolderWorkspace('${crumb.id}', event)" style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-muted)'">${esc(crumb.name)}</span>`;
+      }
+    });
+  } else {
+    let singleNode = findNodeById(treeData, nodeId);
+    if (singleNode) {
+      html += ` <span style="margin: 0 0.25rem; color: var(--border); font-size: 11px;">/</span> `;
+      html += `<span style="font-weight: 600; color: var(--ink);">${esc(singleNode.name)}</span>`;
+    }
+  }
+  container.innerHTML = html;
+}
+
+function findNodePathWithIds(nodes, targetId) {
+  if (!nodes || !Array.isArray(nodes)) return null;
+  for (let node of nodes) {
+    if (node.id === targetId) { return [{ id: node.id, name: node.name }]; }
+    if (node.children && node.children.length > 0) {
+      const childPath = findNodePathWithIds(node.children, targetId);
+      if (childPath) { return [{ id: node.id, name: node.name }, ...childPath]; }
+    }
+  }
+  return null;
+}
+
 function renderProjectContent(data) {
   if (!data) return;
-
+  
   const rawNotesArea = document.getElementById('raw-notes-content-area');
   if (rawNotesArea) {
-    rawNotesArea.textContent = data.rawText || data.notes || "No raw text content available for this session.";
+    rawNotesArea.innerHTML = data.rawText || data.notes || "No raw text content available.";
   }  
-  const summaryList = document.getElementById('summary-list');
-  if (summaryList) {
-    summaryList.innerHTML = (data.summary || []).map(point =>
-      `<li class="summary-item"><span class="summary-arrow">→</span> <span>${point}</span></li>`
-    ).join('');
-  }
 
   const keywordChips = document.getElementById('keyword-chips');
   if (keywordChips) {
-    keywordChips.innerHTML = (data.keywords || []).map((kw, i) =>
-      `<span class="chip c${i % 3}">${esc(kw)}</span>`
-    ).join('');
+    if (data.keywords && data.keywords.length > 0) {
+      keywordChips.innerHTML = data.keywords.map((kw, i) => `
+        <span class="chip c${i % 3}" style="padding: 0.45rem 1.1rem; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-block;">
+          ${esc(kw)}
+        </span>`).join('');
+    } else {
+      keywordChips.innerHTML = `<span style="color: var(--ink-muted); font-size: 13px; font-style: italic;">No key concepts extracted.</span>`;
+    }
+  }
+
+  const summaryList = document.getElementById('summary-list');
+  if (summaryList) {
+    if (data.summary && data.summary.length > 0) {
+      summaryList.innerHTML = data.summary.map(point => `
+        <li class="summary-item" style="font-size: 14px; line-height: 1.8; display: flex; gap: 0.5rem; align-items: flex-start; width: 100%;">
+          <span class="summary-arrow" style="color: var(--sage); font-weight: bold; flex-shrink: 0;">→</span> 
+          <span>${point}</span>
+        </li>`).join('');
+    } else {
+      summaryList.innerHTML = `<li style="color: var(--ink-muted); font-size: 13px; font-style: italic;">No summary points available.</li>`;
+    }
   }
 
   if (document.getElementById('stat-keywords')) document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
@@ -721,345 +863,31 @@ function renderProjectContent(data) {
   if (document.getElementById('stat-steps')) document.getElementById('stat-steps').textContent = (data.learningPath || []).length;
 
   const clustersGrid = document.getElementById('clusters-grid');
-  if (clustersGrid && data.clusters) {
-    clustersGrid.innerHTML = data.clusters.map(cluster => `
-      <div class="cluster-card">
-        <div class="cluster-header">
-          <span class="cluster-icon ${cluster.color || 'sage'}" style="display: inline-flex; align-items: center; justify-content: center;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
-          </span>
-          <span class="cluster-name">${esc(cluster.name)}</span>
-        </div>
-        <div class="cluster-topics">
-          ${(cluster.topics || []).map(topic => `<div class="cluster-topic">${esc(topic)}</div>`).join('')}
-        </div>
-      </div>
-    `).join('');
+  if (clustersGrid) {
+    if (data.clusters && data.clusters.length > 0) {
+      clustersGrid.innerHTML = data.clusters.map(cluster => `
+        <div class="cluster-card" style="width: 100%;">
+          <div class="cluster-header"><span class="cluster-name">${esc(cluster.name)}</span></div>
+          <div class="cluster-topics">${(cluster.topics || []).map(topic => `<div class="cluster-topic">${esc(topic)}</div>`).join('')}</div>
+        </div>`).join('');
+    } else {
+      clustersGrid.innerHTML = `<div style="grid-column: 1/-1; color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No topic clusters analyzed.</div>`;
+    }
   }
 
   const pathList = document.getElementById('path-list');
   if (pathList) {
-    pathList.innerHTML = (data.learningPath || []).map((step, i) => `
-      <div class="path-item">
-        <div class="path-num ${i === 0 ? 'first' : ''}">${step.step}</div>
-        <div class="path-card">
-          <div class="path-card-header">
-            <span class="path-card-title">${esc(step.title)}</span>
-            <span class="path-duration">15 min</span>
+    if (data.learningPath && data.learningPath.length > 0) {
+      pathList.innerHTML = data.learningPath.map((step) => `
+        <div class="path-item" style="width: 100%;">
+          <div class="path-num">${step.step}</div>
+          <div class="path-card" style="width: 100%;">
+            <div class="path-card-header"><span class="path-card-title">${esc(step.title || step.step)}</span></div>
+            <p class="path-tip">💡 ${esc(step.tip || '')}</p>
           </div>
-          <p class="path-tip">💡 ${esc(step.tip)}</p>
-        </div>
-      </div>
-    `).join('');
-  }
-}
-
-function esc(str) {
-  if (!str) return '';
-  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function findNodePath(nodes, targetId) {
-  for (let node of nodes) {
-    if (node.id === targetId) {
-      return [node.name];
-    }
-    if (node.children && node.children.length > 0) {
-      const childPath = findNodePath(node.children, targetId);
-      if (childPath) {
-        return [node.name, ...childPath];
-      }
-    }
-  }
-  return null;
-}
-
-function updateBreadcrumbs(nodeId) {
-  const container = document.getElementById('workspace-breadcrumbs');
-  if (!container) return;
-
-  let html = `
-    <span onclick="resetToEmptyState()" style="cursor: pointer; transition: color 0.2s;" onmouseover="this.style.color='var(--ink)'" onmouseout="this.style.color='var(--ink-muted)'">
-      Dashboard
-    </span>
-  `;
-
-  if (!nodeId) {
-    container.innerHTML = html;
-    return;
-  }
-
-  const treeData = getLibraryData();
-  const nodePathObjects = findNodePathWithIds(treeData, nodeId);
-
-  if (nodePathObjects && nodePathObjects.length > 0) {
-    nodePathObjects.forEach((crumb, index) => {
-      html += ` <span style="margin: 0 0.25rem; color: var(--border); font-size: 11px;">/</span> `;
-      const isLast = index === nodePathObjects.length - 1;
-      
-      if (isLast) {
-        html += `<span style="font-weight: 600; color: var(--ink);">${esc(crumb.name)}</span>`;
-      } else {
-        html += `
-          <span onclick="selectFolderWorkspace('${crumb.id}', event)" 
-                style="cursor: pointer; transition: color 0.2s;" 
-                onmouseover="this.style.color='var(--ink)'" 
-                onmouseout="this.style.color='var(--ink-muted)'">
-            ${esc(crumb.name)}
-          </span>
-        `;
-      }
-    });
-  }
-
-  container.innerHTML = html;
-}
-
-function findNodePathWithIds(nodes, targetId) {
-  for (let node of nodes) {
-    if (node.id === targetId) {
-      return [{ id: node.id, name: node.name }];
-    }
-    if (node.children && node.children.length > 0) {
-      const childPath = findNodePathWithIds(node.children, targetId);
-      if (childPath) {
-        return [{ id: node.id, name: node.name }, ...childPath];
-      }
-    }
-  }
-  return null;
-}
-
-function selectFolderWorkspace(folderId, event) {
-  if (event) event.stopPropagation();
-  
-  currentSelectedNodeId = folderId;
-  currentRightClickedNodeId = folderId; 
-
-  const saveBtn = document.getElementById('btn-trigger-save');
-  if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
-
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
-
-  document.getElementById('empty-workspace-state').style.display = 'none';
-  document.getElementById('active-project-workspace').style.display = 'flex';
-  
-  const overviewActions = document.getElementById('overview-actions');
-  if (overviewActions) {
-    overviewActions.innerHTML = `
-      <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
-        Rename
-      </button>
-      <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-        Delete
-      </button>
-    `;
-  }
-  
-  const tabsContainer = document.querySelector('.workspace-tabs-container');
-  if (tabsContainer) tabsContainer.style.setProperty('display', 'none', 'important');
-  
-  if (document.getElementById('note-card-wrapper')) document.getElementById('note-card-wrapper').style.display = 'none';
-  if (document.getElementById('folder-overview-wrapper')) document.getElementById('folder-overview-wrapper').style.display = 'block';
-
-  const treeData = getLibraryData();
-  const folderNode = findNodeById(treeData, folderId);
-  
-  if (folderNode) {
-    const titleEl = document.getElementById('active-project-title');
-    if (titleEl) {
-      titleEl.innerText = folderNode.name;
-      titleEl.style.setProperty('margin-bottom', '1.5rem', 'important'); 
-    }
-    
-    const children = folderNode.children || [];
-    if (children.length === 0) {
-      document.getElementById('folder-overview-wrapper').innerHTML = `
-        <div style="color: var(--ink-muted); font-style: italic; padding: 3rem; text-align: center; font-size: 14px; width: 100%;">
-          📁 Folder ini kosong.
-        </div>`;
+        </div>`).join('');
     } else {
-      let folderOverviewHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; width: 100%;">`;
-      children.forEach(child => {
-        if (child.type === "folder") {
-          const folderColor = child.color || "#6B8F71";
-          folderOverviewHTML += `
-            <div onclick="selectFolderWorkspace('${child.id}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <span style="font-weight: 600; font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(child.name)}</span>
-            </div>`;
-        } else {
-          folderOverviewHTML += `
-            <div onclick="selectFileWorkspace('${child.id}', '${esc(child.name)}', event)" style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem 1rem; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)';" onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)';">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--ink-muted); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-              <span style="font-size: 14px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(child.name)}</span>
-            </div>`;
-        }
-      });
-      folderOverviewHTML += `</div>`;
-      document.getElementById('folder-overview-wrapper').innerHTML = folderOverviewHTML;
+      pathList.innerHTML = `<div style="color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No learning path generated.</div>`;
     }
   }
-  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
-  document.getElementById('tab-raw').classList.add('active');
-  updateBreadcrumbs(folderId);
-}
-
-function selectFileWorkspace(fileId, fileName, event) {
-  if (event) event.stopPropagation();
-  currentSelectedNodeId = fileId;
-  currentRightClickedNodeId = fileId; 
-  
-  const saveBtn = document.getElementById('btn-trigger-save');
-  if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
-
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
-
-  const overviewActions = document.getElementById('overview-actions');
-  if (overviewActions) {
-    overviewActions.innerHTML = `
-      <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
-        Rename
-      </button>
-      <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-        Delete
-      </button>
-    `;
-  }
-
-  const tabsContainer = document.querySelector('.workspace-tabs-container');
-  if (tabsContainer) tabsContainer.style.setProperty('display', 'flex', 'important');
-  
-  if (document.getElementById('note-card-wrapper')) document.getElementById('note-card-wrapper').style.display = 'block';
-  if (document.getElementById('folder-overview-wrapper')) document.getElementById('folder-overview-wrapper').style.display = 'none';
-  
-  if (typeof loadSavedFileNode === 'function') {
-    loadSavedFileNode(fileId, fileName, event);
-  } else {
-    document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'flex';
-    document.getElementById('active-project-title').innerText = fileName;
-  }
-  updateBreadcrumbs(fileId);
-}
-
-function resetToEmptyState() {
-  currentSelectedNodeId = null;
-  currentRightClickedNodeId = null;
-  
-  const saveBtn = document.getElementById('btn-trigger-save');
-  if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
-
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
-
-  document.getElementById('empty-workspace-state').style.display = 'block';
-  document.getElementById('active-project-workspace').style.display = 'none';
-  
-  const overviewActions = document.getElementById('overview-actions');
-  if (overviewActions) {
-    overviewActions.innerHTML = "";
-  }
-  
-  renderDashboardCards();
-}
-
-function switchWorkspaceTab(targetTabId) {
-  document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.tab-content-panel').forEach(panel => panel.classList.remove('active'));
-  const clickedBtn = document.querySelector(`[onclick="switchWorkspaceTab('${targetTabId}')"]`);
-  if (clickedBtn) clickedBtn.classList.add('active');
-  const targetPanel = document.getElementById(targetTabId);
-  if (targetPanel) targetPanel.classList.add('active');
-}
-
-function showCustomAlert(message) {
-  const alertModal = document.getElementById('custom-alert-modal');
-  const alertMessage = document.getElementById('custom-alert-message');
-  if (alertModal && alertMessage) {
-    alertMessage.textContent = message;
-    alertModal.style.setProperty('display', 'flex', 'important');
-  } else {
-    alert(message);
-  }
-}
-
-function closeCustomAlert() {
-  const alertModal = document.getElementById('custom-alert-modal');
-  if (alertModal) {
-    alertModal.style.setProperty('display', 'none', 'important');
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  renderDashboardCards();
-});
-
-function renderDashboardCards() {
-  const cardsGrid = document.getElementById('dashboard-cards-grid');
-  if (!cardsGrid) return;
-
-  const treeData = getLibraryData();
-  let allExtractedFiles = [];
-
-  function extractFilesRecursively(nodes) {
-    nodes.forEach(node => {
-      if (node.type === "file") {
-        allExtractedFiles.push(node);
-      }
-      if (node.children && node.children.length > 0) {
-        extractFilesRecursively(node.children);
-      }
-    });
-  }
-  extractFilesRecursively(treeData);
-
-  // Jika folder data database benar-benar kosong mlompong
-  if (allExtractedFiles.length === 0) {
-    cardsGrid.innerHTML = `
-      <div class="empty-placeholder-card" style="grid-column: 1 / -1; background: rgba(247, 245, 240, 0.6); border: 2px dashed var(--border); border-radius: 12px; padding: 3rem; text-align: center; width: 100%;">
-        <p style="color: var(--ink-muted); font-size: 14px; margin-bottom: 1rem;">You don't have any saved notes yet.</p>
-        <button class="btn-primary" onclick="location.href='input.html'" style="font-size: 12px; padding: 0.5rem 1rem;">+ Create First Note</button>
-      </div>
-    `;
-    return;
-  }
-
-  // Suntikkan list card kolektif ke layar utama My Workspace secara otomatis!
-  cardsGrid.innerHTML = allExtractedFiles.map(file => {
-    const fileData = file.data || {};
-    // Ambil baris kata summary
-    const summaryHint = (fileData.summary && fileData.summary.length > 0) ? fileData.summary[0] : 'Click to explore complete smart summary components.';
-    
-    return `
-      <div class="cluster-card note-item-card" onclick="selectFileWorkspace('${file.id}', '${esc(file.name)}', event)" style="cursor: pointer; position: relative;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);">
-          <span style="font-size: 18px;">📄</span>
-          <span style="font-size: 10px; background: rgba(107, 143, 113, 0.1); color: #6B8F71; padding: 0.15rem 0.5rem; border-radius: 20px; font-weight: 600;">AI Analyzed</span>
-        </div>
-        <h4 class="serif" style="font-size: 16px; color: var(--ink); margin-bottom: 0.35rem; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${esc(file.name)}</h4>
-        <p style="font-size: 12px; line-height: 1.5; color: var(--ink-muted); height: 36px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; margin-bottom: 0.5rem;">
-          ${esc(summaryHint)}
-        </p>
-      </div>
-    `;
-  }).join('');
 }
