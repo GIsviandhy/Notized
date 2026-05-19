@@ -1051,3 +1051,20 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     .workspace-content { flex-direction: column; }
     .workspace-sidebar-pane { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
 }
+
+.preview-full-mode #master-note-view-box,
+.preview-full-mode .card,
+.sidebar-closed-mode #master-note-view-box,
+.sidebar-closed-mode .card {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+#master-note-view-box, .card, .workspace-sidebar-pane {
+    transition: all 0.25s ease-in-out !important;
+}
+
+.preview-full-mode .folder-header-aligner {
+    max-width: 100% !important;
+    width: 100% !important;
+}

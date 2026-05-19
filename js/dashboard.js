@@ -53,11 +53,60 @@ window.addEventListener('DOMContentLoaded', async () => {
       overviewActions.innerHTML = ""; 
     }
 
+    const sidebarPane = document.getElementById('workspace-sidebar');
+    if (sidebarPane) sidebarPane.style.setProperty('display', 'none', 'important');
+    
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
+    if (toggleBtn) toggleBtn.style.setProperty('display', 'none', 'important');
+
+    const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+    if (scrollContainer) {
+      scrollContainer.classList.add('preview-full-mode');
+    }
+
     renderProjectContent(parsed);
-    document.getElementById('active-project-title').textContent = "Preview: " + (parsed.title || "Unsaved Note");
-    switchWorkspaceTab('tab-raw');
+    
+    const masterNoteBox = document.getElementById('master-note-view-box');
+    if (masterNoteBox) masterNoteBox.style.setProperty('display', 'block', 'important');
+    
+    const folderWrapper = document.getElementById('folder-overview-wrapper');
+    if (folderWrapper) folderWrapper.style.setProperty('none', 'important');
+
+    const stickyHeader = document.querySelector('.workspace-header-sticky');
+    if (stickyHeader) {
+      stickyHeader.innerHTML = `
+        <div id="workspace-breadcrumbs" class="breadcrumbs-bar"><span style="color: var(--ink-muted);">Preview Mode</span></div>
+        <div class="folder-header-aligner" style="max-width: 100% !important; width: 100% !important;">
+          <h1 id="active-project-title" class="serif" style="margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--ink); line-height: 1.2;">Preview: ${esc(parsed.title || "Unsaved Note")}</h1>
+          <div id="overview-actions" style="display: flex; gap: 0.5rem; align-items: center;"></div>
+        </div>
+        <div class="workspace-tabs-container" style="display: flex !important; gap: 0.5rem; margin-top: 1rem;">
+          <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
+          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
+          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
+          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
+        </div>
+      `;
+    }
+
+    document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+    const initialActiveBtn = document.querySelector(`[onclick="switchWorkspaceTab('tab-raw')"]`);
+    if (initialActiveBtn) initialActiveBtn.classList.add('active');
+
+    if (scrollContainer) scrollContainer.scrollTop = 0;
     return; 
   }
+
+  const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+  if (scrollContainer) {
+    scrollContainer.classList.remove('preview-full-mode');
+  }
+
+  const sidebarPane = document.getElementById('workspace-sidebar');
+  if (sidebarPane) sidebarPane.style.setProperty('display', 'flex', 'important');
+  
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
 
   await loadLibraryFromDatabase();
 
@@ -219,10 +268,23 @@ function hexToRgbaTint(hex, opacity = 0.15) {
 }
 
 function toggleSidebar(event) {
-  if (event) event.preventDefault();
+  if (event) event.preventDefault(); 
+
   const sidebar = document.getElementById('workspace-sidebar');
+  const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
   if (!sidebar) return;
-  sidebar.classList.toggle('collapsed');
+
+  if (sidebar.style.display === 'none') {
+    sidebar.style.setProperty('display', 'flex', 'important');
+    if (scrollContainer) {
+      scrollContainer.classList.remove('sidebar-closed-mode');
+    }
+  } else {
+    sidebar.style.setProperty('display', 'none', 'important');
+    if (scrollContainer) {
+      scrollContainer.classList.add('sidebar-closed-mode');
+    }
+  }
 }
 
 function refreshWorkspaceTree() {
@@ -388,6 +450,13 @@ function toggleFolderNode(nodeId, event) {
 
 function openFolderCreatorDirect(event) {
   if (event) event.preventDefault();
+  
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  if (!currentUser || !currentUser.email || !currentUser.name) {
+    showCustomAlert("You need to log in first to create a new workspace folder!");
+    return; 
+  }
+
   isEditMode = false;
   editingNodeId = null;
   const folderModal = document.getElementById('folder-creator-card');
@@ -395,10 +464,12 @@ function openFolderCreatorDirect(event) {
     document.getElementById('modal-folder-title').textContent = "Create New Folder";
     document.getElementById('btn-submit-folder').textContent = "Create Folder";
     document.getElementById('new-folder-name-input').value = '';
+    
     const colorPickerLabel = document.querySelector('.color-picker-label');
     const colorOptions = document.querySelectorAll('.color-palette-options');
     if (colorPickerLabel) colorPickerLabel.style.setProperty('display', 'block', 'important');
     if (colorOptions) colorOptions.forEach(opt => opt.style.setProperty('display', 'flex', 'important'));
+
     folderModal.style.setProperty('display', 'flex', 'important');
     setTimeout(() => document.getElementById('new-folder-name-input').focus(), 50);
   }
@@ -613,22 +684,40 @@ function openSaveModal() {
 
 function handleSaveNote() {
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-  if (!currentUser || !currentUser.name) { showCustomAlert("You need to log in first to save your analyzed notes!"); return; }
+  
+  if (!currentUser || !currentUser.email || !currentUser.name) {
+    showCustomAlert("You need to log in first to save your analyzed study notes to a project folder!");
+    return; 
+  }
+  
   openSaveModal();
 }
 
 function closeSaveModal() { document.getElementById('save-modal').style.display = 'none'; }
 
 function confirmSaveNotes() {
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  
+  if (!currentUser || !currentUser.email) {
+    showCustomAlert("Session expired! Please log in again to save your notes.");
+    return;
+  }
+
   const titleInput = document.getElementById('save-notes-name').value.trim();
   const folderTargetId = document.getElementById('save-folder-select').value;
   if (!titleInput) return alert('Please enter a valid project name.');
-  const incoming = localStorage.getItem('notizedData'); if (!incoming) return;
+  
+  const incoming = localStorage.getItem('notizedData'); 
+  if (!incoming) return;
+  
   let incomingData = JSON.parse(incoming);
   let treeData = getLibraryData();
   const savedRawText = localStorage.getItem('current_raw_text') || "";
-  incomingData.rawText = savedRawText; incomingData.notes = savedRawText; 
+  incomingData.rawText = savedRawText; 
+  incomingData.notes = savedRawText; 
+
   const newFileNode = { id: "node_" + Date.now(), name: titleInput, type: "file", data: incomingData };
+
   if (folderTargetId === "root_root") {
     treeData.push(newFileNode);
   } else {
@@ -636,7 +725,9 @@ function confirmSaveNotes() {
       for (let node of nodes) {
         if (node.id === folderTargetId && node.type === "folder") {
           if (!node.children) node.children = [];
-          node.children.push(newFileNode); node.expanded = true; return true;
+          node.children.push(newFileNode); 
+          node.expanded = true; 
+          return true;
         }
         if (node.children && insertToTargetFolder(node.children)) return true;
       }
@@ -644,16 +735,48 @@ function confirmSaveNotes() {
     }
     insertToTargetFolder(treeData);
   }
+
   saveLibraryData(treeData); 
-  localStorage.removeItem('notizedData'); localStorage.removeItem('current_raw_text'); 
-  document.getElementById('btn-trigger-save').style.display = 'none';
-  closeSaveModal(); refreshWorkspaceTree(); resetToEmptyState();
+  localStorage.removeItem('notizedData'); 
+  localStorage.removeItem('current_raw_text'); 
+  
+  if (document.getElementById('btn-trigger-save')) {
+    document.getElementById('btn-trigger-save').style.display = 'none';
+  }
+  
+  closeSaveModal(); 
+  
+  const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+  if (scrollContainer) {
+    scrollContainer.classList.remove('preview-full-mode');
+  }
+
+  const sidebarPane = document.getElementById('workspace-sidebar');
+  if (sidebarPane) {
+    sidebarPane.style.setProperty('display', 'flex', 'important');
+  }
+
+  refreshWorkspaceTree(); 
+  resetToEmptyState();
 }
 
 function handleOverviewDelete() {
   if (!currentSelectedNodeId) { showCustomAlert("Select a folder or file first!"); return; }
   currentRightClickedNodeId = currentSelectedNodeId; 
   triggerDeleteNode();
+}
+
+function handleNewNoteClick(event) {
+  if (event) event.preventDefault();
+  
+  const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+  
+  if (!currentUser || !currentUser.email || !currentUser.name) {
+    showCustomAlert("You need to log in first to create or type a new study note!");
+    return; 
+  }
+  
+  location.href = 'input.html';
 }
 
 function esc(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -688,39 +811,69 @@ function switchWorkspaceTab(targetTabId) {
 function renderDashboardCards() {
   const cardsGrid = document.getElementById('dashboard-cards-grid');
   if (!cardsGrid) return;
+
   const treeData = getLibraryData() || [];
-  const rootFolders = treeData.filter(node => node.type === "folder");
+  const rootItems = treeData; 
+
   const rootTitle = document.querySelector('#empty-workspace-state h2');
   if (rootTitle) {
-    rootTitle.textContent = "Root Workspace";
+    rootTitle.textContent = "Project Workspace";
     rootTitle.className = "serif";
     rootTitle.style.setProperty('font-size', '32px', 'important');
     rootTitle.style.setProperty('color', 'var(--ink)', 'important');
   }
-  if (rootFolders.length === 0) {
+
+  if (rootItems.length === 0) {
     cardsGrid.innerHTML = `
       <div class="empty-placeholder-card" style="grid-column: 1 / -1; background: rgba(247, 245, 240, 0.6); border: 2px dashed var(--border); border-radius: 12px; padding: 4rem 2rem; text-align: center; width: 100%;">
-        <p style="color: var(--ink-muted); font-size: 14px; margin-bottom: 1rem;">Your Root Workspace is empty.</p>
+        <p style="color: var(--ink-muted); font-size: 14px; margin-bottom: 1rem;">Your Project Workspace is empty.</p>
         <button class="btn-primary" onclick="openFolderCreatorDirect(event)" style="font-size: 12px; padding: 0.5rem 1rem;">+ Create First Folder</button>
       </div>`;
     return;
   }
-  cardsGrid.innerHTML = rootFolders.map(folder => {
-    const folderColor = folder.color || "#6B8F71"; 
-    return `
-      <div onclick="selectFolderWorkspace('${folder.id}', event)" 
-           style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" 
-           onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='${folderColor}';" 
-           onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border)';">
-        <div style="background: ${hexToRgbaTint(folderColor, 0.15)}; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
+
+  cardsGrid.innerHTML = rootItems.map(item => {
+    if (item.type === "folder") {
+      const folderColor = item.color || "#6B8F71"; 
+      return `
+        <div onclick="selectFolderWorkspace('${item.id}', event)" 
+             style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" 
+             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='${folderColor}';" 
+             onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border)';">
+          
+          <div style="background: ${hexToRgbaTint(folderColor, 0.15)}; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+          </div>
+          
+          <span style="font-weight: 600; font-size: 15px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+            ${esc(item.name)}
+          </span>
         </div>
-        <span style="font-weight: 600; font-size: 15px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-          ${esc(folder.name)}
-        </span>
-      </div>`;
+      `;
+    } else {
+      return `
+        <div onclick="selectFileWorkspace('${item.id}', '${esc(item.name)}', event)" 
+             style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" 
+             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='var(--indigo)';" 
+             onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border)';">
+          
+          <div style="background: rgba(74, 85, 134, 0.1); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="16" y1="13" x2="8" y2="13"></line>
+              <line x1="16" y1="17" x2="8" y2="17"></line>
+            </svg>
+          </div>
+          
+          <span style="font-size: 15px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
+            ${esc(item.name)}
+          </span>
+        </div>
+      `;
+    }
   }).join('');
 }
 
@@ -889,5 +1042,24 @@ function renderProjectContent(data) {
     } else {
       pathList.innerHTML = `<div style="color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No learning path generated.</div>`;
     }
+  }
+}
+
+function showCustomAlert(message) {
+  const alertModal = document.getElementById('custom-alert-modal');
+  const alertMsg = document.getElementById('custom-alert-message');
+  if (alertModal && alertMsg) {
+    alertMsg.textContent = message;
+    alertModal.style.setProperty('display', 'flex', 'important');
+  } else {
+    // Fallback jika elemen DOM HTML belum siap
+    alert(message);
+  }
+}
+
+function closeCustomAlert() {
+  const alertModal = document.getElementById('custom-alert-modal');
+  if (alertModal) {
+    alertModal.style.setProperty('display', 'none', 'important');
   }
 }
