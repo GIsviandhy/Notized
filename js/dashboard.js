@@ -1,7 +1,7 @@
-// ─── INJEKSI CSS UNTUK FIX TEXT AREA, TEKS PANJANG & TOASTER ───
+// ─── INJEKSI CSS UNTUK FIX TEXT AREA KOSONG, TEKS PANJANG & SCROLL ───
 const fixStyle = document.createElement('style');
 fixStyle.innerHTML = `
-  /* 1. Fix Teks Kepanjangan */
+  /* 1. Fix Teks Kepanjangan di Sidebar & Grid */
   .tree-folder-header > div { min-width: 0 !important; }
   .tree-folder-header strong, .tree-file-item span, .folder-grid-item span, .file-grid-item span {
     white-space: nowrap !important;
@@ -12,55 +12,36 @@ fixStyle.innerHTML = `
   .tree-svg-icon { flex-shrink: 0 !important; }
   .tree-file-item, .folder-grid-item, .file-grid-item { min-width: 0 !important; }
 
-  /* 2. Fix Text Area Form Input */
-  #input-form-workspace { max-width: 100% !important; height: calc(100vh - 120px) !important; display: none; flex-direction: column; }
-  #input-form-workspace[style*="display: block"] { display: flex !important; }
-  .modern-textarea-container { flex-grow: 1; display: flex; flex-direction: column; margin-bottom: 1.5rem; }
-  #notes-input { flex-grow: 1; resize: none; min-height: 200px; }
-
-  /* 3. TOASTER CSS */
-  #toast-container {
-    position: fixed !important; bottom: 24px !important; right: 24px !important; z-index: 2147483647 !important;
-    display: flex !important; flex-direction: column !important; gap: 12px !important; pointer-events: none !important;
+  /* 2. Fix Text Area Form Input & SCROLL HALAMAN */
+  .workspace-main-pane { 
+    flex: 1 !important;
+    overflow-y: auto !important; 
+    height: 100vh !important;
+    padding-bottom: 120px !important; 
   }
-  .notized-toast {
-    padding: 12px 20px !important; border-radius: 8px !important; color: white !important; font-weight: 600 !important; font-size: 14px !important;
-    opacity: 0; transform: translateY(20px); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.2) !important; font-family: "Plus Jakarta Sans", sans-serif !important;
-    display: flex !important; align-items: center !important; gap: 8px !important; pointer-events: auto !important;
+  #input-form-workspace {
+    max-width: 100% !important; 
+    height: auto !important;
+    min-height: 100% !important;
+    display: none;
+    flex-direction: column;
   }
-  .notized-toast.show { opacity: 1 !important; transform: translateY(0) !important; }
-  .toast-success { background: #10b981 !important; }
-  .toast-error { background: #ef4444 !important; }
-  .toast-info { background: #0284c7 !important; }
+  #input-form-workspace[style*="display: block"] {
+    display: flex !important; 
+  }
+  .modern-textarea-container {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.5rem;
+  }
+  #notes-input {
+    flex-grow: 1; 
+    resize: vertical; 
+    min-height: 400px;
+  }
 `;
 document.head.appendChild(fixStyle);
-
-// ─── TOASTER ENGINE ───
-function showToast(msg, type = 'success') {
-  let container = document.getElementById('toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    document.body.appendChild(container);
-  }
-  const toast = document.createElement('div');
-  toast.className = `notized-toast toast-${type}`;
-  
-  let icon = '';
-  if (type === 'success') icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>';
-  else if (type === 'error') icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>';
-  else icon = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>';
-
-  toast.innerHTML = `${icon} <span>${msg}</span>`;
-  container.appendChild(toast);
-
-  setTimeout(() => toast.classList.add('show'), 10);
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
-}
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
@@ -125,7 +106,6 @@ window.addEventListener('DOMContentLoaded', () => {
       notesInput.value = `Web Development: Laravel & React Integration\n\nWhen building modern web applications, combining Laravel as a backend API and React as a dynamic frontend yields high performance. Laravel handles routing, database ORM, and authentication smoothly. React consumes these APIs to render interactive UI components using Tailwind CSS for styling.`;
       updateWordCount();
     }
-    showToast("Entered Guest Mode (Try Sample)", "info");
   } else {
     refreshWorkspaceTree();
     setupSidebarResizer();
@@ -133,13 +113,7 @@ window.addEventListener('DOMContentLoaded', () => {
     const greetingEl = document.getElementById('user-greeting');
     if (greetingEl) {
       const user = JSON.parse(localStorage.getItem('notized_currentUser'));
-      if (user && user.name) {
-        greetingEl.textContent = `Hello, ${user.name}`;
-        if(!sessionStorage.getItem('notized_greeted')) {
-          showToast(`Welcome back, ${user.name}!`, "success");
-          sessionStorage.setItem('notized_greeted', 'true');
-        }
-      }
+      if (user && user.name) greetingEl.textContent = `Hello, ${user.name}`;
     }
   }
 });
@@ -192,7 +166,7 @@ function setupGuestUI() {
       <button type="button" class="btn-secondary" onclick="window.location.href='index.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> Back to Home
       </button>
-      <button type="button" class="btn-primary" onclick="window.location.href='index.html'">Login / Register</button>
+      <button type="button" class="btn-primary" onclick="window.location.href='index.html?showLogin=true'">Login / Register</button>
     `;
   }
   const mainLayout = document.querySelector('.workspace-layout');
@@ -277,44 +251,65 @@ function customPrompt(msg, defaultValue = "", title = "Input Required") {
   });
 }
 
-function getLibraryData() {
+function getLibraryData(forceSeed = false) {
   const data = localStorage.getItem('notized_library_tree');
-  if (data) return JSON.parse(data);
+  if (data && !forceSeed) return JSON.parse(data);
 
   const defaultTree = [
     {
-      id: "node_uiux", name: "UI/UX Design", type: "folder", expanded: true, color: "#f59e0b",
+      id: "node_bio", name: "Biology", type: "folder", expanded: false,
       children: [
         {
-          id: "node_glowdiary", name: "GlowDiary Case Study", type: "file",
-          data: {
-            rawText: "GlowDiary Skincare Application UX Research.\n\nTarget market analysis indicates that users of skincare products encompass all genders, not just women. The interactive prototype built in Figma must reflect an inclusive interface. Key features include daily tracking, product matching, and personalized routines.",
-            summary: ["Target market is inclusive of all genders.","Interactive prototyping executed in Figma.","Focuses on inclusive interface and daily routine tracking."],
-            keywords: ["UX Research", "Figma", "Skincare App", "Inclusive"],
-            clusters: [{ name: "User Demographics", color: "indigo", topics: ["All Genders", "Inclusive"] },{ name: "Prototyping", color: "sage", topics: ["Figma", "Interactive"] }],
-            learningPath: [{ step: 1, title: "Define Target Market", duration: "10 min", tip: "Ensure gender-neutral copy." },{ step: 2, title: "Figma Prototyping", duration: "25 min", tip: "Create user flows." }],
-            isRawOnly: false
-          }
-        }
+          id: "node_lec3", name: "Lecture 3", type: "folder", expanded: false,
+          children: [
+            { 
+              id: "node_mitosis", 
+              name: "Mitosis", 
+              type: "file",
+              data: {
+                rawText: "Mitosis is a process of cell duplication, or reproduction, during which one cell gives rise to two genetically identical daughter cells. Strictly applied, the term mitosis is used to describe the duplication and distribution of chromosomes, the structures that carry the genetic information.",
+                summary: ["Mitosis results in two identical daughter cells.", "Core checkpoint processes align chromatids perfectly.", "Crucial for growth and tissue repair."],
+                keywords: ["Mitosis", "Cell Division", "Chromatids", "Chromosomes"],
+                clusters: [{ name: "Core Cycles", color: "sage", topics: ["Prophase", "Metaphase", "Anaphase", "Telophase"] }],
+                learningPath: [{ step: 1, title: "Replication Baseline", tip: "Understand G1/S phases before moving to M phase." }]
+              }
+            },
+            { 
+              id: "node_meiosis", 
+              name: "Meiosis", 
+              type: "file",
+              data: {
+                rawText: "Meiosis is a special type of cell division of germ cells in sexually-reproducing organisms used to produce the gametes, such as sperm or egg cells. It involves two rounds of division that ultimately result in four cells with only one copy of each chromosome.",
+                summary: ["Meiosis creates genetic diversity via 4 haploid gametes.", "Involves two successive nuclear divisions (Meiosis I and II).", "Essential for sexual reproduction."],
+                keywords: ["Meiosis", "Gametes", "Haploid", "Genetic Diversity"],
+                clusters: [{ name: "Reduction Division", color: "indigo", topics: ["Crossing Over", "Homologous Pairs"] }],
+                learningPath: [{ step: 1, title: "Meiotic Stages", tip: "Study the critical crossing-over phase in Prophase I." }]
+              }
+            }
+          ]
+        },
+        { id: "node_lec5", name: "Lecture 5", type: "folder", expanded: false, children: [] }
       ]
     },
     {
-      id: "node_dismath", name: "Discrete Math", type: "folder", expanded: true, color: "#6366f1",
+      id: "node_phys", name: "Physics", type: "folder", expanded: false,
       children: [
-        {
-          id: "node_graph", name: "Graph Theory: Kamp Layout", type: "file",
+        { 
+          id: "node_optics", 
+          name: "Optics", 
+          type: "file",
           data: {
-            rawText: "Graph theory application on the kamp layout project. A graph consists of vertices and edges. Based on the latest mapping constraints, the Kamp Layout requires exactly 13 edges to connect all critical nodes efficiently without overlapping paths.",
-            summary: ["Graph theory applied to kamp layout.","The layout structure consists of exactly 13 edges."],
-            keywords: ["Graph Theory", "Kamp Layout", "13 Edges", "Vertices"],
-            clusters: [{ name: "Graph Properties", color: "amber", topics: ["Edges", "Vertices", "Constraints"] }],
-            learningPath: [{ step: 1, title: "Node Mapping", duration: "15 min", tip: "Identify all critical vertices first." },{ step: 2, title: "Edge Connection", duration: "10 min", tip: "Draw exactly 13 edges." }],
-            isRawOnly: false
+            rawText: "Optics is the branch of physics that studies the behaviour and properties of light, including its interactions with matter and the construction of instruments that use or detect it. Optics usually describes the behaviour of visible, ultraviolet, and infrared light.",
+            summary: ["Studies the behavior and properties of light waves.", "Covers reflection, refraction, and diffraction phenomena.", "Governs the build of lenses and microscopes."],
+            keywords: ["Optics", "Light Waves", "Refraction", "Lenses"],
+            clusters: [{ name: "Wave Phenomena", color: "amber", topics: ["Geometric Optics", "Physical Optics"] }],
+            learningPath: [{ step: 1, title: "Light Fundamentals", tip: "Master Snell's Law before calculating lens matrix focal points." }]
           }
         }
       ]
     }
   ];
+
   localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
   return defaultTree;
 }
@@ -344,6 +339,8 @@ function hideAllViews() {
 }
 
 function viewRoot() {
+  if (isGuestMode) { window.location.href = 'index.html'; return; }
+
   currentViewedFolderId = "root_root"; currentViewedNoteId = null; hideAllViews();
   document.getElementById('empty-workspace-state').style.display = 'block';
   renderBreadcrumbs([], 'breadcrumbs-empty');
@@ -373,6 +370,7 @@ function viewRoot() {
 function viewFolderNode(id, event) {
   if (event) event.stopPropagation(); currentViewedFolderId = id; currentViewedNoteId = null; hideAllViews();
   
+  // LOGIKA AUTO-EXPAND SIDEBAR SAAT KLIK NAMA FOLDER
   let tree = getLibraryData(); 
   let targetFolder = getTargetNode(tree, id);
   if(targetFolder && !targetFolder.expanded) {
@@ -505,16 +503,8 @@ function triggerFileUpload() { document.getElementById('file-input').click(); }
 async function handleFileUpload(event) {
   const file = event.target.files[0]; if (!file) return;
   const textarea = document.getElementById('notes-input'); textarea.value = "Extracting document content, please wait...";
-  try { 
-      if (file.name.toLowerCase().endsWith('.pdf')) textarea.value = await extractTextFromPDF(file); 
-      else textarea.value = await file.text(); 
-      updateWordCount();
-      showToast("Document attached successfully", "info");
-  } 
-  catch (e) { 
-      textarea.value = ""; 
-      customAlert("Error reading file. Ensure it's a valid text or PDF.", "System Error"); 
-  }
+  try { if (file.name.toLowerCase().endsWith('.pdf')) textarea.value = await extractTextFromPDF(file); else textarea.value = await file.text(); updateWordCount(); } 
+  catch (e) { textarea.value = ""; customAlert("Error reading file. Ensure it's a valid text or PDF.", "System Error"); }
 }
 
 async function handleSaveRaw() {
@@ -567,7 +557,6 @@ async function handleAnalyze() {
         const rawBody = document.getElementById('raw-notes-body');
         if(rawBody) { rawBody.style.display = 'none'; rawBody.textContent = result.rawText; }
         renderProjectContent(result);
-        showToast("Analysis complete!", "success");
         return;
     }
     
@@ -597,7 +586,6 @@ async function triggerAnalyzeFromRaw() {
       barEl.style.width = '100%'; pctEl.textContent = '100%'; await sleep(300); document.getElementById('loading-view').classList.remove('active');
       node.data = result; localStorage.setItem('notized_library_tree', JSON.stringify(tree));
       refreshWorkspaceTree(); loadSavedFileNode(node.id, node.name);
-      showToast("Quantum Analysis Complete", "success");
    } catch(e) { document.getElementById('loading-view').classList.remove('active'); await customAlert("Quantum Analysis failed.", "System Error"); }
 }
 
@@ -625,7 +613,6 @@ function saveEditedNoteDirectly(newAnalysisData) {
   if (node) {
     node.data = newAnalysisData; localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData');
     isNoteEditingActive = false; noteEditingTargetId = null; refreshWorkspaceTree(); loadSavedFileNode(node.id, node.name);
-    showToast("Note content updated successfully!");
   }
 }
 
@@ -660,7 +647,6 @@ async function handleContextRename(isFolder) {
               renderBreadcrumbs(findPath(tree, currentRightClickedNodeId), 'breadcrumbs-project'); 
           }
           if (currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else viewRoot();
-          showToast("Note renamed successfully!");
       }
   }
 }
@@ -679,7 +665,6 @@ async function handleContextDelete(isFolder) {
       } else if (currentViewedFolderId !== "root_root") {
           viewFolderNode(currentViewedFolderId);
       } else { viewRoot(); }
-      showToast(isFolder ? "Folder deleted successfully!" : "Note deleted successfully!", "error");
   }
 }
 
@@ -699,10 +684,7 @@ async function triggerRenameFolderExplicit() {
 async function triggerDeleteFolderExplicit() {
   if (currentViewedFolderId === 'root_root') return;
   const isConfirmed = await customConfirm("Are you sure you want to completely delete this folder and its contents?", "Purge Directory"); if (!isConfirmed) return;
-  let treeData = getLibraryData(); if (deleteInTree(treeData, currentViewedFolderId)) { 
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); viewRoot(); 
-      showToast("Folder deleted successfully!", "error");
-  }
+  let treeData = getLibraryData(); if (deleteInTree(treeData, currentViewedFolderId)) { localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); viewRoot(); }
 }
 
 async function triggerRenameNoteExplicit() {
@@ -716,7 +698,6 @@ async function triggerRenameNoteExplicit() {
         refreshWorkspaceTree(); 
         document.getElementById('active-project-title').textContent = node.name; 
         renderBreadcrumbs(findPath(treeData, currentViewedNoteId), 'breadcrumbs-project'); 
-        showToast("Note renamed successfully!");
     }
   }
 }
@@ -726,11 +707,7 @@ async function triggerDeleteNoteExplicit() {
   const isConfirmed = await customConfirm("Delete this note permanently from the ledger?", "Purge Document"); if (!isConfirmed) return;
   let treeData = getLibraryData(); let parentPath = findPath(treeData, currentViewedNoteId);
   let parentFolderId = (parentPath && parentPath.length > 1) ? parentPath[parentPath.length - 2].id : 'root_root';
-  if (deleteInTree(treeData, currentViewedNoteId)) { 
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); 
-      if(parentFolderId === 'root_root') viewRoot(); else viewFolderNode(parentFolderId); 
-      showToast("Note deleted successfully!", "error");
-  }
+  if (deleteInTree(treeData, currentViewedNoteId)) { localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); refreshWorkspaceTree(); if(parentFolderId === 'root_root') viewRoot(); else viewFolderNode(parentFolderId); }
 }
 
 function findPath(nodes, targetId, currentPath = []) {
@@ -864,7 +841,6 @@ function bindDragAndDropEvents() {
       localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); 
       refreshWorkspaceTree();
       if(currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else viewRoot();
-      showToast("Item moved successfully", "info");
     });
   });
 }
@@ -879,7 +855,7 @@ function buildTreeHTML(nodes) {
         <div class="tree-folder-block" data-id="${node.id}">
           <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.14)}; color: ${baseColor};" title="${esc(node.name)}">
             <div style="display: flex; gap: 0.4rem; align-items: center; flex: 1; min-width: 0;">
-              <div onmousedown="event.stopPropagation()" onclick="toggleFolderNode('${node.id}', event)" style="cursor: pointer; font-size:14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: -4px;">${caret}</div>
+              <div onclick="toggleFolderNode('${node.id}', event)" style="cursor: pointer; font-size:14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: -4px;">${caret}</div>
               <div onclick="viewFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1; cursor: pointer; min-width: 0;">
                 <svg class="tree-svg-icon" style="flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(node.name)}</strong>
@@ -927,13 +903,11 @@ function handleFolderSubmit() {
   if (isEditMode) { 
       let node = getTargetNode(treeData, editingNodeId); 
       if (node) { node.name = nameInput; node.color = selectedFolderColor || "#0284c7"; } 
-      showToast("Folder renamed successfully!");
   } 
   else {
     const newNode = { id: "node_" + Date.now(), name: nameInput, type: "folder", color: selectedFolderColor, expanded: false, children: [] };
     if (currentViewedFolderId === "root_root") treeData.push(newNode);
     else { let parent = getTargetNode(treeData, currentViewedFolderId); if (parent && parent.type === 'folder') { parent.children.push(newNode); parent.expanded = true; } else treeData.push(newNode); }
-    showToast("Folder created successfully!");
   }
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); closeFolderCreatorCard(); refreshWorkspaceTree();
   if (!isEditMode && currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else if (isEditMode) viewFolderNode(editingNodeId);
@@ -972,7 +946,6 @@ async function confirmSaveNotes() {
   else { let parent = getTargetNode(treeData, folderTargetId); if (parent) { if (!parent.children) parent.children = []; parent.children.push(newFileNode); parent.expanded = true; } }
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData'); localStorage.removeItem('notized_target_folder');
   closeSaveModal(); refreshWorkspaceTree(); loadSavedFileNode(newFileNode.id, titleInput);
-  showToast("Note created successfully!");
 }
 
 function renderProjectContent(data) {

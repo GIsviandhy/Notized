@@ -126,5 +126,14 @@
       window.location.href = 'dashboard.html?loadExample=true';
     }
   </script>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('showLogin') === 'true') {
+            openAuthModal(); 
+        }
+    });
+  </script>
 </body>
 </html>

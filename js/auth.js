@@ -7,36 +7,53 @@ if (!localStorage.getItem('notized_users')) {
 
 let currentAuthMode = 'login'; // 'login' | 'register'
 
+// Fungsi helper pembuat pesan error dinamis di bawah input
+function getOrCreateErrorEl(inputEl, id) {
+  if (!inputEl) return null;
+  let errEl = document.getElementById(id);
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.id = id;
+    errEl.style.cssText = 'color: #ef4444; font-size: 12px; margin-top: 4px; display: none; text-align: left;';
+    inputEl.parentNode.insertBefore(errEl, inputEl.nextSibling);
+  }
+  return errEl;
+}
+
 // ─── LIVE VALIDATION SAAT MENGETIK ───
 window.addEventListener('DOMContentLoaded', () => {
   const emailInput = document.getElementById('auth-email');
   const passInput = document.getElementById('auth-password');
   const nameInput = document.getElementById('auth-name');
-  const errorEl = document.getElementById('auth-error');
+  const globalErrorEl = document.getElementById('auth-error');
 
   function validateLive() {
-    if (!errorEl) return;
+    if (globalErrorEl) globalErrorEl.style.display = 'none'; // Sembunyikan error submit global
     
+    const nameErr = getOrCreateErrorEl(nameInput, 'err-name-live');
+    const emailErr = getOrCreateErrorEl(emailInput, 'err-email-live');
+    const passErr = getOrCreateErrorEl(passInput, 'err-pass-live');
+
     // Validasi Register Name
     if (currentAuthMode === 'register' && nameInput && nameInput.value.trim().length > 0 && nameInput.value.trim().length < 3) {
-      errorEl.textContent = "Name must be at least 3 characters.";
-      errorEl.style.display = 'block';
-      return;
+      if(nameErr) { nameErr.textContent = "Username must be at least 3 characters."; nameErr.style.display = 'block'; }
+    } else {
+      if(nameErr) nameErr.style.display = 'none';
     }
+
     // Validasi Format Email
     if (emailInput && emailInput.value.length > 0 && !emailInput.value.includes('@')) {
-      errorEl.textContent = "Please enter a valid email address.";
-      errorEl.style.display = 'block';
-      return;
+      if(emailErr) { emailErr.textContent = "Please include an '@' in the email address."; emailErr.style.display = 'block'; }
+    } else {
+      if(emailErr) emailErr.style.display = 'none';
     }
+
     // Validasi Panjang Password
     if (passInput && passInput.value.length > 0 && passInput.value.length < 4) {
-      errorEl.textContent = "Password must be at least 4 characters.";
-      errorEl.style.display = 'block';
-      return;
+      if(passErr) { passErr.textContent = "Password must be at least 4 characters."; passErr.style.display = 'block'; }
+    } else {
+      if(passErr) passErr.style.display = 'none';
     }
-    
-    errorEl.style.display = 'none';
   }
 
   if (emailInput) emailInput.addEventListener('input', validateLive);
@@ -63,6 +80,12 @@ function closeAuthModal() {
   const modal = document.getElementById('auth-modal');
   if (modal) modal.style.display = 'none';
   document.getElementById('auth-error').style.display = 'none';
+  
+  // Bersihkan error live saat ditutup
+  ['err-name-live', 'err-email-live', 'err-pass-live'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'none';
+  });
 }
 
 function switchAuthTab(mode) {
@@ -89,14 +112,20 @@ function switchAuthTab(mode) {
 
 function handleAuthSubmit(event) {
   event.preventDefault();
+  
+  // Cegah submit jika masih ada error live yang tampil
+  const liveErrors = ['err-name-live', 'err-email-live', 'err-pass-live'];
+  for (let id of liveErrors) {
+      let el = document.getElementById(id);
+      if (el && el.style.display === 'block') return;
+  }
+
   const email = document.getElementById('auth-email').value.trim().toLowerCase();
   const password = document.getElementById('auth-password').value;
   const errorEl = document.getElementById('auth-error');
   
-  if (errorEl && errorEl.style.display === 'block') return;
-  
   if (!email || !password) return;
-  errorEl.style.display = 'none';
+  if (errorEl) errorEl.style.display = 'none';
   
   let users = JSON.parse(localStorage.getItem('notized_users'));
   
