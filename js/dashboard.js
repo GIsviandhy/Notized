@@ -670,11 +670,11 @@ function openSaveModal() {
   document.getElementById('save-notes-name').value = parsed.title || '';
   let treeData = getLibraryData();
   const selectEl = document.getElementById('save-folder-select');
-  let optionsHTML = `<option value="root_root">📁 Save to Root (Luar Folder)</option>`;
+  let optionsHTML = `<option value="root_root"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Save to Root (Outer Folder)</option>`;
   function injectFolderOptions(nodes, depth = 0) {
     nodes.forEach(node => {
       if (node.type === "folder") {
-        optionsHTML += `<option value="${node.id}">&nbsp;&nbsp;`.repeat(depth) + `📁 Folder: ${node.name}</option>`;
+        optionsHTML += `<option value="${node.id}">&nbsp;&nbsp;`.repeat(depth) + `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Folder: ${node.name}</option>`;
         if (node.children) injectFolderOptions(node.children, depth + 1);
       }
     });
