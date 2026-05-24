@@ -1,12 +1,9 @@
-// ─── 🔐 AUTHENTICATION & DATABASE SESSION SYSTEM (LANDING PAGE) ───
 let currentAuthMode = "login";
 
-// Jalankan pengecekan status login setiap kali landing page dibuka
 window.addEventListener('DOMContentLoaded', () => {
   renderNavbarAuth();
 });
 
-// 🚨 ENGINE ALERT KUSTOM (MENGGANTIKAN ALERT LOCALHOST BROWSER)
 function showCustomAlert(message) {
   const alertModal = document.getElementById('custom-alert-modal');
   const alertMessage = document.getElementById('custom-alert-message');
@@ -75,8 +72,6 @@ window.addEventListener('click', () => {
   if (dropdown) dropdown.style.display = 'none';
 });
 
-// ─── 🔥 HANDLER VALIDATION & REGISTRATION DATA ───
-// ─── 🔥 HANDLER VALIDATION & REGISTRATION VIA MYSQL XAMPP ───
 async function handleAuthSubmit(event) {
   event.preventDefault();
   
@@ -85,7 +80,6 @@ async function handleAuthSubmit(event) {
 
   if (currentAuthMode === "login") {
     try {
-      // Kirim data request login ke api.php
       const response = await fetch('api.php?action=login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -98,11 +92,15 @@ async function handleAuthSubmit(event) {
         return;
       }
 
-      // Ikat data user hasil tarikan MySQL ke session browser
       localStorage.setItem('currentUser', JSON.stringify(result.user));
       closeAuthModal();
       renderNavbarAuth();
-      window.location.href = 'dashboard.html';
+
+      if (window.location.pathname.includes('dashboard.html')) {
+        window.location.reload();
+      } else {
+        window.location.href = 'dashboard.html';
+      }
 
     } catch (error) {
       console.error("Eror database login engine:", error);
@@ -110,7 +108,6 @@ async function handleAuthSubmit(event) {
     }
 
   } else {
-    // Mode: "signup" / Register
     const nameInput = document.getElementById('auth-input-name');
     const name = nameInput ? nameInput.value.trim() : "User";
 
@@ -120,7 +117,6 @@ async function handleAuthSubmit(event) {
     }
 
     try {
-      // Kirim data pendaftaran ke api.php untuk dimasukkan ke MySQL
       const response = await fetch('api.php?action=register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -133,12 +129,16 @@ async function handleAuthSubmit(event) {
         return;
       }
 
-      // Pas pendaftaran sukses, langsung set sebagai user aktif saat ini
       localStorage.setItem('currentUser', JSON.stringify({ name: name, email: email }));
       
       closeAuthModal();
       renderNavbarAuth();
-      window.location.href = 'dashboard.html';
+
+      if (window.location.pathname.includes('dashboard.html')) {
+        window.location.reload();
+      } else {
+        window.location.href = 'dashboard.html';
+      }
 
     } catch (error) {
       console.error("Eror database register engine:", error);
@@ -147,14 +147,12 @@ async function handleAuthSubmit(event) {
   }
 }
 
-// Fungsi tombol Log Out
 function handleLogOut() {
   localStorage.removeItem('currentUser');
   renderNavbarAuth();
-  window.location.reload();
+  window.location.href = 'index.html';
 }
 
-// Kontrol Buka/Tutup Modal Auth
 function openAuthModal(mode = "login") {
   const modal = document.getElementById('auth-modal');
   if (!modal) return;
@@ -178,7 +176,6 @@ function openAuthModal(mode = "login") {
     switchText.textContent = "Don't have an account?";
     switchLink.textContent = "Sign Up Free";
   } else {
-    // Mode: "signup"
     titleEl.textContent = "Create Account";
     descEl.textContent = "Join Notized to optimize your notes and learning paths.";
     nameField.style.display = 'flex';
@@ -189,7 +186,6 @@ function openAuthModal(mode = "login") {
   }
 }
 
-// Menutup modal dengan aman
 function closeAuthModal() {
   const modal = document.getElementById('auth-modal');
   if (modal) modal.style.display = 'none';
@@ -200,7 +196,6 @@ function toggleAuthMode() {
   else openAuthModal("login");
 }
 
-// Testimonial Carousel Navigation
 document.addEventListener('DOMContentLoaded', function() {
   const carousel = document.querySelector('.testimonial-carousel');
   const leftArrow = document.querySelector('.carousel-arrow-left');

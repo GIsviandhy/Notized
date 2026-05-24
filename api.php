@@ -34,7 +34,6 @@ if ($action === 'get_tree') {
     exit;
 }
 
-// ─── SIMPAN/UPDATE DATA TREE PER USER ───
 if ($action === 'save_tree') {
     $email = $input['email'] ?? '';
     $treeData = json_encode($input['tree_data'] ?? []);
@@ -59,7 +58,6 @@ if ($action === 'save_tree') {
     exit;
 }
 
-// ─── 📝 FEATURE: REGISTRASI USER BARU (SIGN UP) ───
 if ($action === 'register') {
     $name = $input['name'] ?? '';
     $email = trim(strtolower($input['email'] ?? ''));
@@ -70,7 +68,6 @@ if ($action === 'register') {
         exit;
     }
 
-    // Cek apakah email sudah pernah terdaftar di tabel users
     $stmt = $pdo->prepare("SELECT id FROM users WHERE email = ?");
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
@@ -78,7 +75,6 @@ if ($action === 'register') {
         exit;
     }
 
-    // Masukkan data user baru ke tabel users
     $insertStmt = $pdo->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
     $insertStmt->execute([$name, $email, $password]);
 
@@ -86,7 +82,6 @@ if ($action === 'register') {
     exit;
 }
 
-// ─── 🔑 FEATURE: AUTENTIKASI LOGIN USER ───
 if ($action === 'login') {
     $email = trim(strtolower($input['email'] ?? ''));
     $password = $input['password'] ?? '';
@@ -96,7 +91,6 @@ if ($action === 'login') {
         exit;
     }
 
-    // Cari user berdasarkan email
     $stmt = $pdo->prepare("SELECT name, email, password FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);

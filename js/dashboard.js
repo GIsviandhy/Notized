@@ -14,11 +14,64 @@ let currentAccountTreeData = []; // Tempat menampung data hasil tarikan MySQL ph
 window.addEventListener('DOMContentLoaded', async () => {
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
   const greetingEl = document.getElementById('user-greeting');
+  const authContainer = document.getElementById('nav-auth-container');
+  const dropdownCard = document.getElementById('profile-dropdown-card');
+
   if (greetingEl) {
     if (currentUser && currentUser.name) {
       greetingEl.textContent = `Halo, ${currentUser.name}`;
     } else {
       greetingEl.textContent = ""; 
+    }
+  }
+
+  if (authContainer) {
+    if (currentUser && currentUser.name) {
+      const firstInitial = currentUser.name.trim().charAt(0).toUpperCase();
+      
+authContainer.innerHTML = `
+        <div class="user-profile-circle" id="profile-avatar-trigger" style="
+          background-color: #6B8F71; 
+          color: white; 
+          width: 32px; 
+          height: 32px; 
+          border-radius: 50%; 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          font-weight: 600; 
+          font-size: 14px;
+          cursor: pointer;
+          user-select: none;
+          transition: transform 0.2s ease;
+        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+          ${firstInitial}
+        </div>
+      `;
+      
+      const avatarTrigger = document.getElementById('profile-avatar-trigger');
+      const dropdownName = document.getElementById('dropdown-user-name');
+      const dropdownEmail = document.getElementById('dropdown-user-email');
+
+      if (avatarTrigger && dropdownCard) {
+        if (dropdownName) dropdownName.textContent = currentUser.name;
+        if (dropdownEmail) dropdownEmail.textContent = currentUser.email || `${currentUser.name.toLowerCase().replace(/\s+/g, '')}@email.com`;
+
+        avatarTrigger.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isHidden = dropdownCard.style.display === 'none' || dropdownCard.style.display === '';
+          dropdownCard.style.setProperty('display', isHidden ? 'flex' : 'none', 'important');
+        });
+
+        document.addEventListener('click', () => {
+          dropdownCard.style.setProperty('display', 'none', 'important');
+        });
+        dropdownCard.addEventListener('click', (e) => e.stopPropagation());
+      }
+
+    } else {
+      authContainer.innerHTML = `<button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')" style="padding: 0.5rem 1rem; font-size: 13px;">Log In</button>`;
+      if (dropdownCard) dropdownCard.style.setProperty('display', 'none', 'important');
     }
   }
 
@@ -479,6 +532,7 @@ function handleFolderSubmit() {
   const nameInput = document.getElementById('new-folder-name-input').value.trim();
   if (!nameInput) return alert("Name cannot be empty!");
   let treeData = getLibraryData();
+
   if (isEditMode) {
     function updateNodeInTree(nodes) {
       for (let node of nodes) {
@@ -502,12 +556,22 @@ function handleFolderSubmit() {
       children: []
     });
   }
+
   saveLibraryData(treeData); 
   closeFolderCreatorCard();
   refreshWorkspaceTree(); 
+
+  if (typeof renderDashboardCards === 'function') {
+    renderDashboardCards();
+  }
+  
   if (isEditMode && currentSelectedNodeId === editingNodeId) {
     document.getElementById('active-project-title').innerText = nameInput;
     updateBreadcrumbs(editingNodeId);
+    
+    if (typeof selectFolderWorkspace === 'function') {
+      selectFolderWorkspace(editingNodeId);
+    }
   }
 }
 
@@ -1052,7 +1116,6 @@ function showCustomAlert(message) {
     alertMsg.textContent = message;
     alertModal.style.setProperty('display', 'flex', 'important');
   } else {
-    // Fallback jika elemen DOM HTML belum siap
     alert(message);
   }
 }
@@ -1063,3 +1126,4 @@ function closeCustomAlert() {
     alertModal.style.setProperty('display', 'none', 'important');
   }
 }
+

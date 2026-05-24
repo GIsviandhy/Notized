@@ -94,6 +94,10 @@ function loadExample() {
     inputArea.value = EXAMPLE_NOTES;
     updateWordCount();
   }
+  
+  if (typeof renderNavbarAuth === 'function') {
+        renderNavbarAuth();
+  }
 }
 
 // ─── ANALYZE PROCESSOR ───────────────────────────────────────────────────────
