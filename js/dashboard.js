@@ -150,6 +150,7 @@ authContainer.innerHTML = `
     if (initialActiveBtn) initialActiveBtn.classList.add('active');
 
     if (scrollContainer) scrollContainer.scrollTop = 0;
+    setTimeout(initTabScrollObserver, 100);
     return; 
   }
 
@@ -373,6 +374,7 @@ function selectFolderWorkspace(folderId, event) {
 
   const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
   if (scrollContainer) scrollContainer.scrollTop = 0;
+    setTimeout(initTabScrollObserver, 100);
 
   updateBreadcrumbs(folderId);
 }
@@ -402,7 +404,7 @@ function buildTreeHTML(nodes) {
       const backgroundColorBlock = hexToRgbaTint(baseColor, 0.15);
       const textColorSolid = baseColor;
       return `
-        <div class="tree-folder-block" data-id="${node.id}">
+        <div class="tree-folder-block" data-id="${node.id}" data-type="folder">
           <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" 
                onclick="selectFolderWorkspace('${node.id}', event)"
                style="background-color: ${backgroundColorBlock} !important; color: ${textColorSolid} !important; border-color: ${hexToRgbaTint(baseColor, 0.1)} !important; display: flex; justify-content: space-between; align-items: center;">
@@ -535,45 +537,181 @@ function selectColorDot(element) {
 
 function bindDragAndDropEvents() {
   const rows = document.querySelectorAll('.tree-node-row');
-  rows.forEach(row => {
-    row.addEventListener('dragstart', (e) => { e.stopPropagation(); draggedNodeId = row.getAttribute('data-id'); row.classList.add('dragging'); });
-    row.addEventListener('dragend', () => { row.classList.remove('dragging'); document.querySelectorAll('.tree-node-row').forEach(r => r.classList.remove('drag-over')); });
-    row.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); row.classList.add('drag-over'); });
-    row.addEventListener('dragleave', () => { row.classList.remove('drag-over'); });
-    row.addEventListener('drop', (e) => {
-      e.preventDefault(); e.stopPropagation();
-      const targetId = row.getAttribute('data-id'); if (draggedNodeId === targetId) return;
-      let treeData = getLibraryData();
-      if (typeof isNodeChildOf === 'function' && isNodeChildOf(treeData, draggedNodeId, targetId)) { refreshWorkspaceTree(); return; }
-      let movingNode = null;
-      function extractNode(nodes) {
-        for (let i = 0; i < nodes.length; i++) {
-          if (nodes[i].id === draggedNodeId) { movingNode = nodes.splice(i, 1)[0]; return true; }
-          if (nodes[i].children && extractNode(nodes[i].children)) return true;
-        }
-        return false;
+  const treeContainer = document.getElementById('nested-directory-root');
+
+  function extractNode(nodes, id) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === id) return nodes.splice(i, 1)[0];
+      if (nodes[i].children) {
+        const found = extractNode(nodes[i].children, id);
+        if (found) return found;
       }
-      extractNode(treeData); if (!movingNode) return;
-      let targetNodeRef = null;
-      function findTarget(nodes) {
-        for (let i = 0; i < nodes.length; i++) {
-          if (nodes[i].id === targetId) { targetNodeRef = nodes[i]; return true; }
-          if (nodes[i].children && findTarget(nodes[i].children)) return true;
-        }
-        return false;
-      }
-      findTarget(treeData);
-      if (targetNodeRef && targetNodeRef.type === 'folder') {
-        if (!targetNodeRef.children) targetNodeRef.children = [];
-        targetNodeRef.children.push(movingNode);
-        targetNodeRef.expanded = true;
+    }
+    return null;
+  }
+
+  function findNode(nodes, id) {
+    for (let n of nodes) {
+      if (n.id === id) return n;
+      if (n.children) { const f = findNode(n.children, id); if (f) return f; }
+    }
+    return null;
+  }
+
+  function insertBeside(nodes, refId, node) {
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === refId) { nodes.splice(i + 1, 0, node); return true; }
+      if (nodes[i].children && insertBeside(nodes[i].children, refId, node)) return true;
+    }
+    return false;
+  }
+
+  function applyDrop(draggedId, targetId) {
+    if (!draggedId) return;
+    let treeData = getLibraryData();
+    if (draggedId === targetId) return;
+    if (typeof isNodeChildOf === 'function' && isNodeChildOf(treeData, draggedId, targetId)) {
+      refreshWorkspaceTree(); return;
+    }
+    const movingNode = extractNode(treeData, draggedId);
+    if (!movingNode) return;
+
+    if (targetId === '__ROOT__') {
+      treeData.push(movingNode);
+    } else {
+      const targetNode = findNode(treeData, targetId);
+      if (targetNode && targetNode.type === 'folder') {
+        if (!targetNode.children) targetNode.children = [];
+        targetNode.children.push(movingNode);
+        targetNode.expanded = true;
       } else {
-        treeData.push(movingNode);
+        if (!insertBeside(treeData, targetId, movingNode)) treeData.push(movingNode);
       }
-      saveLibraryData(treeData); 
-      refreshWorkspaceTree();
-      renderDashboardCards();
+    }
+    saveLibraryData(treeData);
+    refreshWorkspaceTree();
+    renderDashboardCards();
+  }
+
+  // Track which row is being hovered for drop
+  let currentDropTarget = null;
+
+  rows.forEach(row => {
+    row.setAttribute('draggable', 'true');
+
+    row.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      draggedNodeId = row.getAttribute('data-id');
+      row.classList.add('dragging');
+      // Show root drop zone
+      const rz = document.getElementById('sidebar-root-dropzone');
+      if (rz) { rz.style.opacity = '1'; rz.style.pointerEvents = 'all'; rz.style.borderColor = 'var(--sage)'; }
     });
+
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      document.querySelectorAll('.tree-node-row').forEach(r => r.classList.remove('drag-over'));
+      document.querySelectorAll('.tree-folder-block').forEach(b => b.classList.remove('drag-over-folder'));
+      const rz = document.getElementById('sidebar-root-dropzone');
+      if (rz) { rz.style.opacity = '0'; rz.style.pointerEvents = 'none'; rz.style.borderColor = 'transparent'; rz.style.background = 'transparent'; }
+    });
+
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      document.querySelectorAll('.tree-node-row').forEach(r => r.classList.remove('drag-over'));
+      row.classList.add('drag-over');
+      currentDropTarget = row.getAttribute('data-id');
+    });
+
+    row.addEventListener('dragleave', (e) => {
+      if (!row.contains(e.relatedTarget)) {
+        row.classList.remove('drag-over');
+        if (currentDropTarget === row.getAttribute('data-id')) currentDropTarget = null;
+      }
+    });
+
+    row.addEventListener('drop', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      row.classList.remove('drag-over');
+      applyDrop(draggedNodeId, row.getAttribute('data-id'));
+    });
+  });
+
+  // Also bind folder-block containers as drop targets (for dropping onto folder children area)
+  document.querySelectorAll('.tree-folder-block').forEach(block => {
+    block.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Only if not hovering over a specific row inside
+      if (!e.target.closest('.tree-node-row')) {
+        document.querySelectorAll('.tree-folder-block').forEach(b => b.classList.remove('drag-over-folder'));
+        block.classList.add('drag-over-folder');
+      }
+    });
+    block.addEventListener('dragleave', (e) => {
+      if (!block.contains(e.relatedTarget)) {
+        block.classList.remove('drag-over-folder');
+      }
+    });
+    block.addEventListener('drop', (e) => {
+      if (!e.target.closest('.tree-node-row')) {
+        e.preventDefault();
+        e.stopPropagation();
+        block.classList.remove('drag-over-folder');
+        applyDrop(draggedNodeId, block.getAttribute('data-id'));
+      }
+    });
+  });
+
+  // Root drop zone (visible stripe at bottom of sidebar)
+  let rootZone = document.getElementById('sidebar-root-dropzone');
+  if (!rootZone) {
+    rootZone = document.createElement('div');
+    rootZone.id = 'sidebar-root-dropzone';
+    rootZone.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><polyline points="17 11 12 6 7 11"></polyline><line x1="12" y1="6" x2="12" y2="18"></line></svg>
+      Pindahkan ke root
+    `;
+    rootZone.style.cssText = `
+      margin: 8px 8px 4px 8px;
+      padding: 10px 12px;
+      border: 2px dashed transparent;
+      border-radius: 8px;
+      font-size: 12px;
+      color: var(--ink-muted);
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      opacity: 0;
+      pointer-events: none;
+      cursor: pointer;
+    `;
+    // Insert inside sidebar, after the tree container
+    const sidebar = document.getElementById('workspace-sidebar');
+    if (sidebar) sidebar.appendChild(rootZone);
+  }
+
+  rootZone.addEventListener('dragover', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    rootZone.style.background = 'rgba(107,143,113,0.12)';
+    rootZone.style.borderColor = 'var(--sage)';
+    rootZone.style.color = 'var(--sage)';
+  });
+  rootZone.addEventListener('dragleave', () => {
+    rootZone.style.background = 'transparent';
+    rootZone.style.borderColor = 'var(--sage)';
+    rootZone.style.color = 'var(--ink-muted)';
+  });
+  rootZone.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    rootZone.style.background = 'transparent';
+    applyDrop(draggedNodeId, '__ROOT__');
+    rootZone.style.opacity = '0';
+    rootZone.style.pointerEvents = 'none';
   });
 }
 
@@ -837,7 +975,6 @@ function switchWorkspaceTab(targetTabId) {
   if (targetPanel) {
     const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
     if (scrollContainer) {
-      // scroll the panel into view within the scroll container
       const containerTop = scrollContainer.getBoundingClientRect().top;
       const panelTop = targetPanel.getBoundingClientRect().top;
       const tabsBar = document.getElementById('workspace-tabs-bar') || document.querySelector('.workspace-tabs-container');
@@ -847,12 +984,50 @@ function switchWorkspaceTab(targetTabId) {
   }
 }
 
+// Auto-highlight tab based on scroll position
+let _tabScrollObserver = null;
+function initTabScrollObserver() {
+  // Disconnect previous observer if any
+  if (_tabScrollObserver) { _tabScrollObserver.disconnect(); _tabScrollObserver = null; }
+
+  const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+  if (!scrollContainer) return;
+
+  const tabPanelIds = ['tab-raw', 'tab-summary', 'tab-clusters', 'tab-path'];
+
+  _tabScrollObserver = new IntersectionObserver((entries) => {
+    // Find the panel that's most visible
+    let mostVisible = null;
+    let maxRatio = 0;
+    entries.forEach(entry => {
+      if (entry.intersectionRatio > maxRatio) {
+        maxRatio = entry.intersectionRatio;
+        mostVisible = entry.target.id;
+      }
+    });
+    if (mostVisible) {
+      document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.querySelector(`[onclick="switchWorkspaceTab('${mostVisible}')"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+  }, {
+    root: scrollContainer,
+    rootMargin: '-10% 0px -60% 0px', // triggers when panel enters top 40% of viewport
+    threshold: [0, 0.1, 0.25, 0.5, 0.75, 1.0]
+  });
+
+  tabPanelIds.forEach(id => {
+    const panel = document.getElementById(id);
+    if (panel) _tabScrollObserver.observe(panel);
+  });
+}
+
 function renderDashboardCards() {
   const cardsGrid = document.getElementById('dashboard-cards-grid');
   if (!cardsGrid) return;
 
   const treeData = getLibraryData() || [];
-  const rootItems = treeData; 
+  const rootItems = treeData;
 
   const rootTitle = document.querySelector('#empty-workspace-state h2');
   if (rootTitle) {
@@ -873,47 +1048,132 @@ function renderDashboardCards() {
 
   cardsGrid.innerHTML = rootItems.map(item => {
     if (item.type === "folder") {
-      const folderColor = item.color || "#6B8F71"; 
+      const folderColor = item.color || "#6B8F71";
       return `
-        <div onclick="selectFolderWorkspace('${item.id}', event)" 
-             style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" 
-             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='${folderColor}';" 
-             onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border)';">
-          
-          <div style="background: ${hexToRgbaTint(folderColor, 0.15)}; width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
+        <div class="dashboard-card" 
+             data-id="${item.id}" data-type="folder"
+             draggable="true"
+             onclick="selectFolderWorkspace('${item.id}', event)"
+             style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.5rem 1.25rem;display:flex;align-items:center;gap:0.85rem;cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm);user-select:none;"
+             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='${folderColor}';"
+             onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--border)';">
+          <div style="background:${hexToRgbaTint(folderColor,0.15)};width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${folderColor}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           </div>
-          
-          <span style="font-weight: 600; font-size: 15px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-            ${esc(item.name)}
-          </span>
-        </div>
-      `;
+          <span style="font-weight:600;font-size:15px;color:var(--ink);text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">${esc(item.name)}</span>
+        </div>`;
     } else {
       return `
-        <div onclick="selectFileWorkspace('${item.id}', '${esc(item.name)}', event)" 
-             style="background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem 1.25rem; display: flex; align-items: center; gap: 0.85rem; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm);" 
-             onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-md)'; this.style.borderColor='var(--indigo)';" 
-             onmouseout="this.style.transform='none'; this.style.boxShadow='var(--shadow-sm)'; this.style.borderColor='var(--border)';">
-          
-          <div style="background: rgba(74, 85, 134, 0.1); width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-              <line x1="16" y1="13" x2="8" y2="13"></line>
-              <line x1="16" y1="17" x2="8" y2="17"></line>
-            </svg>
+        <div class="dashboard-card"
+             data-id="${item.id}" data-type="file"
+             draggable="true"
+             onclick="selectFileWorkspace('${item.id}', '${esc(item.name)}', event)"
+             style="background:var(--white);border:1px solid var(--border);border-radius:12px;padding:1.5rem 1.25rem;display:flex;align-items:center;gap:0.85rem;cursor:pointer;transition:all 0.2s ease;box-shadow:var(--shadow-sm);user-select:none;"
+             onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='var(--shadow-md)';this.style.borderColor='var(--indigo)';"
+             onmouseout="this.style.transform='none';this.style.boxShadow='var(--shadow-sm)';this.style.borderColor='var(--border)';">
+          <div style="background:rgba(74,85,134,0.1);width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--indigo)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
           </div>
-          
-          <span style="font-size: 15px; color: var(--ink); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">
-            ${esc(item.name)}
-          </span>
-        </div>
-      `;
+          <span style="font-size:15px;color:var(--ink);text-overflow:ellipsis;overflow:hidden;white-space:nowrap;">${esc(item.name)}</span>
+        </div>`;
     }
   }).join('');
+
+  // Bind drag & drop on dashboard cards
+  bindDashboardCardDragDrop();
+}
+
+function bindDashboardCardDragDrop() {
+  const cards = document.querySelectorAll('.dashboard-card');
+  const grid = document.getElementById('dashboard-cards-grid');
+
+  function applyDashboardDrop(draggedId, targetId) {
+    function extractNode(nodes, id) {
+      for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].id === id) return nodes.splice(i, 1)[0];
+        if (nodes[i].children) { const f = extractNode(nodes[i].children, id); if (f) return f; }
+      }
+      return null;
+    }
+    function findNode(nodes, id) {
+      for (let n of nodes) {
+        if (n.id === id) return n;
+        if (n.children) { const f = findNode(n.children, id); if (f) return f; }
+      }
+      return null;
+    }
+    let treeData = getLibraryData();
+    if (draggedId === targetId) return;
+    const movingNode = extractNode(treeData, draggedId);
+    if (!movingNode) return;
+
+    if (targetId === '__ROOT__') {
+      treeData.push(movingNode);
+    } else {
+      const targetNode = findNode(treeData, targetId);
+      if (targetNode && targetNode.type === 'folder') {
+        if (!targetNode.children) targetNode.children = [];
+        targetNode.children.push(movingNode);
+        targetNode.expanded = true;
+      } else {
+        // Drop beside file at root level
+        const idx = treeData.findIndex(n => n.id === targetId);
+        if (idx !== -1) treeData.splice(idx + 1, 0, movingNode);
+        else treeData.push(movingNode);
+      }
+    }
+    saveLibraryData(treeData);
+    refreshWorkspaceTree();
+    renderDashboardCards();
+  }
+
+  let dashDraggedId = null;
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      e.stopPropagation();
+      dashDraggedId = card.getAttribute('data-id');
+      draggedNodeId = dashDraggedId; // sync with sidebar
+      setTimeout(() => card.style.opacity = '0.4', 0);
+    });
+    card.addEventListener('dragend', () => {
+      card.style.opacity = '1';
+      document.querySelectorAll('.dashboard-card').forEach(c => c.classList.remove('dash-drag-over'));
+      if (grid) grid.classList.remove('dash-drag-over-grid');
+    });
+    card.addEventListener('dragover', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      card.classList.add('dash-drag-over');
+    });
+    card.addEventListener('dragleave', () => card.classList.remove('dash-drag-over'));
+    card.addEventListener('drop', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      card.classList.remove('dash-drag-over');
+      if (dashDraggedId) applyDashboardDrop(dashDraggedId, card.getAttribute('data-id'));
+      dashDraggedId = null;
+    });
+  });
+
+  // Drop on empty grid area = move to root
+  if (grid) {
+    grid.addEventListener('dragover', (e) => {
+      if (e.target.closest('.dashboard-card') === null) {
+        e.preventDefault();
+        grid.classList.add('dash-drag-over-grid');
+      }
+    });
+    grid.addEventListener('dragleave', (e) => {
+      if (!grid.contains(e.relatedTarget)) grid.classList.remove('dash-drag-over-grid');
+    });
+    grid.addEventListener('drop', (e) => {
+      if (e.target.closest('.dashboard-card') === null) {
+        e.preventDefault(); e.stopPropagation();
+        grid.classList.remove('dash-drag-over-grid');
+        if (dashDraggedId) applyDashboardDrop(dashDraggedId, '__ROOT__');
+        dashDraggedId = null;
+      }
+    });
+  }
 }
 
 function openCardNoteDirect(fileId, event) {
@@ -984,6 +1244,7 @@ function openCardNoteDirect(fileId, event) {
 
     const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
     if (scrollContainer) scrollContainer.scrollTop = 0;
+    setTimeout(initTabScrollObserver, 100);
     updateBreadcrumbs(fileId);
   } else {
     alert("Error: Data catatan tidak ditemukan di database.");
@@ -1112,47 +1373,3 @@ function closeCustomAlert() {
     alertModal.style.setProperty('display', 'none', 'important');
   }
 }
-
-
-
-// ── SIDEBAR DRAG-TO-RESIZE ──
-(function() {
-  const MIN_WIDTH = 120;
-  const MAX_WIDTH = 280;
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const handle = document.getElementById('sidebar-resize-handle');
-    const sidebar = document.getElementById('workspace-sidebar');
-    if (!handle || !sidebar) return;
-
-    let dragging = false;
-    let startX = 0;
-    let startWidth = 0;
-
-    handle.addEventListener('mousedown', (e) => {
-      if (sidebar.classList.contains('collapsed')) return;
-      dragging = true;
-      startX = e.clientX;
-      startWidth = sidebar.offsetWidth;
-      handle.classList.add('dragging');
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-      if (!dragging) return;
-      const delta = e.clientX - startX;
-      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta));
-      sidebar.style.width = newWidth + 'px';
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!dragging) return;
-      dragging = false;
-      handle.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    });
-  });
-})();

@@ -266,8 +266,6 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 /* ── 🆕 RETRACTABLE SIDEBAR ARCHITECTURE (CLEAN FIXED) ── */
 .workspace-sidebar-pane {
     width: 280px;
-    min-width: 120px;
-    max-width: 280px;
     background: var(--white);
     border-right: 1px solid var(--border);
     padding: 0;
@@ -277,38 +275,17 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     overflow-y: auto;
     overflow-x: hidden;
     position: relative;
-    /* No transition during resize — added/removed by JS */
 }
 
 .workspace-sidebar-pane.animating {
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Trigger Class Terlipat Pas Tombol Hamburger Atas Diklik */
 .workspace-sidebar-pane.collapsed {
     width: 0px !important;
     min-width: 0px !important;
     border-right-color: transparent !important;
     overflow: hidden;
-}
-
-/* Drag handle on the right edge of sidebar */
-.sidebar-resize-handle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 5px;
-    height: 100%;
-    cursor: col-resize;
-    z-index: 10;
-    background: transparent;
-    transition: background 0.2s ease;
-}
-
-.sidebar-resize-handle:hover,
-.sidebar-resize-handle.dragging {
-    background: var(--sage);
-    opacity: 0.35;
 }
 
 /* ── 🆕 TOP NAVBAR HAMBURGER MENU STYLE ── */
@@ -1143,6 +1120,49 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .sidebar-closed-mode .workspace-tabs-container {
     max-width: 100% !important;
     width: 100% !important;
+}
+
+/* ── DRAG & DROP VISUAL FEEDBACK ── */
+
+/* Sidebar tree node drag states */
+.tree-node-row.dragging { opacity: 0.4; }
+.tree-node-row.drag-over {
+    background: rgba(107, 143, 113, 0.15) !important;
+    outline: 2px dashed var(--sage);
+    outline-offset: -2px;
+    border-radius: 6px;
+}
+
+.tree-folder-block.drag-over-folder > .tree-folder-header {
+    background: rgba(107, 143, 113, 0.2) !important;
+    outline: 2px dashed var(--sage);
+    outline-offset: -2px;
+    border-radius: 6px;
+}
+
+/* Sidebar root drop zone */
+#nested-directory-root.drag-over-root {
+    background: rgba(107, 143, 113, 0.08);
+    outline: 2px dashed var(--sage);
+    outline-offset: -4px;
+    border-radius: 8px;
+    min-height: 60px;
+}
+
+/* Dashboard card drag states */
+.dashboard-card.dash-drag-over {
+    outline: 2px dashed var(--sage);
+    outline-offset: -2px;
+    background: rgba(107, 143, 113, 0.08) !important;
+    transform: scale(1.02) !important;
+}
+
+/* Dashboard grid root drop zone */
+#dashboard-cards-grid.dash-drag-over-grid {
+    outline: 2px dashed var(--sage);
+    outline-offset: 4px;
+    border-radius: 12px;
+    background: rgba(107, 143, 113, 0.05);
 }
 
 #empty-workspace-state {
