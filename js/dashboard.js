@@ -97,6 +97,9 @@ authContainer.innerHTML = `
       parsed.rawText = sessionRawText;
       parsed.notes = sessionRawText;
     }
+
+    // Load existing DB data first so save doesn't overwrite old notes
+    await loadLibraryFromDatabase();
     
     document.getElementById('empty-workspace-state').style.display = 'none';
     document.getElementById('active-project-workspace').style.display = 'flex';
@@ -123,23 +126,14 @@ authContainer.innerHTML = `
     if (masterNoteBox) masterNoteBox.style.setProperty('display', 'block', 'important');
     
     const folderWrapper = document.getElementById('folder-overview-wrapper');
-    if (folderWrapper) folderWrapper.style.setProperty('none', 'important');
+    if (folderWrapper) folderWrapper.style.display = 'none';
 
-    // Update header elements directly by ID (header is now inside scroll body)
+    // Set title to preview mode with note title
+    const noteTitle = parsed.title || 'Untitled Note';
     const titleEl = document.getElementById('active-project-title');
-    if (titleEl) titleEl.textContent = foundFile.name;
-    const overviewActionsEl = document.getElementById('overview-actions');
-    if (overviewActionsEl) overviewActionsEl.innerHTML = `
-      <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
-        Rename
-      </button>
-      <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-        Delete
-      </button>`;
+    if (titleEl) titleEl.textContent = `Preview: ${noteTitle}`;
 
-    // Update tabs bar inside the scroll container
+    // Update tabs bar
     const tabsBar = document.getElementById('workspace-tabs-bar');
     if (tabsBar) {
       tabsBar.innerHTML = `
@@ -827,6 +821,16 @@ function confirmSaveNotes() {
     sidebarPane.style.setProperty('display', 'flex', 'important');
   }
 
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
+
+  const navButtons = document.querySelectorAll('.dashboard-nav button');
+  navButtons.forEach(btn => {
+    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
+      btn.style.setProperty('display', 'inline-block', 'important');
+    }
+  });
+
   refreshWorkspaceTree(); 
   resetToEmptyState();
 }
@@ -869,9 +873,14 @@ function resetToEmptyState() {
   const activeWorkspaceEl = document.getElementById('active-project-workspace');
   if (activeWorkspaceEl) activeWorkspaceEl.style.setProperty('display', 'none', 'important');
 
+  const sidebarPane = document.getElementById('workspace-sidebar');
+  if (sidebarPane) sidebarPane.style.setProperty('display', 'flex', 'important');
+
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
+
   const emptyStateEl = document.getElementById('empty-workspace-state');
   if (emptyStateEl) emptyStateEl.style.setProperty('display', 'flex', 'important');
-  
   const overviewActions = document.getElementById('overview-actions');
   if (overviewActions) overviewActions.innerHTML = "";
   
