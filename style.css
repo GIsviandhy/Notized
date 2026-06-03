@@ -266,22 +266,49 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 /* ── 🆕 RETRACTABLE SIDEBAR ARCHITECTURE (CLEAN FIXED) ── */
 .workspace-sidebar-pane {
     width: 280px;
+    min-width: 120px;
+    max-width: 280px;
     background: var(--white);
     border-right: 1px solid var(--border);
     padding: 0;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow-y: auto;
     overflow-x: hidden;
+    position: relative;
+    /* No transition during resize — added/removed by JS */
+}
+
+.workspace-sidebar-pane.animating {
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Trigger Class Terlipat Pas Tombol Hamburger Atas Diklik */
 .workspace-sidebar-pane.collapsed {
     width: 0px !important;
+    min-width: 0px !important;
     border-right-color: transparent !important;
-    overflow: hidden; /* Sembunyikan elemen agar tidak tembus keluar */
+    overflow: hidden;
+}
+
+/* Drag handle on the right edge of sidebar */
+.sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.sidebar-resize-handle:hover,
+.sidebar-resize-handle.dragging {
+    background: var(--sage);
+    opacity: 0.35;
 }
 
 /* ── 🆕 TOP NAVBAR HAMBURGER MENU STYLE ── */

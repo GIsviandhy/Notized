@@ -110,7 +110,7 @@ authContainer.innerHTML = `
     }
 
     const sidebarPane = document.getElementById('workspace-sidebar');
-    if (sidebarPane) sidebarPane.style.setProperty('display', 'none', 'important');
+    if (sidebarPane) sidebarPane.classList.add('collapsed');
     
     const toggleBtn = document.getElementById('sidebar-toggle-btn');
     if (toggleBtn) toggleBtn.style.setProperty('display', 'none', 'important');
@@ -159,7 +159,7 @@ authContainer.innerHTML = `
   }
 
   const sidebarPane = document.getElementById('workspace-sidebar');
-  if (sidebarPane) sidebarPane.style.setProperty('display', 'flex', 'important');
+  if (sidebarPane) sidebarPane.classList.remove('collapsed');
   
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
@@ -232,73 +232,6 @@ function findNodeById(nodes, id) {
   return null;
 }
 
-function renderProjectContent(data) {
-  if (!data) return;
-  
-  const rawNotesArea = document.getElementById('raw-notes-content-area');
-  if (rawNotesArea) {
-    rawNotesArea.innerHTML = data.rawText || data.notes || "No raw text content available.";
-  }  
-
-  const keywordChips = document.getElementById('keyword-chips');
-  if (keywordChips) {
-    if (data.keywords && data.keywords.length > 0) {
-      keywordChips.innerHTML = data.keywords.map((kw, i) => `
-        <span class="chip c${i % 3}">
-          ${esc(kw)}
-        </span>`).join('');
-    } else {
-      keywordChips.innerHTML = `<span style="color: var(--ink-muted); font-size: 13px; font-style: italic;">No key concepts extracted.</span>`;
-    }
-  }
-
-  const summaryList = document.getElementById('summary-list');
-  if (summaryList) {
-    if (data.summary && data.summary.length > 0) {
-      summaryList.innerHTML = data.summary.map(point => `
-        <li class="summary-item" style="font-size: 14px; line-height: 1.8; display: flex; gap: 0.5rem; align-items: flex-start;">
-          <span class="summary-arrow">→</span> 
-          <span>${point}</span>
-        </li>`).join('');
-    } else {
-      summaryList.innerHTML = `<li style="color: var(--ink-muted); font-size: 13px; font-style: italic;">No summary points available.</li>`;
-    }
-  }
-
-  if (document.getElementById('stat-keywords')) document.getElementById('stat-keywords').textContent = (data.keywords || []).length;
-  if (document.getElementById('stat-clusters')) document.getElementById('stat-clusters').textContent = data.clusters ? data.clusters.length : "0";
-  if (document.getElementById('stat-steps')) document.getElementById('stat-steps').textContent = (data.learningPath || []).length;
-
-  const clustersGrid = document.getElementById('clusters-grid');
-  if (clustersGrid) {
-    if (data.clusters && data.clusters.length > 0) {
-      clustersGrid.innerHTML = data.clusters.map(cluster => `
-        <div class="cluster-card" style="width: 100%;">
-          <div class="cluster-header"><span class="cluster-name">${esc(cluster.name)}</span></div>
-          <div class="cluster-topics">${(cluster.topics || []).map(topic => `<div class="cluster-topic">${esc(topic)}</div>`).join('')}</div>
-        </div>`).join('');
-    } else {
-      clustersGrid.innerHTML = `<div style="grid-column: 1/-1; color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No topic clusters analyzed.</div>`;
-    }
-  }
-
-  const pathList = document.getElementById('path-list');
-  if (pathList) {
-    if (data.learningPath && data.learningPath.length > 0) {
-      pathList.innerHTML = data.learningPath.map((step) => `
-        <div class="path-item" style="width: 100%;">
-          <div class="path-num">${step.step}</div>
-          <div class="path-card" style="width: 100%;">
-            <div class="path-card-header"><span class="path-card-title">${esc(step.title || step.step)}</span></div>
-            <p class="path-tip">💡 ${esc(step.tip || '')}</p>
-          </div>
-        </div>`).join('');
-    } else {
-      pathList.innerHTML = `<div style="color: var(--ink-muted); font-size: 13px; font-style: italic; padding: 1rem;">No learning path generated.</div>`;
-    }
-  }
-}
-
 function isNodeChildOf(nodes, folderId, targetId) {
   const folderNode = findNodeById(nodes, folderId);
   if (!folderNode || !folderNode.children) return false;
@@ -330,16 +263,21 @@ function toggleSidebar(event) {
   const mainLayout = document.querySelector('.workspace-layout');
   if (!sidebar) return;
 
-  if (sidebar.style.display === 'none') {
-    sidebar.style.setProperty('display', 'flex', 'important');
-    if (mainLayout) {
-      mainLayout.classList.remove('sidebar-closed-mode');
-    }
+  // Add animating class for smooth toggle, remove after transition
+  sidebar.classList.add('animating');
+  setTimeout(() => sidebar.classList.remove('animating'), 320);
+
+  if (sidebar.classList.contains('collapsed')) {
+    sidebar.classList.remove('collapsed');
+    // Restore last user-resized width or default
+    const savedWidth = sidebar.dataset.savedWidth || '280';
+    sidebar.style.width = savedWidth + 'px';
+    if (mainLayout) mainLayout.classList.remove('sidebar-closed-mode');
   } else {
-    sidebar.style.setProperty('display', 'none', 'important');
-    if (mainLayout) {
-      mainLayout.classList.add('sidebar-closed-mode');
-    }
+    // Save current width before collapsing
+    sidebar.dataset.savedWidth = sidebar.offsetWidth;
+    sidebar.classList.add('collapsed');
+    if (mainLayout) mainLayout.classList.add('sidebar-closed-mode');
   }
 }
 
@@ -349,6 +287,8 @@ function refreshWorkspaceTree() {
   const treeData = getLibraryData();
   treeContainer.innerHTML = buildTreeHTML(treeData);
   if (typeof bindDragAndDropEvents === 'function') { bindDragAndDropEvents(); }
+  // Always keep dashboard cards in sync
+  if (typeof renderDashboardCards === 'function') { renderDashboardCards(); }
 }
 
 function selectFolderWorkspace(folderId, event) {
@@ -632,6 +572,7 @@ function bindDragAndDropEvents() {
       }
       saveLibraryData(treeData); 
       refreshWorkspaceTree();
+      renderDashboardCards();
     });
   });
 }
@@ -698,6 +639,7 @@ function confirmDeleteNode() {
   saveLibraryData(treeData); 
   closeDeleteModal();
   refreshWorkspaceTree();
+  renderDashboardCards();
   if (currentSelectedNodeId === currentRightClickedNodeId) { resetToEmptyState(); }
 }
 
@@ -818,7 +760,7 @@ function confirmSaveNotes() {
 
   const sidebarPane = document.getElementById('workspace-sidebar');
   if (sidebarPane) {
-    sidebarPane.style.setProperty('display', 'flex', 'important');
+    sidebarPane.classList.remove('collapsed');
   }
 
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
@@ -874,7 +816,7 @@ function resetToEmptyState() {
   if (activeWorkspaceEl) activeWorkspaceEl.style.setProperty('display', 'none', 'important');
 
   const sidebarPane = document.getElementById('workspace-sidebar');
-  if (sidebarPane) sidebarPane.style.setProperty('display', 'flex', 'important');
+  if (sidebarPane) sidebarPane.classList.remove('collapsed');
 
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
@@ -1170,3 +1112,47 @@ function closeCustomAlert() {
     alertModal.style.setProperty('display', 'none', 'important');
   }
 }
+
+
+
+// ── SIDEBAR DRAG-TO-RESIZE ──
+(function() {
+  const MIN_WIDTH = 120;
+  const MAX_WIDTH = 280;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const handle = document.getElementById('sidebar-resize-handle');
+    const sidebar = document.getElementById('workspace-sidebar');
+    if (!handle || !sidebar) return;
+
+    let dragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    handle.addEventListener('mousedown', (e) => {
+      if (sidebar.classList.contains('collapsed')) return;
+      dragging = true;
+      startX = e.clientX;
+      startWidth = sidebar.offsetWidth;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!dragging) return;
+      const delta = e.clientX - startX;
+      const newWidth = Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, startWidth + delta));
+      sidebar.style.width = newWidth + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!dragging) return;
+      dragging = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    });
+  });
+})();
