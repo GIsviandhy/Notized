@@ -58,7 +58,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 ::-webkit-scrollbar-thumb:hover { background: #56755b; }
 
 /* ── UNIFIED NAVIGATION (All Pages) ── */
-.nav { padding: 1.25rem 2.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--white); box-shadow: var(--shadow-sm); position: sticky; top: 0; z-index: 100; }
+.nav { padding: 1.25rem 2.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--white); box-shadow: var(--shadow-sm); position: relative; z-index: 100; flex-shrink: 0; }
 .nav-logo { display: flex; align-items: center; gap: 0.5rem; }
 .nav-logo-icon { width: 28px; height: 28px; background: var(--sage); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
 .nav-wordmark { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: -0.02em; }
@@ -249,8 +249,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .workspace-layout {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100vh;
     background: var(--cream);
+    overflow: hidden;
 }
 
 .workspace-content {
@@ -258,14 +259,13 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     flex: 1;
     width: 100%;
     position: relative;
+    min-height: 0;
+    overflow: hidden;
 }
 
 /* ── 🆕 RETRACTABLE SIDEBAR ARCHITECTURE (CLEAN FIXED) ── */
 .workspace-sidebar-pane {
-    position: sticky;
-    top: 0;
     width: 280px;
-    height: 100vh;
     background: var(--white);
     border-right: 1px solid var(--border);
     padding: 0;
@@ -273,8 +273,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     display: flex;
     flex-direction: column;
     transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    align-self: flex-start;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Trigger Class Terlipat Pas Tombol Hamburger Atas Diklik */
@@ -518,8 +518,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .tab-content-panel {
     display: flex !important; 
     flex-direction: column;
-    margin-bottom: 4rem; 
-    scroll-margin-top: 140px; 
+    margin-bottom: 3rem; 
+    scroll-margin-top: 56px; /* height of sticky tabs bar */
     width: 100%;
     animation: fadeIn 0.4s ease forwards;
 }
@@ -531,26 +531,34 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .workspace-tabs-container {
     display: flex;
     gap: 0.5rem;
-    margin-top: 0.5rem;
+    position: sticky;
+    top: 0; 
+    z-index: 50; 
+    background: var(--cream); 
+    padding: 0.4rem 4rem; 
+    border-bottom: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+    width: 100%;
+    flex-shrink: 0;
 }
 
-.workspace-header-sticky {
-    position: sticky !important;
-    top: 0;
-    z-index: 99;
+.workspace-header-scroll {
+    padding: 2rem 4rem 1.25rem 4rem;
+    width: 100%;
     background: var(--cream);
-    border-bottom: 1px solid var(--border);
-    padding: 2rem 4rem 1rem 4rem;
 }
 
 .workspace-tab-body-scroll {
-    padding: 3rem 4rem;
     background: var(--cream);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    flex: 1; 
+    flex: 1;
     width: 100%;
+    overflow-y: auto;
+    min-height: 0;
+    /* This is the scroll container — sticky children stick here */
+}
+
+.workspace-scroll-body {
+    padding: 1rem 4rem 4rem 4rem;
 }
 
 #raw-notes-content-area {
@@ -590,6 +598,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     padding: 0;
     background: var(--cream);
     transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .empty-state {
@@ -624,9 +636,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 }
 
 .active-title {
-    font-size: 2.5rem;
+    font-size: 2.75rem;
     letter-spacing: -0.02em;
-    margin-bottom: 2.5rem;
+    margin: 0;
     color: var(--ink);
     line-height: 1.2;
 }
@@ -1063,7 +1075,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 }
 
 .breadcrumbs-bar {
-    margin-bottom: 0.5rem !important;
+    margin-bottom: 0.4rem !important;
     font-size: 13px;
     color: var(--ink-muted);
 }
@@ -1078,7 +1090,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .preview-full-mode #master-note-view-box,
 .preview-full-mode .card,
 .sidebar-closed-mode #master-note-view-box,
-.sidebar-closed-mode .card {
+.sidebar-closed-mode .card, 
+.sidebar-closed-mode .folder-header-aligner{
     max-width: 100% !important;
     width: 100% !important;
 }
@@ -1090,4 +1103,25 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .preview-full-mode .folder-header-aligner {
     max-width: 100% !important;
     width: 100% !important;
+}
+
+#active-project-workspace {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.sidebar-closed-mode .workspace-tabs-container {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+#empty-workspace-state {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }

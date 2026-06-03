@@ -125,22 +125,31 @@ authContainer.innerHTML = `
     const folderWrapper = document.getElementById('folder-overview-wrapper');
     if (folderWrapper) folderWrapper.style.setProperty('none', 'important');
 
-    const stickyHeader = document.querySelector('.workspace-header-sticky');
-    if (stickyHeader) {
-      stickyHeader.innerHTML = `
-        <div id="workspace-breadcrumbs" class="breadcrumbs-bar"><span style="color: var(--ink-muted);">Preview Mode</span></div>
-        <div class="folder-header-aligner" style="max-width: 100% !important; width: 100% !important;">
-          <h1 id="active-project-title" class="serif" style="margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--ink); line-height: 1.2;">Preview: ${esc(parsed.title || "Unsaved Note")}</h1>
-          <div id="overview-actions" style="display: flex; gap: 0.5rem; align-items: center;"></div>
-        </div>
-        <div class="workspace-tabs-container" style="display: flex !important; gap: 0.5rem; margin-top: 1rem;">
-          <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
-          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
-          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
-          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
-        </div>
+    // Update header elements directly by ID (header is now inside scroll body)
+    const titleEl = document.getElementById('active-project-title');
+    if (titleEl) titleEl.textContent = foundFile.name;
+    const overviewActionsEl = document.getElementById('overview-actions');
+    if (overviewActionsEl) overviewActionsEl.innerHTML = `
+      <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+        Rename
+      </button>
+      <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        Delete
+      </button>`;
+
+    // Update tabs bar inside the scroll container
+    const tabsBar = document.getElementById('workspace-tabs-bar');
+    if (tabsBar) {
+      tabsBar.innerHTML = `
+        <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
+        <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
+        <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
+        <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
       `;
-    }
+      tabsBar.style.setProperty('display', 'flex', 'important');
+    } 
 
     document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
     const initialActiveBtn = document.querySelector(`[onclick="switchWorkspaceTab('tab-raw')"]`);
@@ -324,18 +333,18 @@ function toggleSidebar(event) {
   if (event) event.preventDefault(); 
 
   const sidebar = document.getElementById('workspace-sidebar');
-  const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+  const mainLayout = document.querySelector('.workspace-layout');
   if (!sidebar) return;
 
   if (sidebar.style.display === 'none') {
     sidebar.style.setProperty('display', 'flex', 'important');
-    if (scrollContainer) {
-      scrollContainer.classList.remove('sidebar-closed-mode');
+    if (mainLayout) {
+      mainLayout.classList.remove('sidebar-closed-mode');
     }
   } else {
     sidebar.style.setProperty('display', 'none', 'important');
-    if (scrollContainer) {
-      scrollContainer.classList.add('sidebar-closed-mode');
+    if (mainLayout) {
+      mainLayout.classList.add('sidebar-closed-mode');
     }
   }
 }
@@ -370,25 +379,19 @@ function selectFolderWorkspace(folderId, event) {
   const folderNode = findNodeById(treeData, folderId);
   
   if (folderNode) {
-    const stickyHeader = document.querySelector('.workspace-header-sticky');
-    if (stickyHeader) {
-      stickyHeader.innerHTML = `
-        <div id="workspace-breadcrumbs" class="breadcrumbs-bar"></div>
-        <div class="folder-header-aligner">
-          <h1 id="active-project-title" class="serif" style="margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--ink); line-height: 1.2;">${esc(folderNode.name)}</h1>
-          <div id="overview-actions" style="display: flex; gap: 0.5rem; align-items: center;">
-            <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
-              Rename
-            </button>
-            <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-              Delete
-            </button>
-          </div>
-        </div>
-      `;
-    }
+    // Update header elements directly by ID
+    const titleEl = document.getElementById('active-project-title');
+    if (titleEl) titleEl.textContent = folderNode.name;
+    const overviewActionsEl = document.getElementById('overview-actions');
+    if (overviewActionsEl) overviewActionsEl.innerHTML = `
+      <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+        Rename
+      </button>
+      <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        Delete
+      </button>`;
     
     const children = folderNode.children || [];
     if (children.length === 0) {
@@ -429,6 +432,10 @@ function selectFolderWorkspace(folderId, event) {
   
   const folderWrapper = document.getElementById('folder-overview-wrapper');
   if (folderWrapper) folderWrapper.style.setProperty('display', 'block', 'important');
+
+  // Hide tabs bar - folder view doesn't use tabs
+  const tabsBar = document.getElementById('workspace-tabs-bar');
+  if (tabsBar) tabsBar.style.setProperty('display', 'none', 'important');
 
   const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
   if (scrollContainer) scrollContainer.scrollTop = 0;
@@ -846,19 +853,28 @@ function handleNewNoteClick(event) {
 function esc(str) { if (!str) return ''; return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
 function resetToEmptyState() {
-  currentSelectedNodeId = null; currentRightClickedNodeId = null;
+  currentSelectedNodeId = null; 
+  currentRightClickedNodeId = null;
+  
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
+  
   const navButtons = document.querySelectorAll('.dashboard-nav button');
   navButtons.forEach(btn => {
     if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
       btn.style.setProperty('display', 'inline-block', 'important');
     }
   });
-  document.getElementById('empty-workspace-state').style.display = 'block';
-  document.getElementById('active-project-workspace').style.display = 'none';
+
+  const activeWorkspaceEl = document.getElementById('active-project-workspace');
+  if (activeWorkspaceEl) activeWorkspaceEl.style.setProperty('display', 'none', 'important');
+
+  const emptyStateEl = document.getElementById('empty-workspace-state');
+  if (emptyStateEl) emptyStateEl.style.setProperty('display', 'flex', 'important');
+  
   const overviewActions = document.getElementById('overview-actions');
   if (overviewActions) overviewActions.innerHTML = "";
+  
   renderDashboardCards();
 }
 
@@ -868,7 +884,15 @@ function switchWorkspaceTab(targetTabId) {
   if (clickedBtn) clickedBtn.classList.add('active');
   const targetPanel = document.getElementById(targetTabId);
   if (targetPanel) {
-    targetPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
+    if (scrollContainer) {
+      // scroll the panel into view within the scroll container
+      const containerTop = scrollContainer.getBoundingClientRect().top;
+      const panelTop = targetPanel.getBoundingClientRect().top;
+      const tabsBar = document.getElementById('workspace-tabs-bar') || document.querySelector('.workspace-tabs-container');
+      const tabsHeight = tabsBar ? tabsBar.offsetHeight : 50;
+      scrollContainer.scrollBy({ top: panelTop - containerTop - tabsHeight, behavior: 'smooth' });
+    }
   }
 }
 
@@ -953,35 +977,45 @@ function openCardNoteDirect(fileId, event) {
     return false;
   }
   findFile(treeData);
+
   if (foundFile && foundFile.data) {
     currentSelectedNodeId = fileId;
     currentRightClickedNodeId = fileId;
-    document.getElementById('empty-workspace-state').style.display = 'none';
-    document.getElementById('active-project-workspace').style.display = 'flex'; 
+
+    const emptyStateEl = document.getElementById('empty-workspace-state');
+    if (emptyStateEl) {
+      emptyStateEl.style.setProperty('display', 'none', 'important');
+    }
     
-    const stickyHeader = document.querySelector('.workspace-header-sticky');
-    if (stickyHeader) {
-      stickyHeader.innerHTML = `
-        <div id="workspace-breadcrumbs" class="breadcrumbs-bar"></div>
-        <div class="folder-header-aligner">
-          <h1 id="active-project-title" class="serif" style="margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--ink); line-height: 1.2;">${esc(foundFile.name)}</h1>
-          <div id="overview-actions" style="display: flex; gap: 0.5rem; align-items: center;">
-            <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
-              Rename
-            </button>
-            <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-              Delete
-            </button>
-          </div>
-        </div>
-        <div class="workspace-tabs-container" style="display: flex !important; gap: 0.5rem; margin-top: 1rem;">
-          <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
-          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
-          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
-          <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
-        </div>`;
+    const activeWorkspaceEl = document.getElementById('active-project-workspace');
+    if (activeWorkspaceEl) {
+      activeWorkspaceEl.style.setProperty('display', 'flex', 'important'); 
+    }
+    
+    // Update header elements directly by ID
+    const titleEl = document.getElementById('active-project-title');
+    if (titleEl) titleEl.textContent = foundFile.name;
+    const overviewActionsEl = document.getElementById('overview-actions');
+    if (overviewActionsEl) overviewActionsEl.innerHTML = `
+      <button type="button" class="btn-overview-action rename" onclick="handleOverviewRename()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(201,136,58,0.1); color: #C9883A; border: 1px solid rgba(201,136,58,0.2); cursor: pointer; font-weight: 500;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4z"></path></svg>
+        Rename
+      </button>
+      <button type="button" class="btn-overview-action delete" onclick="handleOverviewDelete()" style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.75rem; font-size: 13px; border-radius: 6px; background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); cursor: pointer; font-weight: 500;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+        Delete
+      </button>`;
+
+    // Update tabs bar inside the scroll container
+    const tabsBar = document.getElementById('workspace-tabs-bar');
+    if (tabsBar) {
+      tabsBar.innerHTML = `
+        <button type="button" class="tab-trigger active" onclick="switchWorkspaceTab('tab-raw')">Notes</button>
+        <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-summary')">Smart Summary</button>
+        <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-clusters')">Topic Clusters</button>
+        <button type="button" class="tab-trigger" onclick="switchWorkspaceTab('tab-path')">Learning Path</button>
+      `;
+      tabsBar.style.setProperty('display', 'flex', 'important');
     }
 
     renderProjectContent(foundFile.data);
@@ -992,6 +1026,7 @@ function openCardNoteDirect(fileId, event) {
     const folderWrapper = document.getElementById('folder-overview-wrapper');
     if (folderWrapper) folderWrapper.style.setProperty('display', 'none', 'important');
     
+    // Show and reset tabs bar
     document.querySelectorAll('.tab-trigger').forEach(btn => btn.classList.remove('active'));
     const initialActiveBtn = document.querySelector(`[onclick="switchWorkspaceTab('tab-raw')"]`);
     if (initialActiveBtn) initialActiveBtn.classList.add('active');
@@ -1126,4 +1161,3 @@ function closeCustomAlert() {
     alertModal.style.setProperty('display', 'none', 'important');
   }
 }
-
