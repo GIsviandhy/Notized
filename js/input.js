@@ -116,6 +116,11 @@ async function handleAnalyze() {
   // ⚡ FIX UTAMA: Kunci dan simpan teks asli dari textarea ke localStorage sebelum masuk antrean loading
   localStorage.setItem('current_raw_text', notes);
 
+  const screenInput = document.getElementById('screen-input');
+  if (screenInput) {
+    screenInput.classList.add('loading-active');
+  }
+
   document.getElementById('input-form-view').style.display = 'none';
   document.getElementById('loading-view').classList.add('active');
 
@@ -157,6 +162,10 @@ async function handleAnalyze() {
     console.error('Analysis error:', e);
     document.getElementById('input-form-view').style.display = 'block';
     document.getElementById('loading-view').classList.remove('active');
+    const screenInput = document.getElementById('screen-input');
+    if (screenInput) {
+      screenInput.classList.remove('loading-active');
+    }
     errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
     errEl.style.display = 'block';
     

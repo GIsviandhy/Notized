@@ -1,0 +1,6 @@
+index.html (landing page) CHANGED TO landing.html (improved ui)
+index.html is old version, uses style.css
+
+landing.html uses landing.css
+
+input.html and dashboard.html still uses style.css

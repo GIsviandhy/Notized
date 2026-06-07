@@ -58,10 +58,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 ::-webkit-scrollbar-thumb:hover { background: #56755b; }
 
 /* ── UNIFIED NAVIGATION (All Pages) ── */
-.nav { padding: 1.25rem 2.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--white); box-shadow: var(--shadow-sm); position: relative; z-index: 100; flex-shrink: 0; }
+.nav { padding: 1.25rem 2.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: var(--cream); box-shadow: var(--shadow-sm); position: relative; z-index: 100; flex-shrink: 0; }
 .nav-logo { display: flex; align-items: center; gap: 0.5rem; }
 .nav-logo-icon { width: 28px; height: 28px; background: var(--sage); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
-.nav-wordmark { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: -0.02em; }
+.nav-wordmark { font-family: 'DM Serif Display', serif; font-size: 20px; letter-spacing: -0.02em; font-weight: 400; }
 .btn-primary { background: var(--sage); color: white; padding: 0.5rem 1.25rem; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-flex;align-items: center; justify-content: center; gap: 0.45rem; line-height: 1; box-shadow: var(--shadow-sm); transition: all 0.2s ease; }
 .btn-primary:hover { opacity: 0.85; transform: translateY(-1px); }
 
@@ -75,6 +75,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 /* ── INPUT PAGE SPECIFIC ── */
 #screen-input { background: var(--cream); }
+#screen-input.loading-active .nav { display: none; }
 .input-main { flex: 1; max-width: 720px; margin: 0 auto; width: 100%; padding: 3rem 2rem; }
 .input-h2 { font-size: 2rem; letter-spacing: -0.03em; margin-bottom: 0.5rem; }
 .input-sub { color: var(--ink-muted); margin-bottom: 2rem; font-size: 15px; }
@@ -233,7 +234,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .footer-strip { background: linear-gradient(to bottom, transparent 0%, var(--ink) 40%); color: rgba(255,255,255,0.5); text-align: center; padding: 3rem 2.5rem 1.5rem; font-size: 12px; font-weight: 400; letter-spacing: 0.02em; }
 
 /* Loading Animation Elements */
-.loading-view { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; padding-top: 4rem; }
+.loading-view { flex: 1; display: none; flex-direction: column; align-items: center; justify-content: center; min-height: calc(100vh - 220px); padding-top: 10rem; }
 .loading-view.active { display: flex; }
 .spinner-wrap { width: 80px; height: 80px; border-radius: 50%; background: var(--sage-light); display: flex; align-items: center; justify-content: center; margin-bottom: 2rem; position: relative; }
 .spinner-ring { position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--sage); border-top-color: transparent; animation: spin 1s linear infinite; }
@@ -533,6 +534,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 }
 
 .workspace-tabs-container {
+    background: var(--cream);
     display: flex;
     gap: 0.5rem;
     position: sticky;
@@ -830,14 +832,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 .clusters-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 0.5fr));
     gap: 1.5rem;
 }
 
 .cluster-card {
     background: var(--white);
     border-radius: 14px;
-    padding: 1.75rem;
+    padding: 1.5rem;
     border: 1px solid var(--border);
     box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
