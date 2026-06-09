@@ -83,12 +83,8 @@ authContainer.innerHTML = `
       saveBtn.style.setProperty('display', 'flex', 'important');
     }
 
-    const navButtons = document.querySelectorAll('.dashboard-nav button');
-    navButtons.forEach(btn => {
-      if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-        btn.style.setProperty('display', 'none', 'important');
-      }
-    });
+    const newNoteBtn = document.getElementById('btn-new-note');
+    if (newNoteBtn) newNoteBtn.style.setProperty('display', 'none', 'important');
     
     const parsed = JSON.parse(incomingData);
     
@@ -300,12 +296,8 @@ function selectFolderWorkspace(folderId, event) {
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
 
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
+  const newNoteBtn = document.getElementById('btn-new-note');
+  if (newNoteBtn) newNoteBtn.style.setProperty('display', 'inline-flex', 'important');
 
   document.getElementById('empty-workspace-state').style.display = 'none';
   document.getElementById('active-project-workspace').style.display = 'flex';
@@ -386,12 +378,8 @@ function selectFileWorkspace(fileId, fileName, event) {
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
 
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
+  const newNoteBtn = document.getElementById('btn-new-note');
+  if (newNoteBtn) newNoteBtn.style.setProperty('display', 'inline-flex', 'important');
   openCardNoteDirect(fileId, event);
 }
 
@@ -807,24 +795,26 @@ function loadSavedFileNode(id, name, event) {
   }
 }
 
-function openSaveModal() {
+async function openSaveModal() {
   const incoming = localStorage.getItem('notizedData');
   if (!incoming) return;
   document.getElementById('save-modal').style.display = 'flex';
   const parsed = JSON.parse(incoming);
   document.getElementById('save-notes-name').value = parsed.title || '';
+  await loadLibraryFromDatabase();
   let treeData = getLibraryData();
   const selectEl = document.getElementById('save-folder-select');
-  let optionsHTML = `<option value="root_root"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Save to Root (Outer Folder)</option>`;
+  let optionsHTML = `<option value="root_root">📁 Save to Root (No Folder)</option>`;
   function injectFolderOptions(nodes, depth = 0) {
     nodes.forEach(node => {
       if (node.type === "folder") {
-        optionsHTML += `<option value="${node.id}">&nbsp;&nbsp;`.repeat(depth) + `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Folder: ${node.name}</option>`;
+        optionsHTML += `<option value="${node.id}">${'\u00A0\u00A0'.repeat(depth * 2)}📂 ${node.name}</option>`;
         if (node.children) injectFolderOptions(node.children, depth + 1);
       }
     });
   }
-  injectFolderOptions(treeData); selectEl.innerHTML = optionsHTML;
+  injectFolderOptions(treeData);
+  selectEl.innerHTML = optionsHTML;
 }
 
 function handleSaveNote() {
@@ -904,12 +894,8 @@ function confirmSaveNotes() {
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
 
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
+  const newNoteBtn = document.getElementById('btn-new-note');
+  if (newNoteBtn) newNoteBtn.style.setProperty('display', 'inline-flex', 'important');
 
   refreshWorkspaceTree(); 
   resetToEmptyState();
@@ -943,12 +929,8 @@ function resetToEmptyState() {
   const saveBtn = document.getElementById('btn-trigger-save');
   if (saveBtn) saveBtn.style.setProperty('display', 'none', 'important');
   
-  const navButtons = document.querySelectorAll('.dashboard-nav button');
-  navButtons.forEach(btn => {
-    if (btn.textContent.includes('New Note') || (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('input.html'))) {
-      btn.style.setProperty('display', 'inline-block', 'important');
-    }
-  });
+  const newNoteBtn = document.getElementById('btn-new-note');
+  if (newNoteBtn) newNoteBtn.style.setProperty('display', 'inline-flex', 'important');
 
   const activeWorkspaceEl = document.getElementById('active-project-workspace');
   if (activeWorkspaceEl) activeWorkspaceEl.style.setProperty('display', 'none', 'important');

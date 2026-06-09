@@ -15,7 +15,7 @@
 
 <div id="screen-input" class="screen active" style="display: flex;">
   <nav class="nav">
-    <div class="nav-logo" onclick="location.href='index.html'" style="cursor: pointer;">
+    <div class="nav-logo" onclick="location.href='landing.html'" style="cursor: pointer;">
       <span class="nav-logo-icon">
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
       </span>
@@ -23,9 +23,9 @@
     </div>
     
     <div style="display: flex; gap: 1rem; align-items: center; position: relative;">
-        <button class="btn-nav-secondary" onclick="location.href='dashboard.html'">Dashboard</button>
+        <button id="btn-dashboard" class="btn-nav-secondary" onclick="location.href='dashboard.html'" style="display:none;">Dashboard</button>
         <div id="nav-auth-container">
-          <button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')" style="padding: 0.5rem 1rem; font-size: 13px;">Log In</button>
+          <button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')">Log In</button>
         </div>
     </div>
 
@@ -138,10 +138,10 @@
   </div>
 </div>
 
-<script src="js/common.js"></script>
-<script src="js/landing.js"></script>
-<script src="js/ai-service.js"></script>
-<script src="js/input.js"></script>
+<script src="js/common.js?v=2"></script>
+<script src="js/landing.js?v=2"></script>
+<script src="js/ai-service.js?v=2"></script>
+<script src="js/input.js?v=2"></script>
 <script>
 
   window.addEventListener('DOMContentLoaded', () => {

@@ -14,7 +14,7 @@
     <div class="modal-card">
       <h3 class="serif">Save Analysis to Project</h3>
       <p>Give this document a clear name and select the target subject folder.</p>
-      <input type="text" id="save-notes-name" placeholder="e.g., Chapter 1: Neurons" class="modal-input">
+      <input type="text" id="save-notes-name" placeholder="e.g., Chapter 1: Neurons" class="modal-input" maxlength="50">
       <label style="font-size: 12px; margin-top: 1rem; display: block; color: var(--ink-muted);">Select Destination Folder:</label>
       <select id="save-folder-select" class="modal-input" style="margin-top: 0.25rem;"></select>
       <div class="modal-actions">
@@ -39,7 +39,7 @@
     <div class="modal-card">
       <h3 class="serif" id="modal-folder-title">Create New Folder</h3>
       <p style="font-size: 14px; color: var(--ink-muted); margin-bottom: 1rem;">Give your new folder a name and choose a color theme.</p>
-      <input type="text" id="new-folder-name-input" class="modal-input" placeholder="Folder name (e.g., Biology)...">
+      <input type="text" id="new-folder-name-input" class="modal-input" placeholder="Folder name (e.g., Biology)..." maxlength="30">
       
       <div class="color-picker-label" style="font-size: 12px; font-weight: 500; margin: 1rem 0 0.5rem 0; color: var(--ink-muted);">Color Theme:</div>
       <div class="color-palette-options" style="display: flex; gap: 0.5rem; margin-top: 0.35rem;">
@@ -58,15 +58,26 @@
 
   <div class="workspace-layout">
     <nav class="nav">
-      <div class="nav-logo" onclick="location.href='index.html'" style="cursor: pointer;">
-        <span class="nav-logo-icon">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
-        </span>
-        <span class="nav-wordmark">Notized</span>
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <button id="sidebar-toggle-btn" onclick="toggleSidebar(event)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+        <div class="nav-logo" onclick="location.href='landing.html'" style="cursor: pointer;">
+          <span class="nav-logo-icon">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
+          </span>
+          <span class="nav-wordmark">Notized</span>
+        </div>
       </div>
       
       <div style="display: flex; gap: 1rem; align-items: center; position: relative;">
-          <button class="btn-nav-secondary" onclick="location.href='dashboard.html'">Dashboard</button>
+          <button id="btn-new-note" class="btn-nav-secondary" onclick="handleNewNoteClick(event)">+ New Note</button>
+          <button id="btn-trigger-save" class="btn-primary" onclick="handleSaveNote()" style="display: none; padding: 0.5rem 1rem; font-size: 13px; align-items: center; gap: 0.4rem;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+            Save Note
+          </button>
           <div id="nav-auth-container">
             <button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')" style="padding: 0.5rem 1rem; font-size: 13px;">Log In</button>
           </div>
@@ -264,8 +275,8 @@
     </div>
   </div>
 
-  <script src="js/common.js"></script>
-  <script src="js/landing.js"></script>
-  <script src="js/dashboard.js"></script>
+  <script src="js/common.js?v=2"></script>
+  <script src="js/landing.js?v=2"></script>
+  <script src="js/dashboard.js?v=2"></script>
 </body>
 </html>

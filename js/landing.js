@@ -29,12 +29,14 @@ function getRegisteredUsers() {
 // Fungsi untuk merender ulang isi navbar (Tombol Login VS Avatar Profil)
 function renderNavbarAuth() {
   const container = document.getElementById('nav-auth-container');
+  const dashBtn = document.getElementById('btn-dashboard');
   if (!container) return;
 
   const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
   if (currentUser && currentUser.name) {
     const initialLetter = currentUser.name.charAt(0).toUpperCase();
+    if (dashBtn) dashBtn.style.display = 'inline-flex';
 
     container.innerHTML = `
       <div id="user-avatar-circle" onclick="toggleProfileDropdown(event)" style="width: 34px; height: 34px; border-radius: 50%; background: #6B8F71; color: white; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
@@ -45,8 +47,9 @@ function renderNavbarAuth() {
     if (document.getElementById('dropdown-user-name')) document.getElementById('dropdown-user-name').textContent = currentUser.name;
     if (document.getElementById('dropdown-user-email')) document.getElementById('dropdown-user-email').textContent = currentUser.email;
   } else {
+    if (dashBtn) dashBtn.style.display = 'none';
     container.innerHTML = `
-      <button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')" style="padding: 0.5rem 1rem; font-size: 13px;">Log In</button>
+      <button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')">Log In</button>
     `;
     const dropdown = document.getElementById('profile-dropdown-card');
     if (dropdown) dropdown.style.display = 'none';
@@ -150,7 +153,7 @@ async function handleAuthSubmit(event) {
 function handleLogOut() {
   localStorage.removeItem('currentUser');
   renderNavbarAuth();
-  window.location.href = 'index.html';
+  window.location.href = 'landing.html';
 }
 
 function openAuthModal(mode = "login") {
