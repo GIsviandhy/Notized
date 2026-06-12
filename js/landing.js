@@ -1,8 +1,129 @@
 let currentAuthMode = "login";
 
+function renderNavbarAuth() {
+    const container = document.getElementById('nav-auth-container');
+    if (!container) return;
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+    if (currentUser && currentUser.name) {
+        const initial = currentUser.name.charAt(0).toUpperCase();
+        container.innerHTML = `<div id="user-avatar-circle" onclick="toggleProfileDropdown(event)" style="width:34px;height:34px;border-radius:50%;background:var(--sage);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;cursor:pointer;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.07)'" onmouseout="this.style.transform='scale(1)'">${initial}</div>`;
+        const dn = document.getElementById('dropdown-user-name');
+        const de = document.getElementById('dropdown-user-email');
+        if (dn) dn.textContent = currentUser.name;
+        if (de) de.textContent = currentUser.email;
+    } else {
+        container.innerHTML = `<button class="btn-nav-solid" onclick="openAuthModal('login')">Log In</button>`;
+        const dd = document.getElementById('profile-dropdown-card');
+        if (dd) dd.style.display = 'none';
+    }
+}
+  
 window.addEventListener('DOMContentLoaded', () => {
   renderNavbarAuth();
 });
+  
+
+
+function toggleProfileDropdown(e) {
+    if (e) e.stopPropagation();
+        const dd = document.getElementById('profile-dropdown-card');
+        if (!dd) return;
+            dd.style.display = (dd.style.display === 'none' || !dd.style.display) ? 'flex' : 'none';
+    }
+    window.addEventListener('click', () => {
+    const dd = document.getElementById('profile-dropdown-card');
+    if (dd) dd.style.display = 'none';
+});
+
+  function openAuthModal(mode = 'login') {
+    currentAuthMode = mode;
+    const modal = document.getElementById('auth-modal');
+    modal.style.display = 'flex';
+    const title = document.getElementById('auth-modal-title');
+    const desc = document.getElementById('auth-modal-desc');
+    const nameField = document.getElementById('auth-field-name');
+    const submitBtn = document.getElementById('auth-btn-submit');
+    const switchText = document.getElementById('auth-switch-text');
+    const switchLink = document.getElementById('auth-switch-link');
+    document.getElementById('auth-form').reset();
+    if (mode === 'login') {
+      title.textContent = 'Welcome Back';
+      desc.textContent = 'Log in to sync your study notes across devices.';
+      nameField.style.display = 'none';
+      document.getElementById('auth-input-name').removeAttribute('required');
+      submitBtn.textContent = 'Log In';
+      switchText.textContent = "Don't have an account?";
+      switchLink.textContent = ' Sign Up Free';
+    } else {
+      title.textContent = 'Create Account';
+      desc.textContent = 'Join Notized to optimize your notes and learning paths.';
+      nameField.style.display = 'flex';
+      document.getElementById('auth-input-name').setAttribute('required', 'true');
+      submitBtn.textContent = 'Create Account';
+      switchText.textContent = 'Already have an account?';
+      switchLink.textContent = ' Log In';
+    }
+  }
+
+  function closeAuthModal() {
+    document.getElementById('auth-modal').style.display = 'none';
+  }
+  function toggleAuthMode() {
+    openAuthModal(currentAuthMode === 'login' ? 'signup' : 'login');
+  }
+
+  async function handleAuthSubmit(event) {
+    event.preventDefault();
+    const email = document.getElementById('auth-input-email').value.trim().toLowerCase();
+    const password = document.getElementById('auth-input-password').value;
+    if (currentAuthMode === 'login') {
+      try {
+        const res = await fetch('api.php?action=login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
+        const result = await res.json();
+        if (result.status === 'error') { showCustomAlert(result.message); return; }
+        localStorage.setItem('currentUser', JSON.stringify(result.user));
+        closeAuthModal(); renderNavbarAuth();
+        window.location.href = 'dashboard.html';
+      } catch { showCustomAlert('Connection error. Make sure the server is running.'); }
+    } else {
+      const name = document.getElementById('auth-input-name').value.trim();
+      if (!name) { showCustomAlert('Please enter your full name.'); return; }
+      try {
+        const res = await fetch('api.php?action=register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, password }) });
+        const result = await res.json();
+        if (result.status === 'error') { showCustomAlert(result.message); return; }
+        localStorage.setItem('currentUser', JSON.stringify({ name, email }));
+        closeAuthModal(); renderNavbarAuth();
+        window.location.href = 'dashboard.html';
+      } catch { showCustomAlert('Connection error. Make sure the server is running.'); }
+    }
+  }
+
+  function handleLogOut() {
+    localStorage.removeItem('currentUser');
+    renderNavbarAuth();
+    window.location.href = 'landing.html';
+  }
+
+  function showCustomAlert(message) {
+    document.getElementById('custom-alert-message').textContent = message;
+    document.getElementById('custom-alert-modal').style.display = 'flex';
+  }
+  function closeCustomAlert() {
+    document.getElementById('custom-alert-modal').style.display = 'none';
+  }
+
+  /* ── Scroll reveal ── */
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
 
 function showCustomAlert(message) {
   const alertModal = document.getElementById('custom-alert-modal');

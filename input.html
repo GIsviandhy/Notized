@@ -1,161 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Notized — New Session</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notized — New Processing Session</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Outfit:wght@600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div id="screen-input" class="screen active" style="display: flex;">
   <nav class="nav">
     <div class="nav-logo" onclick="location.href='index.html'" style="cursor: pointer;">
-      <span class="nav-logo-icon">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
-      </span>
+      <span class="nav-logo-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg></span>
       <span class="nav-wordmark">Notized</span>
     </div>
     
-    <div style="display: flex; gap: 1rem; align-items: center; position: relative;">
-        <button class="btn-nav-secondary" onclick="location.href='dashboard.html'">Dashboard</button>
-        <div id="nav-auth-container">
-          <button id="btn-login-trigger" class="btn-primary" onclick="openAuthModal('login')" style="padding: 0.5rem 1rem; font-size: 13px;">Log In</button>
-        </div>
-    </div>
-
-    <div id="profile-dropdown-card" style="display: none; position: absolute; right: 2rem; top: 4.5rem; background: var(--white); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-md); padding: 1.25rem; width: 240px; flex-direction: column; gap: 0.75rem; z-index: 999999;">
-      <div style="display: flex; flex-direction: column; gap: 0.15rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
-        <span id="dropdown-user-name" style="font-weight: 600; font-size: 14px; color: var(--ink);">User Name</span>
-        <span id="dropdown-user-email" style="font-size: 12px; color: var(--ink-muted); word-break: break-all;">user@email.com</span>
-      </div>
-      <button onclick="handleLogOut()" style="background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); padding: 0.5rem; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s;" onmouseover="this.style.background='rgba(184,92,110,0.15)'" onmouseout="this.style.background='rgba(184,92,110,0.1)'">
-        Log Out Account
-      </button>
+    <div class="nav-actions">
+      <button class="btn-nav-secondary" onclick="window.location.href='dashboard.html'">Workspace Dashboard</button>
+      <button class="btn-nav-danger" onclick="handleLogout()">Logout</button>
     </div>
   </nav>
 
-  <div class="input-main">
-    
-    <div id="input-form-view" class="fade-in">
-      <h2 class="input-h2 serif">Paste your notes</h2>
-      <p class="input-sub">Lecture notes, textbook excerpts, handwritten drafts — anything goes.</p>
-
-      <div class="textarea-wrapper">
-        <textarea id="notes-input"
-          placeholder="Start typing or paste your raw notes here…&#10;&#10;Example: Today in Biology we covered mitosis. The cell cycle has four phases: G1, S, G2, and M phase. During prophase, chromatin condenses into visible chromosomes..."
-          oninput="updateWordCount()"></textarea>
-        <div class="textarea-footer">
-          <span class="word-count" id="word-count">Tip: Longer notes = richer insights</span>
-          <button type="button" class="upload-btn" onclick="triggerFileUpload()">+ Upload file (.txt .pdf)</button>
-          <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
+  <main class="input-main-container">
+    <div class="input-bound row-adaptive">
+      
+      <section id="input-form-view" class="input-card-pane fade-in">
+        <div class="pane-header">
+          <h2 class="serif entry-title">Transform New Material</h2>
+          <p class="entry-subtitle">Feed in lecture transcripts, notes, drafts, or full book chapters.</p>
         </div>
-      </div>
 
-      <div class="error-msg" id="error-msg"></div>
+        <div class="modern-textarea-container">
+          <textarea id="notes-input" 
+            placeholder="Paste your raw learning content here...&#10;&#10;Example: The nervous system coordinates bodily tasks. The central nervous system contains the brain and spinal cord. Neurons operate via action potentials with an all-or-nothing threshold of -55mV..."
+            oninput="updateWordCount()"></textarea>
+          
+          <div class="textarea-action-bar">
+            <span class="word-count-badge" id="word-count">Waiting for content entry</span>
+            <button type="button" class="btn-action-upload" onclick="triggerFileUpload()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
+              Attach Document (.txt, .pdf)
+            </button>
+            <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
+          </div>
+        </div>
 
-      <div class="analyze-row">
-        <button type="button" class="btn-analyze" onclick="handleAnalyze()">
-          <span>✦</span> Analyze Notes
-        </button>
-        <span class="analyze-hint">Usually takes 10–20 seconds</span>
-      </div>
+        <div id="error-msg" class="error-msg"></div>
 
-      <div class="tips-grid">
-        <div class="tip-card">
-          <div class="tip-label">Works best with</div>
-          <div class="tip-text">Lecture notes, textbook chapters, study guides</div>
+        <div class="action-submit-row">
+          <button type="button" class="btn-execute-analysis" onclick="handleAnalyze()">
+            <span>✦</span> Run Quantum Analysis
+          </button>
+          <span class="time-hint-text">Refining matrices takes ~3-5s</span>
         </div>
-        <div class="tip-card">
-          <div class="tip-label">Minimum length</div>
-          <div class="tip-text">~50 words for meaningful analysis</div>
+      </section>
+
+      <aside class="guidelines-sidebar">
+        <h4 class="sidebar-block-heading">Optimization Blueprint</h4>
+        <div class="blueprint-stack">
+          <div class="blueprint-item">
+            <div class="b-label">Prime Match</div>
+            <div class="b-text">Structured lecture syllabi, highly dense textbook excerpts, complex science briefs.</div>
+          </div>
+          <div class="blueprint-item">
+            <div class="b-label">Sizing Threshold</div>
+            <div class="b-text">A minimum of 10 words is enforced. Aim for 50+ words for maximum semantic clustering.</div>
+          </div>
+          <div class="blueprint-item">
+            <div class="b-label">Document Extraction</div>
+            <div class="b-text">PDF extraction reads client-side automatically without remote server storage pipelines.</div>
+          </div>
         </div>
-        <div class="tip-card">
-          <div class="tip-label">Supported format</div>
-          <div class="tip-text">Plain text, bullet points, mixed formats</div>
-        </div>
-      </div>
+      </aside>
+
     </div>
 
-    <div id="loading-view" class="loading-view">
-      <div class="spinner-wrap">
-        <div class="spinner-ring"></div>
-        <span class="spinner-icon">✦</span>
+    <div id="loading-view" class="modern-loading-overlay">
+      <div class="loader-box">
+        <div class="pulse-spinner">
+          <div class="spinner-core">✦</div>
+        </div>
+        <h3 class="serif loading-heading">Synthesizing Conceptual Nodes</h3>
+        <p class="loading-current-stage" id="loading-stage">Mapping structural data fields...</p>
+        
+        <div class="bar-track-wrapper">
+          <div class="bar-fill-element" id="progress-bar"></div>
+        </div>
+        <span class="pct-counter-text" id="progress-pct">0%</span>
       </div>
-      <h3 class="loading-h3 serif">Processing your notes</h3>
-      <p class="loading-stage" id="loading-stage">Reading your notes…</p>
-      <div class="progress-track">
-        <div class="progress-bar" id="progress-bar"></div>
-      </div>
-      <p class="progress-pct" id="progress-pct">0%</p>
     </div>
-    
-  </div>
-</div>
+  </main>
 
-<div id="auth-modal" class="modal-overlay" style="display: none; position: fixed; z-index: 99999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(28, 26, 22, 0.4); justify-content: center; align-items: center;">
-  <div class="modal-card" style="max-width: 380px; width: 100%; padding: 2.5rem; background: var(--white); border-radius: 16px; box-shadow: var(--shadow-lg);">
-    <h3 class="serif" id="auth-modal-title" style="font-size: 24px; margin-bottom: 0.25rem;">Welcome Back</h3>
-    <p id="auth-modal-desc" style="font-size: 13px; color: var(--ink-muted); margin-bottom: 1.5rem;">Log in to sync your study notes across devices.</p>
-    
-    <form id="auth-form" onsubmit="handleAuthSubmit(event)" style="display: flex; flex-direction: column; gap: 1rem;">
-      <div id="auth-field-name" style="display: none; flex-direction: column; gap: 0.25rem;">
-        <label style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase;">Full Name</label>
-        <input type="text" id="auth-input-name" placeholder="e.g., Laurensia" class="modal-input" style="margin: 0;">
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-        <label style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase;">Email Address</label>
-        <input type="email" id="auth-input-email" required placeholder="username@gmail.com" class="modal-input" style="margin: 0;">
-      </div>
-      <div style="display: flex; flex-direction: column; gap: 0.25rem;">
-        <label style="font-size: 11px; font-weight: 600; color: var(--ink-muted); text-transform: uppercase;">Password</label>
-        <input type="password" id="auth-input-password" required placeholder="••••••••" class="modal-input" style="margin: 0;">
-      </div>
-      <div class="modal-actions" style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem; padding: 0;">
-        <button type="submit" id="auth-btn-submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">Log In</button>
-        <button type="button" class="btn-secondary" onclick="closeAuthModal()" style="width: 100%; justify-content: center; padding: 0.75rem; border: 1px solid var(--border);">Cancel</button>
-      </div>
-    </form>
-
-    <div style="margin-top: 1.5rem; text-align: center; font-size: 12px; color: var(--ink-muted); border-top: 1px solid var(--border); padding-top: 1rem;">
-      <span id="auth-switch-text">Don't have an account?</span> 
-      <a href="javascript:void(0)" id="auth-switch-link" onclick="toggleAuthMode()" style="color: #6B8F71; font-weight: 600; text-decoration: none; margin-left: 0.25rem;">Sign Up Free</a>
-    </div>
-  </div>
-</div>
-
-<div id="custom-alert-modal" class="modal-overlay" style="display: none; position: fixed; z-index: 999999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(28, 26, 22, 0.4); justify-content: center; align-items: center;">
-  <div class="modal-card" style="max-width: 360px; width: 100%; padding: 2rem; background: var(--white); border-radius: 14px; box-shadow: var(--shadow-lg); text-align: center;">
-    <div style="width: 44px; height: 44px; background: rgba(201,136,58,0.1); color: #C9883A; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto; font-size: 20px; font-weight: bold;">!</div>
-    <h3 class="serif" style="font-size: 18px; margin-bottom: 0.5rem; color: var(--ink);">Notification</h3>
-    <p id="custom-alert-message" style="font-size: 13px; color: var(--ink-muted); margin-bottom: 1.5rem; line-height: 1.5;"></p>
-    <button type="button" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.65rem;" onclick="closeCustomAlert()">Okay</button>
-  </div>
-</div>
-
-<script src="js/common.js"></script>
-<script src="js/landing.js"></script>
-<script src="js/ai-service.js"></script>
-<script src="js/input.js"></script>
-<script>
-
-  window.addEventListener('DOMContentLoaded', () => {
-    if (typeof renderNavbarAuth === 'function') {
-      renderNavbarAuth();
-    }
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('loadExample') === 'true' && typeof loadExample === 'function') {
-      loadExample();
-      if (typeof renderNavbarAuth === 'function') {
-        renderNavbarAuth();
+  <script src="js/common.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/ai-service.js"></script>
+  <script src="js/input.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('loadExample') === 'true' && typeof loadExample === 'function') {
+        loadExample();
       }
-    }
-  });
-</script>
+    });
+  </script>
 </body>
 </html>
