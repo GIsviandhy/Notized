@@ -1,53 +1,49 @@
 // ─── INPUT PAGE (input.html) SCRIPT ─────────────────────────────────────────
 
-const EXAMPLE_NOTES = `Nervous System, Neurons, and Synaptic Transmission - Biology Notes
+const EXAMPLE_NOTES = `Bio 101 - Lecture 6: Nervous System & Cell Signaling (10/14)
 
-The nervous system is the body's command center, coordinating all voluntary and involuntary actions. It consists of two main divisions: the Central Nervous System (CNS) and the Peripheral Nervous System (PNS).
+Nervous System (NS) = body's master controller, coordinates basically everything vol and invol. Split into CNS and PNS. CNS is just brain + spinal cord. Brain does all the heavy lifting—info processing, memory, emotions, executive decisions. Main structures: cerebrum (cortex, higher functions/thinking), cerebellum (motor patterns, balance, coordination—prof says think of a drunk person, that's cerebellum malfunction), and brainstem (autonomic vital stuff like breathing, heart rate, sleep cycles). Spinal cord is the main data highway, plugs brain into the rest of physical body. Crucial: spinal cord also handles reflex arcs on its own to save time, doesn't even wait for the brain to look at the signal.
 
-The CNS includes:
-- Brain: The control center for processing information, memory, emotions, and decision-making. Major regions include the cerebrum (higher functions), cerebellum (coordination), and brainstem (vital functions).
-- Spinal Cord: Acts as the information highway between the brain and the rest of the body. It also controls reflex actions.
+PNS is literally everything else branching off the CNS. Splits into two pathways: Sensory (Afferent) and Motor (Efferent). Memory trick: Afferent arrives at CNS, Efferent exits CNS. Afferent is input from receptors (skin, eyes, etc.). Efferent is output to effectors like muscles and glands. Efferent splits again into Somatic NS (voluntary control over skeletal muscles) and Autonomic NS (ANS - involuntary smooth muscle, cardiac muscle, glands, GI tract). Then ANS splits one more time into Sympathetic vs Parasympathetic. Sympathetic = Fight or Flight response (high heart rate, bronchodilation, stops digestion, shoots adrenaline). Parasympathetic = Rest and Digest (lowers heart rate, stimulates salivation and digestion, energy conservation). They work in opposition to maintain homeostasis.
 
-The PNS includes:
-- Sensory (Afferent) Division: Carries signals from sensory receptors to the CNS
-- Motor (Efferent) Division: Carries signals from CNS to muscles and glands
-  - Somatic Nervous System: Controls voluntary movements (skeletal muscles)
-  - Autonomic Nervous System: Controls involuntary functions (heart rate, digestion)
-    - Sympathetic: "Fight or flight" response
-    - Parasympathetic: "Rest and digest" response
+Cellular level: Functional units are NEURONS (excitable cells). Anatomy of standard multipolar neuron: Dendrites look like tree branches, they receive incoming chemical signals from upstream cells. Signals move into the Cell Body (Soma) which contains nucleus, mitochondria, rough ER (Nissl bodies, prof mentioned this fast, look up later). Soma integrates all incoming graded potentials to decide if it fires. Axon is the long wire carrying electrical output away from soma down to terminal. Axons insulated by Myelin Sheath. Myelin is just fatty layers made by glial cells: Schwann cells do it in the PNS, Oligodendrocytes do it in the CNS. EXAM ALERT: Multiple Sclerosis is an autoimmune condition where the body attacks its own myelin. Myelin speeds up signal propagation down the axon like crazy because the charge jumps from gap to gap (Nodes of Ranvier)—this is called Saltatory Conduction (from Latin "saltare" meaning to leap).
 
-Neurons are the functional units of the nervous system. A typical neuron has three main parts:
-1. Dendrites: Receive signals from other neurons
-2. Cell Body (Soma): Contains the nucleus and organelles; integrates incoming signals
-3. Axon: Long fiber that transmits electrical signals away from the cell body. Many axons are covered with myelin sheath (produced by Schwann cells in PNS or oligodendrocytes in CNS) which speeds up signal transmission through saltatory conduction.
+Action Potential (AP) = the electrical impulse down the axon. All-or-none phenomenon, either hits threshold and fires completely or doesn't fire at all.
 
-Action Potential is the electrical signal that travels down the axon:
-- Resting State: Neuron is polarized at -70mV (more negative inside)
-- Depolarization: Sodium channels open, Na+ rushes in, membrane potential becomes positive (+30mV)
-- Repolarization: Potassium channels open, K+ flows out, restoring negative charge
-- Refractory Period: Brief period where neuron cannot fire again
+Resting Membrane Potential (RMP): Cell is polarized at rest, sitting at -70mV. More negative inside than outside. Maintained by Na+/K+ ATPase pump (pumps 3 Na+ out for every 2 K+ in, costs ATP) and leaky K+ channels.
 
-Synaptic Transmission occurs at the synapse (gap between neurons):
-1. Action potential reaches axon terminal
-2. Voltage-gated calcium channels open, Ca2+ enters
-3. Calcium triggers vesicles containing neurotransmitters to fuse with membrane
-4. Neurotransmitters are released into synaptic cleft
-5. Neurotransmitters bind to receptors on postsynaptic neuron
-6. This can cause excitation (EPSP) or inhibition (IPSP) of the next neuron
-7. Neurotransmitters are removed by reuptake, enzymatic breakdown, or diffusion
+Depolarization: Stimulus causes graded potential. If it hits threshold (-55mV), voltage-gated Na+ channels snap open. Na+ rushes into the cell down its electrochemical gradient. Inside becomes highly positive, spiking up to about +30mV.
 
-Key Neurotransmitters:
-- Acetylcholine: Muscle contraction, memory, learning
-- Dopamine: Reward, motivation, motor control
-- Serotonin: Mood regulation, sleep, appetite
-- GABA: Main inhibitory neurotransmitter
-- Glutamate: Main excitatory neurotransmitter
+Repolarization: At peak (+30mV), Na+ channels inactivate (close up). Voltage-gated K+ channels open. K+ rushes out of the cell, taking positive charge away, bringing membrane potential back down toward negative.
 
-Clinical Connections:
-- Parkinson's Disease: Loss of dopamine-producing neurons
-- Alzheimer's Disease: Loss of acetylcholine and neuronal death
-- Multiple Sclerosis: Destruction of myelin sheath
-- Depression: Often linked to serotonin and norepinephrine imbalances`;
+Hyperpolarization / Refractory Period: K+ channels stay open a bit too long, causing overshoot down past -70mV (hyperpolarized state). This is the refractory period. Absolute refractory = sodium gates inactivated, impossible to fire another AP no matter what. Relative refractory = can fire but needs a massive stimulus. Keeps the action potential traveling in one direction only (can't go backwards).
+
+Synaptic Transmission: communication between neurons happens at the Synapse (tiny physical gap called synaptic cleft).
+AP travels down axon -> hits axon terminal (presynaptic side). This depolarization opens voltage-gated Calcium (Ca2+) channels. Ca2+ floods into terminal. Ca2+ influx acts as an intracellular trigger causing synaptic vesicles (sacks full of neurotransmitters) to move to and fuse with the presynaptic membrane via exocytosis. Neurotransmitters (NTs) get dumped into cleft, diffuse across the gap, and bind specifically to matching receptors on the postsynaptic membrane (dendrite of next cell).
+Binding triggers ion channels to open on the postsynaptic side. Can cause an EPSP (Excitatory Postsynaptic Potential—depolarizes cell closer to threshold) or an IPSP (Inhibitory Postsynaptic Potential—hyperpolarizes cell further from threshold, usually by letting Cl- in or K+ out).
+Crucial step: NTs can't just sit in the cleft forever or the signal never stops. Cleared out by 3 mechanisms: Reuptake pumps (sucked back into presynaptic terminal), Enzymatic degradation (chewed up by enzymes, e.g., Acetylcholinesterase breaks down ACh), or simple diffusion away from the cleft into surrounding interstitial fluid.
+
+Major Neurotransmitters to memorize for test:
+
+Acetylcholine (ACh): major for neuromuscular junctions (causes skeletal muscle contraction), also heavily involved in CNS memory and learning.
+
+Dopamine (DA): reward pathways, motivation, pleasure, fine motor control circuits.
+
+Serotonin (5-HT): regulates mood, sleep architecture, appetite, emotional processing.
+
+GABA: the primary inhibitory NT in the mature brain. Calms down neural activity. Alcohol and benzos potentiate GABA.
+
+Glutamate: the primary excitatory NT. Involved in long-term potentiation (learning/memory). Too much causes excitotoxicity (floods cell with calcium, kills it).
+
+Clinical Correlations from end of slides:
+
+Parkinson’s: progressive degradation of dopamine-producing neurons in the substantia nigra area of basal ganglia. Results in resting tremors, rigidity, bradykinesia.
+
+Alzheimer’s: massive loss of cholinergic (ACh) neurons, cortical atrophy, beta-amyloid plaques, neurofibrillary tau tangles. Leads to severe dementia.
+
+Multiple Sclerosis (MS): demyelination of CNS axons. Disrupts saltatory conduction, signals get delayed or lost entirely. Causes motor/sensory deficits.
+
+Depression: widely associated with monoamine hypothesis, specifically functional deficits/imbalances in serotonin and norepinephrine systems in synaptic clefts. Treated with SSRIs to block reuptake.`;
 
 // ─── INITIALIZATION ──────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
@@ -157,7 +153,7 @@ async function handleAnalyze() {
     await sleep(400);
 
     localStorage.setItem('notizedData', JSON.stringify(result));
-    window.location.href = 'dashboard.html';
+    window.location.href = 'dashboard.html'; // redirect to dashboard after analysis
   } catch (e) {
     console.error('Analysis error:', e);
     document.getElementById('input-form-view').style.display = 'block';
