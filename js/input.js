@@ -48,8 +48,46 @@ Depression: widely associated with monoamine hypothesis, specifically functional
 // ─── INITIALIZATION ──────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   const urlParams = new URLSearchParams(window.location.search);
+  const targetFolder = urlParams.get('target');
+  if (targetFolder) {
+    localStorage.setItem('notized_target_folder', targetFolder);
+  }
+
   if (urlParams.get('loadExample') === 'true') {
     loadExample();
+  } else {
+    if (typeof renderGlobalNavAuth === 'function') {
+      renderGlobalNavAuth();
+    }
+  }
+});
+
+// ─── INTERACTIVE PROFILE DROPDOWN FOR INPUT PAGE ──────────────────────────────
+function toggleProfileDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById('profile-dropdown-card');
+  if (!dropdown) return;
+
+  if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+    dropdown.style.display = 'flex';
+  } else {
+    dropdown.style.display = 'none';
+  }
+}
+
+// Tutup dropdown otomatis di input.html jika klik area bebas di luar kartu
+window.addEventListener('click', () => {
+  const dropdown = document.getElementById('profile-dropdown-card');
+  if (dropdown) dropdown.style.display = 'none';
+});
+
+// Mencegah penutupan paksa saat bagian dalam dropdown di-klik
+document.addEventListener('DOMContentLoaded', () => {
+  const profileDropdownCard = document.getElementById('profile-dropdown-card');
+  if (profileDropdownCard) {
+    profileDropdownCard.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
   }
 });
 
@@ -71,9 +109,22 @@ async function handleFileUpload(e) {
   if (!file) return;
 
   if (file.type === "application/pdf") {
-    const text = await extractTextFromPDF(file);
-    document.getElementById('notes-input').value = text;
-    updateWordCount();
+    if (typeof extractTextFromPDF === 'function') {
+      try {
+        const text = await extractTextFromPDF(file);
+        document.getElementById('notes-input').value = text;
+        updateWordCount();
+      } catch (err) {
+        console.error("PDF Extraction error:", err);
+        const errEl = document.getElementById('error-msg');
+        if (errEl) {
+          errEl.textContent = 'Failed to extract text from PDF file.';
+          errEl.style.display = 'block';
+        }
+      }
+    } else {
+      console.warn("extractTextFromPDF function is missing in common.js");
+    }
   } else {
     const reader = new FileReader();
     reader.onload = ev => {
@@ -91,8 +142,8 @@ function loadExample() {
     updateWordCount();
   }
   
-  if (typeof renderNavbarAuth === 'function') {
-        renderNavbarAuth();
+  if (typeof renderGlobalNavAuth === 'function') {
+    renderGlobalNavAuth();
   }
 }
 
@@ -103,13 +154,15 @@ async function handleAnalyze() {
 
   // Validasi awal kata
   if (!notes || notes.split(/\s+/).filter(Boolean).length < 10) {
-    errEl.textContent = 'Please paste at least a paragraph of notes to process.';
-    errEl.style.display = 'block';
+    if (errEl) {
+      errEl.textContent = 'Please paste at least a paragraph of notes to process.';
+      errEl.style.display = 'block';
+    }
     return;
   }
-  errEl.style.display = 'none';
+  if (errEl) errEl.style.display = 'none';
 
-  // ⚡ FIX UTAMA: Kunci dan simpan teks asli dari textarea ke localStorage sebelum masuk antrean loading
+  // Kunci dan simpan teks asli dari textarea ke localStorage
   localStorage.setItem('current_raw_text', notes);
 
   const screenInput = document.getElementById('screen-input');
@@ -117,8 +170,11 @@ async function handleAnalyze() {
     screenInput.classList.add('loading-active');
   }
 
-  document.getElementById('input-form-view').style.display = 'none';
-  document.getElementById('loading-view').classList.add('active');
+  const formView = document.getElementById('input-form-view');
+  if (formView) formView.style.display = 'none';
+  
+  const loadingView = document.getElementById('loading-view');
+  if (loadingView) loadingView.classList.add('active');
 
   const stages = [
     'Reading your notes…',
@@ -133,44 +189,46 @@ async function handleAnalyze() {
 
   async function animateStages() {
     for (let i = 0; i < stages.length; i++) {
-      stageEl.textContent = stages[i];
+      if (stageEl) stageEl.textContent = stages[i];
       const pct = Math.round((i + 1) / stages.length * 85);
-      barEl.style.width = pct + '%';
-      pctEl.textContent = pct + '%';
+      if (barEl) barEl.style.width = pct + '%';
+      if (pctEl) pctEl.textContent = pct + '%';
       await sleep(700);
     }
   }
 
   try {
-    // Memproses data lewat AI service layer bawaanmu
     const [result] = await Promise.all([
       analyzeNotes(notes),
       animateStages(),
     ]);
 
-    barEl.style.width = '100%';
-    pctEl.textContent = '100%';
+    if (barEl) barEl.style.width = '100%';
+    if (pctEl) pctEl.textContent = '100%';
     await sleep(400);
 
     localStorage.setItem('notizedData', JSON.stringify(result));
-    window.location.href = 'dashboard.html'; // redirect to dashboard after analysis
+    window.location.href = 'dashboard.html';
   } catch (e) {
     console.error('Analysis error:', e);
-    document.getElementById('input-form-view').style.display = 'block';
-    document.getElementById('loading-view').classList.remove('active');
+    if (formView) formView.style.display = 'block';
+    if (loadingView) loadingView.classList.remove('active');
+    
     const screenInput = document.getElementById('screen-input');
     if (screenInput) {
       screenInput.classList.remove('loading-active');
     }
-    errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
-    errEl.style.display = 'block';
     
-    // Jika proses gagal, hapus cache operan sementara agar memori tidak penuh
+    if (errEl) {
+      errEl.textContent = 'Processing failed: ' + (e.message || 'Unknown error');
+      errEl.style.display = 'block';
+    }
+    
     localStorage.removeItem('current_raw_text');
   }
 }
 
-// Helper utility sleep (jika belum dideklarasikan di common.js, biar tidak unhandled error)
+// Helper utility sleep
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }

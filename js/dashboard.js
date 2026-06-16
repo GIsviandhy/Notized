@@ -1,3 +1,7 @@
+/* ==========================================================================
+   NOTIZED - CORE WORKSPACE LOGIC AND FILE TREE ENGINE (dashboard.js)
+   ========================================================================== */
+
 // ─── INJEKSI CSS UNTUK FIX TEXT AREA, TEKS PANJANG & TOASTER ───
 const fixStyle = document.createElement('style');
 fixStyle.innerHTML = `
@@ -13,8 +17,6 @@ fixStyle.innerHTML = `
   .tree-file-item, .folder-grid-item, .file-grid-item { min-width: 0 !important; }
 
   /* 2. Fix Text Area Form Input */
-  #input-form-workspace { max-width: 100% !important; height: calc(100vh - 120px) !important; display: none; flex-direction: column; }
-  #input-form-workspace[style*="display: block"] { display: flex !important; }
   .modern-textarea-container { flex-grow: 1; display: flex; flex-direction: column; margin-bottom: 1.5rem; }
   #notes-input { flex-grow: 1; resize: none; min-height: 200px; }
 
@@ -33,6 +35,13 @@ fixStyle.innerHTML = `
   .toast-success { background: #10b981 !important; }
   .toast-error { background: #ef4444 !important; }
   .toast-info { background: #0284c7 !important; }
+
+  /* Responsive Fix for Note View 2 Column Inside Flex Container */
+  .note-two-col { display: flex; gap: 1.5rem; align-items: flex-start; width: 100%; }
+  @media (max-width: 768px) {
+    .note-two-col { flex-direction: column; }
+    .stats-sidebar-panel { width: 100% !important; }
+  }
 `;
 document.head.appendChild(fixStyle);
 
@@ -62,9 +71,13 @@ function showToast(msg, type = 'success') {
   }, 3000);
 }
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+// Set worker source untuk PDF.js
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
 
-let selectedFolderColor = "#0284c7"; 
+/* ── State Registries ── */
+let selectedFolderColor = "#6B8F71"; // Default ke warna Sage
 let currentRightClickedNodeId = null; 
 let draggedNodeId = null;             
 let isEditMode = false;      
@@ -75,6 +88,85 @@ let currentViewedNoteId = null;
 let isNoteEditingActive = false;
 let noteEditingTargetId = null;
 let isGuestMode = false;
+
+// ─── ESCAPE UTILITY ───
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ─── SLEEP UTILITY ───
+function sleep(ms) { 
+  return new Promise(r => setTimeout(r, ms)); 
+}
+
+// ─── STORAGE MANAGEMENT & DATA INITIALIZATION ───
+function initLibraryTree() {
+  const existingTree = localStorage.getItem('notized_library_tree');
+  if (existingTree) {
+    return JSON.parse(existingTree);
+  }
+
+  const defaultTree = [
+    {
+      id: "node_uiux", name: "UI/UX Design", type: "folder", expanded: true, color: "#C9883A",
+      children: [
+        {
+          id: "node_glowdiary", name: "GlowDiary Case Study", type: "file",
+          data: {
+            rawText: "GlowDiary Skincare Application UX Research.\n\nTarget market analysis indicates that users of skincare products encompass all genders, not just women. The interactive prototype built in Figma must reflect an inclusive interface.",
+            summary: ["Target market is inclusive of all genders.","Interactive prototyping executed in Figma."],
+            keywords: ["UX Research", "Figma", "Skincare App"],
+            clusters: [{ name: "User Demographics", color: "indigo", topics: ["All Genders", "Inclusive"] }],
+            learningPath: [{ step: 1, title: "Define Target Market", duration: "10 min", tip: "Ensure gender-neutral copy." }],
+            isRawOnly: false
+          }
+        }
+      ]
+    },
+    {
+      id: "node_dismath", name: "Discrete Math", type: "folder", expanded: true, color: "#4A5586",
+      children: [
+        {
+          id: "node_graph", name: "Graph Theory: Kamp Layout", type: "file",
+          data: {
+            rawText: "Graph theory application on the kamp layout project. Based on latest constraints, the Kamp Layout requires exactly 13 edges.",
+            summary: ["Graph theory applied to kamp layout.","The layout structure consists of exactly 13 edges."],
+            keywords: ["Graph Theory", "Kamp Layout", "13 Edges"],
+            clusters: [{ name: "Graph Properties", color: "amber", topics: ["Edges", "Vertices"] }],
+            learningPath: [{ step: 1, title: "Node Mapping", duration: "15 min", tip: "Identify critical vertices first." }],
+            isRawOnly: false
+          }
+        }
+      ]
+    }
+  ];
+  localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
+  return defaultTree;
+}
+
+function getLibraryData() {
+  return initLibraryTree();
+}
+
+// ─── PDF EXTRACTION ───
+async function extractTextFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageStrings = content.items.map(item => item.str);
+    fullText += pageStrings.join(" ") + "\n\n";
+  }
+  return fullText;
+}
 
 // ─── GLOBAL CONTEXT MENU ENGINE ───
 document.addEventListener('contextmenu', function(e) {
@@ -88,13 +180,13 @@ document.addEventListener('contextmenu', function(e) {
         if (!menu) {
             menu = document.createElement('div');
             menu.id = 'notized-context-menu';
-            menu.style.cssText = 'position: fixed; display: none; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; z-index: 999999; padding: 0.5rem; min-width: 160px; flex-direction: column; gap: 0.25rem; font-family: "Plus Jakarta Sans", sans-serif;';
+            menu.style.cssText = 'position: fixed; display: none; background: #ffffff; border: 1px solid rgba(28,26,22,0.1); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 8px; z-index: 999999; padding: 0.5rem; min-width: 160px; flex-direction: column; gap: 0.25rem; font-family: "DM Sans", sans-serif;';
             document.body.appendChild(menu);
         }
         
         menu.innerHTML = `
-            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #0f172a; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'; this.style.color='#0284c7';" onmouseout="this.style.background='transparent'; this.style.color='#0f172a';" onclick="handleContextRename(${isFolder})">✎ Rename</div>
-            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #ef4444; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='transparent'" onclick="handleContextDelete(${isFolder})">🗑 Delete</div>
+            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #1C1A16; transition: all 0.2s;" onmouseover="this.style.background='rgba(28,26,22,0.05)'; this.style.color='#0F6E56';" onmouseout="this.style.background='transparent'; this.style.color='#1C1A16';" onclick="handleContextRename(${isFolder})">✎ Rename</div>
+            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #B85C6E; transition: all 0.2s;" onmouseover="this.style.background='#FAEAED'" onmouseout="this.style.background='transparent'" onclick="handleContextDelete(${isFolder})">🗑 Delete</div>
         `;
         menu.style.display = 'flex';
         let x = e.clientX; let y = e.clientY;
@@ -108,15 +200,29 @@ document.addEventListener('contextmenu', function(e) {
 document.addEventListener('click', (e) => {
     const menu = document.getElementById('notized-context-menu');
     if (menu) menu.style.display = 'none';
+    
+    // Tutup Create New Dropdown jika klik di luar tombol pembungkusnya
     const drop = document.getElementById('header-action-dropdown');
-    if (drop && !e.target.closest('.dropdown-wrapper')) drop.classList.remove('active');
+    if (drop && !e.target.closest('#create-new-wrapper')) {
+      drop.classList.remove('active');
+      drop.style.removeProperty('display');
+    }
+    
+    const profileDropdown = document.getElementById('dashboard-profile-dropdown');
+    if (profileDropdown && !e.target.closest('#dashboard-profile-dropdown') && !e.target.closest('#user-avatar-circle')) {
+      profileDropdown.style.display = 'none';
+    }
 });
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   isGuestMode = urlParams.get('loadExample') === 'true';
 
-  if (isGuestMode) {
+  if (typeof renderGlobalNavAuth === 'function') {
+    renderGlobalNavAuth();
+  }
+
+if (isGuestMode) {
     localStorage.removeItem('notized_currentUser');
     setupGuestUI();
     startNewIntake('root_root');
@@ -130,19 +236,25 @@ window.addEventListener('DOMContentLoaded', () => {
     refreshWorkspaceTree();
     setupSidebarResizer();
     viewRoot();
+    
     const greetingEl = document.getElementById('user-greeting');
-    if (greetingEl) {
-      const user = JSON.parse(localStorage.getItem('notized_currentUser'));
-      if (user && user.name) {
+    const user = JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
+    
+    if (user && user.name) {
+      if (greetingEl) {
         greetingEl.textContent = `Hello, ${user.name}`;
-        if(!sessionStorage.getItem('notized_greeted')) {
-          showToast(`Welcome back, ${user.name}!`, "success");
-          sessionStorage.setItem('notized_greeted', 'true');
-        }
+      }
+      
+      if (!sessionStorage.getItem('notized_greeted')) {
+        showToast(`Welcome back, ${user.name}!`, "success");
+        sessionStorage.setItem('notized_greeted', 'true');
       }
     }
+    
+    // Render avatar + nama profil setelah user data siap
+    renderDashboardProfile();
   }
-
+  
   const scrollContainer = document.querySelector('.workspace-tab-body-scroll');
   if (scrollContainer) {
     scrollContainer.classList.remove('preview-full-mode');
@@ -154,7 +266,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   if (toggleBtn) toggleBtn.style.setProperty('display', 'flex', 'important');
 
-  await loadLibraryFromDatabase();
+  let treeData = getLibraryData();
 
   function forceCollapseAll(nodes) {
     nodes.forEach(node => {
@@ -164,11 +276,27 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
-  forceCollapseAll(currentAccountTreeData);
+  forceCollapseAll(treeData);
+  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
 
   refreshWorkspaceTree();
-  currentSelectedNodeId = null;
-  resetToEmptyState();
+
+  if (!isGuestMode && localStorage.getItem('notizedData')) {
+    openSaveModal();
+  }
+});
+
+window.addEventListener('focus', () => {
+  renderDashboardProfile();
+  // Sync jika ada perubahan dari tab lain (misal: selesai buat note dari input.html)
+  refreshCurrentView();
+});
+
+// Real-time sync jika localStorage berubah dari tab lain
+window.addEventListener('storage', (e) => {
+  if (e.key === 'notized_library_tree') {
+    refreshCurrentView();
+  }
 });
 
 function setupSidebarResizer() {
@@ -179,7 +307,7 @@ function setupSidebarResizer() {
   resizer.id = 'sidebar-resizer';
   resizer.style.cssText = 'width: 6px; cursor: col-resize; position: absolute; right: 0; top: 0; bottom: 0; z-index: 100; transition: background 0.2s;';
   
-  resizer.onmouseover = () => resizer.style.background = 'rgba(2, 132, 199, 0.2)';
+  resizer.onmouseover = () => resizer.style.background = 'rgba(107, 143, 113, 0.2)';
   resizer.onmouseout = () => resizer.style.background = 'transparent';
 
   sidebar.style.position = 'relative';
@@ -216,10 +344,10 @@ function setupGuestUI() {
   const topbarRight = document.querySelector('.topbar-right-cluster');
   if (topbarRight) {
     topbarRight.innerHTML = `
-      <button type="button" class="btn-secondary" onclick="window.location.href='index.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
+      <button type="button" class="btn-secondary" onclick="window.location.href='landing.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> Back to Home
       </button>
-      <button type="button" class="btn-primary" onclick="window.location.href='index.html'">Login / Register</button>
+      <button type="button" class="btn-nav-solid" onclick="window.location.href='landing.html'">Login / Register</button>
     `;
   }
   const mainLayout = document.querySelector('.workspace-layout');
@@ -227,9 +355,58 @@ function setupGuestUI() {
 }
 
 function toggleHeaderDropdown(event) {
-  event.preventDefault(); event.stopPropagation();
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   const drop = document.getElementById('header-action-dropdown');
-  if (drop) drop.classList.toggle('active');
+  if (drop) {
+    // Gunakan class 'active' sesuai CSS .dropdown-menu-list.active { display: block }
+    drop.classList.toggle('active');
+    // Hapus inline style yang mungkin override
+    drop.style.removeProperty('display');
+  }
+}
+
+function toggleDashboardProfileDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById('dashboard-profile-dropdown');
+  if (!dropdown) return;
+  dropdown.style.display = (dropdown.style.display === 'none' || dropdown.style.display === '') ? 'flex' : 'none';
+}
+
+// Cegah ketidaksengajaan menutup saat mengklik bagian dalam komponen dropdown
+document.getElementById('dashboard-profile-dropdown')?.addEventListener('click', (e) => {
+  e.stopPropagation();
+});
+
+function closeDashboardProfileDropdown() {
+  const dropdown = document.getElementById('dashboard-profile-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+}
+
+function renderDashboardProfile() {
+  const user = JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
+  const profileBtn = document.getElementById('dashboard-profile-button');
+  const initialEl = document.getElementById('profile-initial');
+  const nameEl = document.getElementById('dashboard-profile-name');
+  const emailEl = document.getElementById('dashboard-profile-email');
+
+  if (user && (user.name || user.email)) {
+    const sourceText = user.name || user.email || '';
+    const firstChar = sourceText.trim().split(' ')[0].charAt(0).toUpperCase() || '?';
+    if (profileBtn) profileBtn.style.display = 'flex';
+    if (initialEl) initialEl.textContent = firstChar;
+    if (nameEl) nameEl.textContent = user.name || user.email || 'Member';
+    if (emailEl) emailEl.textContent = user.email || '';
+  } else {
+    if (profileBtn) profileBtn.style.display = 'none';
+    if (initialEl) initialEl.textContent = '';
+    if (nameEl) nameEl.textContent = '';
+    if (emailEl) emailEl.textContent = '';
+    const dropdown = document.getElementById('dashboard-profile-dropdown');
+    if (dropdown) dropdown.style.display = 'none';
+  }
 }
 
 function handleFolderBack() {
@@ -259,6 +436,7 @@ function handleCancelInput() {
 function customAlert(msg, title = "Notification") {
   return new Promise(resolve => {
     const overlay = document.getElementById('custom-dialog-overlay');
+    if (!overlay) { alert(msg); resolve(true); return; }
     document.getElementById('cd-title').textContent = title;
     document.getElementById('cd-msg').textContent = msg;
     document.getElementById('cd-input').style.display = 'none';
@@ -273,6 +451,7 @@ function customAlert(msg, title = "Notification") {
 function customConfirm(msg, title = "Confirm Action") {
   return new Promise(resolve => {
     const overlay = document.getElementById('custom-dialog-overlay');
+    if (!overlay) { resolve(confirm(msg)); return; }
     document.getElementById('cd-title').textContent = title;
     document.getElementById('cd-msg').textContent = msg;
     document.getElementById('cd-input').style.display = 'none';
@@ -288,6 +467,7 @@ function customConfirm(msg, title = "Confirm Action") {
 function customPrompt(msg, defaultValue = "", title = "Input Required") {
   return new Promise(resolve => {
     const overlay = document.getElementById('custom-dialog-overlay');
+    if (!overlay) { resolve(prompt(msg, defaultValue)); return; }
     document.getElementById('cd-title').textContent = title;
     document.getElementById('cd-msg').textContent = msg;
     const inputField = document.getElementById('cd-input');
@@ -304,63 +484,15 @@ function customPrompt(msg, defaultValue = "", title = "Input Required") {
   });
 }
 
-function getLibraryData() {
-  return currentAccountTreeData;
-}
-
-  const defaultTree = [
-    {
-      id: "node_uiux", name: "UI/UX Design", type: "folder", expanded: true, color: "#f59e0b",
-      children: [
-        {
-          id: "node_glowdiary", name: "GlowDiary Case Study", type: "file",
-          data: {
-            rawText: "GlowDiary Skincare Application UX Research.\n\nTarget market analysis indicates that users of skincare products encompass all genders, not just women. The interactive prototype built in Figma must reflect an inclusive interface. Key features include daily tracking, product matching, and personalized routines.",
-            summary: ["Target market is inclusive of all genders.","Interactive prototyping executed in Figma.","Focuses on inclusive interface and daily routine tracking."],
-            keywords: ["UX Research", "Figma", "Skincare App", "Inclusive"],
-            clusters: [{ name: "User Demographics", color: "indigo", topics: ["All Genders", "Inclusive"] },{ name: "Prototyping", color: "sage", topics: ["Figma", "Interactive"] }],
-            learningPath: [{ step: 1, title: "Define Target Market", duration: "10 min", tip: "Ensure gender-neutral copy." },{ step: 2, title: "Figma Prototyping", duration: "25 min", tip: "Create user flows." }],
-            isRawOnly: false
-          }
-        }
-      ]
-    },
-    {
-      id: "node_dismath", name: "Discrete Math", type: "folder", expanded: true, color: "#6366f1",
-      children: [
-        {
-          id: "node_graph", name: "Graph Theory: Kamp Layout", type: "file",
-          data: {
-            rawText: "Graph theory application on the kamp layout project. A graph consists of vertices and edges. Based on the latest mapping constraints, the Kamp Layout requires exactly 13 edges to connect all critical nodes efficiently without overlapping paths.",
-            summary: ["Graph theory applied to kamp layout.","The layout structure consists of exactly 13 edges."],
-            keywords: ["Graph Theory", "Kamp Layout", "13 Edges", "Vertices"],
-            clusters: [{ name: "Graph Properties", color: "amber", topics: ["Edges", "Vertices", "Constraints"] }],
-            learningPath: [{ step: 1, title: "Node Mapping", duration: "15 min", tip: "Identify all critical vertices first." },{ step: 2, title: "Edge Connection", duration: "10 min", tip: "Draw exactly 13 edges." }],
-            isRawOnly: false
-          }
-        }
-      ]
-    }
-  ];
-  localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
-  return defaultTree;
-}
-
-function hexToRgbaTint(hex, opacity = 0.15) {
-  let c;
-  if(/^#([A-Fa-f0-9]{3}){1,2}$/.test(hex)){
-    c= hex.substring(1).split('');
-    if(c.length== 3){ c= [c[0], c[0], c[1], c[1], c[2], c[2]]; }
-    c= '0x'+c.join('');
-    return 'rgba('+[(c>>16)&255, (c>>8)&255, c&255].join(',')+','+opacity+')';
-  }
-  return 'rgba(107, 143, 113, 0.15)';
-}
-
+// ⚡ REVISI SIDEBAR TOGGLE: Fungsi untuk membuka-tutup panel navigasi kiri
 function toggleSidebar(event) {
   if (event) event.preventDefault();
   const sidebar = document.getElementById('workspace-sidebar');
-  if (sidebar) sidebar.classList.toggle('collapsed');
+  if (sidebar) {
+    sidebar.classList.toggle('collapsed');
+    // Gunakan CSS class 'collapsed' yang sudah ada (width: 0 + overflow: hidden)
+    // Jangan paksa display: none karena akan merusak layout flex
+  }
 }
 
 function hideAllViews() {
@@ -377,15 +509,15 @@ function viewRoot() {
   const tree = getLibraryData(); const grid = document.getElementById('root-contents-grid'); const emptyHint = document.getElementById('root-empty-hint');
   let html = '';
   if (tree && tree.length > 0) {
-    emptyHint.style.display = 'none'; grid.style.display = 'grid';
+    if (emptyHint) emptyHint.style.display = 'none'; 
+    grid.style.display = 'grid';
     tree.forEach(child => {
       if (child.type === 'folder') { 
           html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
               <svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
           </div>`; 
-      } 
-      else { 
+      } else { 
           html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
               <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
@@ -393,7 +525,7 @@ function viewRoot() {
       }
     });
     grid.innerHTML = html;
-  } else { grid.style.display = 'none'; emptyHint.style.display = 'flex'; }
+  } else { grid.style.display = 'none'; if (emptyHint) emptyHint.style.display = 'flex'; }
   bindDragAndDropEvents();
 }
 
@@ -423,8 +555,7 @@ function viewFolderNode(id, event) {
               <svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
           </div>`; 
-      } 
-      else { 
+      } else { 
           html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
               <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
               <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
@@ -445,7 +576,8 @@ function loadSavedFileNode(id, name, event) {
 
   const rawBody = document.getElementById('raw-notes-body'); 
   const btnHead = document.querySelector('.accordion-header');
-  rawBody.style.display = 'none'; if(btnHead) btnHead.classList.remove('open');
+  if (rawBody) rawBody.style.display = 'none'; 
+  if (btnHead) btnHead.classList.remove('open');
 
   if (foundFile) {
     if (!foundFile.data) {
@@ -454,13 +586,10 @@ function loadSavedFileNode(id, name, event) {
         summary: ["No summary available for legacy notes."], keywords: ["Legacy", "System"], clusters: [], learningPath: [], isRawOnly: false
       };
       localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
-    } else if (!foundFile.data.rawText) {
-      foundFile.data.rawText = "Legacy Note: The original raw text was not saved in older versions. Click 'Edit Content' to overwrite with new content.";
-      localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
     }
 
     const data = foundFile.data;
-    rawBody.textContent = data.rawText;
+    if (rawBody) rawBody.textContent = data.rawText;
     
     if (data.isRawOnly) {
        document.getElementById('unanalyzed-state').style.display = 'block';
@@ -476,47 +605,9 @@ function loadSavedFileNode(id, name, event) {
 function startNewIntake(targetId) {
   const drop = document.getElementById('header-action-dropdown');
   if (drop) drop.classList.remove('active');
-
-  localStorage.setItem('notized_target_folder', targetId || 'root_root'); currentViewedFolderId = targetId || 'root_root';
-  isNoteEditingActive = false; noteEditingTargetId = null; hideAllViews();
-  document.getElementById('input-form-workspace').style.display = 'block';
-  
-  document.getElementById('notes-input').value = '';
-  updateWordCount(); 
-  
-  if (isGuestMode) {
-      document.getElementById('intake-form-title').textContent = "Try Sample Concept";
-      const subtitle = document.querySelector('#input-form-workspace .entry-subtitle');
-      if (subtitle) subtitle.textContent = "Experience Quantum Analysis instantly without an account.";
-      
-      const formActionBar = document.querySelector('#input-form-workspace .explicit-action-bar');
-      if (formActionBar) formActionBar.style.display = 'none';
-      
-      const saveRawBtn = document.querySelector('button[onclick="handleSaveRaw()"]');
-      if (saveRawBtn) saveRawBtn.style.display = 'none';
-      
-      const breadcrumbs = document.getElementById('breadcrumbs-input');
-      if (breadcrumbs) breadcrumbs.style.display = 'none';
-  } else {
-      document.getElementById('intake-form-title').textContent = "Transform New Material";
-      const subtitle = document.querySelector('#input-form-workspace .entry-subtitle');
-      if (subtitle) subtitle.textContent = "Feed in lecture transcripts, notes, drafts, or full book chapters into the current directory.";
-      
-      const formActionBar = document.querySelector('#input-form-workspace .explicit-action-bar');
-      if (formActionBar) formActionBar.style.display = 'flex';
-      
-      const saveRawBtn = document.querySelector('button[onclick="handleSaveRaw()"]');
-      if (saveRawBtn) saveRawBtn.style.display = 'inline-flex';
-      
-      const tree = getLibraryData(); const path = targetId === 'root_root' ? [] : findPath(tree, targetId);
-      let intakePath = path ? [...path] : []; intakePath.push({ id: 'new', name: 'New Note Session', type: 'file' });
-      
-      const breadcrumbs = document.getElementById('breadcrumbs-input');
-      if (breadcrumbs) {
-          breadcrumbs.style.display = 'flex';
-          renderBreadcrumbs(intakePath, 'breadcrumbs-input');
-      }
-  }
+  const folderId = targetId || 'root_root';
+  localStorage.setItem('notized_target_folder', folderId);
+  window.location.href = `input.html?target=${encodeURIComponent(folderId)}`;
 }
 
 function startNewIntakeFromCurrentFolder() { startNewIntake(currentViewedFolderId); }
@@ -524,6 +615,7 @@ function startNewIntakeFromCurrentFolder() { startNewIntake(currentViewedFolderI
 function updateWordCount() {
   const text = document.getElementById('notes-input').value.trim(); const wordCount = text.length > 0 ? text.split(/\s+/).length : 0;
   const badge = document.getElementById('word-count');
+  if (!badge) return;
   if (wordCount === 0) badge.textContent = "Waiting for content"; else if (wordCount < 10) badge.textContent = `${wordCount} words - Too short!`; else badge.textContent = `${wordCount} words detected`;
 }
 
@@ -565,10 +657,8 @@ async function handleAnalyze() {
     if (isGuestMode) {
         hideAllViews();
         document.getElementById('active-project-workspace').style.display = 'block';
-        
         const projBreadcrumbs = document.getElementById('breadcrumbs-project');
         if (projBreadcrumbs) projBreadcrumbs.style.display = 'none';
-        
         const actionBars = document.querySelectorAll('#active-project-workspace .explicit-action-bar');
         actionBars.forEach(bar => bar.style.display = 'none');
         
@@ -578,11 +668,11 @@ async function handleAnalyze() {
         if(!guestMsg) {
             guestMsg = document.createElement('div');
             guestMsg.id = 'guest-save-msg';
-            guestMsg.style.cssText = "margin-top: 1rem; padding: 1.5rem; background-color: #f0f9ff; border: 1px dashed #0284c7; border-radius: 12px; text-align: center; margin-bottom: 2rem;";
+            guestMsg.style.cssText = "margin-top: 1rem; padding: 1.5rem; background-color: #f8faec; border: 1px dashed #6B8F71; border-radius: 12px; text-align: center; margin-bottom: 2rem;";
             guestMsg.innerHTML = `
-              <h3 class="serif" style="color: #0284c7; margin-bottom: 0.5rem;">Analysis Complete!</h3>
-              <p style="color: #334155; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
-              <button class="btn-primary" onclick="window.location.href='index.html'">Login or Register Account</button>
+              <h3 class="serif" style="color: #0F6E56; margin-bottom: 0.5rem;">Analysis Complete!</h3>
+              <p style="color: #1C1A16; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
+              <button class="btn-primary" onclick="window.location.href='landing.html'">Login or Register Account</button>
             `;
             const headerWrap = document.querySelector('#active-project-workspace .note-header-wrap');
             if(headerWrap) headerWrap.insertAdjacentElement('afterend', guestMsg);
@@ -590,7 +680,6 @@ async function handleAnalyze() {
         
         document.getElementById('unanalyzed-state').style.display = 'none';
         document.getElementById('analyzed-content-state').style.display = 'block';
-        
         const rawBody = document.getElementById('raw-notes-body');
         if(rawBody) { rawBody.style.display = 'none'; rawBody.textContent = result.rawText; }
         renderProjectContent(result);
@@ -898,17 +987,28 @@ function bindDragAndDropEvents() {
 
 function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData); bindDragAndDropEvents(); }
 
+// Refresh sidebar tree + main content area sesuai view yang sedang aktif
+function refreshCurrentView() {
+  refreshWorkspaceTree();
+  if (currentViewedNoteId) return; // Sedang buka note, tidak perlu re-render grid
+  if (currentViewedFolderId && currentViewedFolderId !== 'root_root') {
+    viewFolderNode(currentViewedFolderId);
+  } else {
+    viewRoot();
+  }
+}
+
 function buildTreeHTML(nodes) {
   return nodes.map(node => {
     if (node.type === "folder") {
-      const caret = node.children && node.children.length > 0 ? (node.expanded ? "▾" : "▸") : " "; const baseColor = node.color || "#0284c7"; 
+      const caret = node.children && node.children.length > 0 ? (node.expanded ? "▾" : "▸") : " "; const baseColor = node.color || "#6B8F71"; 
       return `
         <div class="tree-folder-block" data-id="${node.id}">
-          <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.14)}; color: ${baseColor};" title="${esc(node.name)}">
+          <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.12)}; color: ${baseColor};" title="${esc(node.name)}">
             <div style="display: flex; gap: 0.4rem; align-items: center; flex: 1; min-width: 0;">
               <div onmousedown="event.stopPropagation()" onclick="toggleFolderNode('${node.id}', event)" style="cursor: pointer; font-size:14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: -4px;">${caret}</div>
               <div onclick="viewFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1; cursor: pointer; min-width: 0;">
-                <svg class="tree-svg-icon" style="flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                <svg class="tree-svg-icon" style="flex-shrink: 0; color: ${baseColor};" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(node.name)}</strong>
               </div>
             </div>
@@ -943,6 +1043,12 @@ async function openFolderCreatorDirect(event) {
   nInput.value = ''; 
   nInput.setAttribute('maxlength', '40'); 
   nInput.oninput = function() { if (this.value.length > 40) this.value = this.value.substring(0, 40); };
+  const activeDot = document.querySelector('.color-dot.active');
+  if (activeDot) {
+    selectedFolderColor = activeDot.getAttribute('data-color') || selectedFolderColor;
+  } else {
+    selectedFolderColor = selectedFolderColor || '#0F6E56';
+  }
   folderModal.style.setProperty('display', 'flex', 'important');
 }
 
@@ -953,7 +1059,7 @@ function handleFolderSubmit() {
   let treeData = getLibraryData();
   if (isEditMode) { 
       let node = getTargetNode(treeData, editingNodeId); 
-      if (node) { node.name = nameInput; node.color = selectedFolderColor || "#0284c7"; } 
+      if (node) { node.name = nameInput; node.color = selectedFolderColor || "#6B8F71"; } 
       showToast("Folder renamed successfully!");
   } 
   else {
@@ -962,7 +1068,7 @@ function handleFolderSubmit() {
     else { let parent = getTargetNode(treeData, currentViewedFolderId); if (parent && parent.type === 'folder') { parent.children.push(newNode); parent.expanded = true; } else treeData.push(newNode); }
     showToast("Folder created successfully!");
   }
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); closeFolderCreatorCard(); refreshWorkspaceTree();
+  localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); closeFolderCreatorCard(); refreshCurrentView();
   if (!isEditMode && currentViewedFolderId !== "root_root") viewFolderNode(currentViewedFolderId); else if (isEditMode) viewFolderNode(editingNodeId);
 }
 
@@ -998,7 +1104,7 @@ async function confirmSaveNotes() {
   if (folderTargetId === "root_root" || folderTargetId.startsWith("mock_pad_")) treeData.push(newFileNode);
   else { let parent = getTargetNode(treeData, folderTargetId); if (parent) { if (!parent.children) parent.children = []; parent.children.push(newFileNode); parent.expanded = true; } }
   localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData'); localStorage.removeItem('notized_target_folder');
-  closeSaveModal(); refreshWorkspaceTree(); loadSavedFileNode(newFileNode.id, titleInput);
+  closeSaveModal(); refreshCurrentView(); loadSavedFileNode(newFileNode.id, titleInput);
   showToast("Note created successfully!");
 }
 
@@ -1025,4 +1131,87 @@ function renderProjectContent(data) {
       </div>`).join('');
   }
 }
-function esc(str) { return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+/* ==========================================================================
+   PATCH — Fallbacks + One-page note view helpers
+   ========================================================================== */
+
+if (typeof hexToRgbaTint === 'undefined') {
+  function hexToRgbaTint(hex, alpha) {
+    hex = (hex || '#6B8F71').replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+    const r = parseInt(hex.substring(0,2), 16);
+    const g = parseInt(hex.substring(2,4), 16);
+    const b = parseInt(hex.substring(4,6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+}
+
+if (typeof handleLogout === 'undefined') {
+  function handleLogout() {
+    localStorage.removeItem('notized_currentUser');
+    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('notized_greeted');
+    window.location.href = 'landing.html';
+  }
+}
+
+if (typeof analyzeNotes === 'undefined') {
+  async function analyzeNotes(text) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{
+          role: "user",
+          content: `You are a study notes analyzer. Given the following raw notes, respond ONLY with a valid JSON object (no markdown, no backticks) in this exact format:
+{
+  "summary": ["point 1", "point 2", "point 3", "point 4", "point 5"],
+  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5", "keyword6"],
+  "clusters": [
+    { "name": "Cluster Name", "color": "sage", "topics": ["topic1", "topic2", "topic3"] }
+  ],
+  "learningPath": [
+    { "step": 1, "title": "Step Title", "duration": "15 min", "tip": "Study tip here." }
+  ]
+}
+
+Raw notes:
+${text}`
+        }]
+      })
+    });
+    const data = await response.json();
+    const raw = data.content.map(i => i.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  }
+}
+
+(function() {
+  const _orig = window.toggleRawNotesView;
+  window.toggleRawNotesView = function() {
+    const body = document.getElementById('raw-notes-body');
+    const btn  = document.getElementById('raw-accordion-btn') || document.querySelector('.accordion-header');
+    const hint = document.getElementById('raw-accordion-hint');
+    if (!body || !btn) { if (_orig) _orig(); return; }
+    const isNowOpen = body.style.display === 'none';
+    body.style.display = isNowOpen ? 'block' : 'none';
+    btn.classList.toggle('open', isNowOpen);
+    if (hint) hint.textContent = isNowOpen ? 'click to collapse' : 'click to expand';
+  };
+})();
+
+(function() {
+  const _origLoad = window.loadSavedFileNode;
+  window.loadSavedFileNode = function(id, name, event) {
+    _origLoad(id, name, event);
+    setTimeout(() => {
+      document.querySelectorAll('.note-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
+      const mainPane = document.querySelector('.workspace-main-pane');
+      if (mainPane) mainPane.scrollTo({ top: 0, behavior: 'instant' });
+    }, 50);
+  };
+})();

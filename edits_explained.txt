@@ -1,5 +1,5 @@
-index.html (landing page) CHANGED TO landing.html (improved ui)
-index.html is old version, uses style.css
+landing.html (landing page) (renamed from index.html) — improved UI
+index.html was the old version, used style.css
 
 landing.html uses landing.css
 

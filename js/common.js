@@ -45,3 +45,71 @@ async function extractTextFromPDF(file) {
   }
   return fullText;
 }
+
+// Render auth nav: Dashboard + Profile if logged in, else Log In button
+function renderGlobalNavAuth() {
+  const container = document.getElementById('nav-auth-container');
+  if (!container) return;
+  
+  const user = JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
+  
+  if (user && user.name) {
+    // User is logged in: Tampilkan Dashboard membulat + avatar sejajar horizontal
+    const initial = user.name.charAt(0).toUpperCase();
+    container.innerHTML = `
+      <button class="btn-nav-secondary" onclick="location.href='dashboard.html'" style="
+        background: transparent; 
+        border: 1px solid var(--border, #e2e8f0); 
+        padding: 0.5rem 1.2rem; 
+        border-radius: 20px; 
+        cursor: pointer; 
+        font-size: 13px; 
+        font-weight: 500;
+        transition: background 0.2s;
+      " onmouseover="this.style.background='rgba(0,0,0,0.03)'" onmouseout="this.style.background='transparent'">
+        Dashboard
+      </button>
+      <div id="user-avatar-circle" onclick="toggleProfileDropdown(event)" style="
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--sage, #6B8F71);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        user-select: none;
+      ">${initial}</div>
+    `;
+    const dn = document.getElementById('dropdown-user-name');
+    const de = document.getElementById('dropdown-user-email');
+    if (dn) dn.textContent = user.name;
+    if (de) de.textContent = user.email || '';
+  } else {
+    // User not logged in: Tampilkan tombol Log In hijau solid yang konsisten
+    container.innerHTML = `
+      <button class="btn-nav-solid" onclick="openAuthModal('login')" style="
+        background-color: #0F6E56; 
+        color: #ffffff; 
+        border: none; 
+        padding: 0.6rem 1.4rem; 
+        border-radius: 20px; 
+        font-size: 14px; 
+        font-weight: 600; 
+        cursor: pointer; 
+        box-shadow: 0 2px 8px rgba(15, 110, 86, 0.2);
+        transition: all 0.2s ease;
+      " onmouseover="this.style.backgroundColor='#1D9E75'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(29, 158, 117, 0.3)';" 
+        onmouseout="this.style.backgroundColor='#0F6E56'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(15, 110, 86, 0.2)';">
+        Log In
+      </button>
+    `;
+  }
+  
+  // Sembunyikan dropdown secara default
+  const dd = document.getElementById('profile-dropdown-card');
+  if (dd) dd.style.display = 'none';
+}
