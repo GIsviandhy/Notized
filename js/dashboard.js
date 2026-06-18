@@ -105,48 +105,58 @@ function sleep(ms) {
 }
 
 // ─── STORAGE MANAGEMENT & DATA INITIALIZATION ───
+// function initLibraryTree() {
+//   const existingTree = localStorage.getItem('notized_library_tree');
+//   if (existingTree) {
+//     return JSON.parse(existingTree);
+//   }
+
+//   const defaultTree = [
+//     {
+//       id: "node_uiux", name: "UI/UX Design", type: "folder", expanded: true, color: "#C9883A",
+//       children: [
+//         {
+//           id: "node_glowdiary", name: "GlowDiary Case Study", type: "file",
+//           data: {
+//             rawText: "GlowDiary Skincare Application UX Research.\n\nTarget market analysis indicates that users of skincare products encompass all genders, not just women. The interactive prototype built in Figma must reflect an inclusive interface.",
+//             summary: ["Target market is inclusive of all genders.","Interactive prototyping executed in Figma."],
+//             keywords: ["UX Research", "Figma", "Skincare App"],
+//             clusters: [{ name: "User Demographics", color: "indigo", topics: ["All Genders", "Inclusive"] }],
+//             learningPath: [{ step: 1, title: "Define Target Market", duration: "10 min", tip: "Ensure gender-neutral copy." }],
+//             isRawOnly: false
+//           }
+//         }
+//       ]
+//     },
+//     {
+//       id: "node_dismath", name: "Discrete Math", type: "folder", expanded: true, color: "#4A5586",
+//       children: [
+//         {
+//           id: "node_graph", name: "Graph Theory: Kamp Layout", type: "file",
+//           data: {
+//             rawText: "Graph theory application on the kamp layout project. Based on latest constraints, the Kamp Layout requires exactly 13 edges.",
+//             summary: ["Graph theory applied to kamp layout.","The layout structure consists of exactly 13 edges."],
+//             keywords: ["Graph Theory", "Kamp Layout", "13 Edges"],
+//             clusters: [{ name: "Graph Properties", color: "amber", topics: ["Edges", "Vertices"] }],
+//             learningPath: [{ step: 1, title: "Node Mapping", duration: "15 min", tip: "Identify critical vertices first." }],
+//             isRawOnly: false
+//           }
+//         }
+//       ]
+//     }
+//   ];
+//   localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
+//   return defaultTree;
+// }
 function initLibraryTree() {
   const existingTree = localStorage.getItem('notized_library_tree');
   if (existingTree) {
     return JSON.parse(existingTree);
   }
 
-  const defaultTree = [
-    {
-      id: "node_uiux", name: "UI/UX Design", type: "folder", expanded: true, color: "#C9883A",
-      children: [
-        {
-          id: "node_glowdiary", name: "GlowDiary Case Study", type: "file",
-          data: {
-            rawText: "GlowDiary Skincare Application UX Research.\n\nTarget market analysis indicates that users of skincare products encompass all genders, not just women. The interactive prototype built in Figma must reflect an inclusive interface.",
-            summary: ["Target market is inclusive of all genders.","Interactive prototyping executed in Figma."],
-            keywords: ["UX Research", "Figma", "Skincare App"],
-            clusters: [{ name: "User Demographics", color: "indigo", topics: ["All Genders", "Inclusive"] }],
-            learningPath: [{ step: 1, title: "Define Target Market", duration: "10 min", tip: "Ensure gender-neutral copy." }],
-            isRawOnly: false
-          }
-        }
-      ]
-    },
-    {
-      id: "node_dismath", name: "Discrete Math", type: "folder", expanded: true, color: "#4A5586",
-      children: [
-        {
-          id: "node_graph", name: "Graph Theory: Kamp Layout", type: "file",
-          data: {
-            rawText: "Graph theory application on the kamp layout project. Based on latest constraints, the Kamp Layout requires exactly 13 edges.",
-            summary: ["Graph theory applied to kamp layout.","The layout structure consists of exactly 13 edges."],
-            keywords: ["Graph Theory", "Kamp Layout", "13 Edges"],
-            clusters: [{ name: "Graph Properties", color: "amber", topics: ["Edges", "Vertices"] }],
-            learningPath: [{ step: 1, title: "Node Mapping", duration: "15 min", tip: "Identify critical vertices first." }],
-            isRawOnly: false
-          }
-        }
-      ]
-    }
-  ];
-  localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
-  return defaultTree;
+  const emptyTree = [];
+  localStorage.setItem('notized_library_tree', JSON.stringify(emptyTree));
+  return emptyTree;
 }
 
 function getLibraryData() {
@@ -695,11 +705,6 @@ async function handleAnalyze() {
   } catch (e) { document.getElementById('loading-view').classList.remove('active'); errorMsg.textContent = "Analysis failed."; errorMsg.style.display = 'block'; }
 }
 
-function toggleRawNotesView() {
-  const body = document.getElementById('raw-notes-body'); const btn = document.querySelector('.accordion-header');
-  if (body.style.display === 'none') { body.style.display = 'block'; btn.classList.add('open'); } else { body.style.display = 'none'; btn.classList.remove('open'); }
-}
-
 function triggerViewRawExplicit() {
   const body = document.getElementById('raw-notes-body'); const btn = document.querySelector('.accordion-header');
   if (body && btn) { body.style.display = 'block'; btn.classList.add('open'); btn.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
@@ -1199,19 +1204,16 @@ ${text}`
   }
 }
 
-(function() {
-  const _orig = window.toggleRawNotesView;
-  window.toggleRawNotesView = function() {
-    const body = document.getElementById('raw-notes-body');
-    const btn  = document.getElementById('raw-accordion-btn') || document.querySelector('.accordion-header');
-    const hint = document.getElementById('raw-accordion-hint');
-    if (!body || !btn) { if (_orig) _orig(); return; }
-    const isNowOpen = body.style.display === 'none';
-    body.style.display = isNowOpen ? 'block' : 'none';
-    btn.classList.toggle('open', isNowOpen);
-    if (hint) hint.textContent = isNowOpen ? 'click to collapse' : 'click to expand';
-  };
-})();
+function toggleRawNotesView() {
+  const body = document.getElementById('raw-notes-body');
+  const btn  = document.getElementById('raw-accordion-btn');
+  const hint = document.getElementById('raw-accordion-hint');
+  if (!body || !btn) return;
+  const isNowOpen = body.style.display === 'none';
+  body.style.display = isNowOpen ? 'block' : 'none';
+  btn.classList.toggle('open', isNowOpen);
+  if (hint) hint.textContent = isNowOpen ? 'click to collapse' : 'click to expand';
+}
 
 // ── CHANGE PASSWORD ──────────────────────────────────────────────────────────
 
@@ -1270,14 +1272,23 @@ function confirmChangePassword() {
   if (newVal.length < 6)                      return showErr('New password must be at least 6 characters.');
   if (newVal !== confirmVal)                  return showErr('New passwords do not match.');
 
+  // const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
+  // if (!currentUser) return showErr('Session expired. Please log in again.');
+
+  // if (currentUser.password !== currentVal) return showErr('Current password is incorrect.');
+  // if (newVal === currentVal)               return showErr('New password must be different from your current password.');
   const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
   if (!currentUser) return showErr('Session expired. Please log in again.');
 
-  if (currentUser.password !== currentVal) return showErr('Current password is incorrect.');
-  if (newVal === currentVal)               return showErr('New password must be different from your current password.');
+  const users = JSON.parse(localStorage.getItem('notized_users') || '[]');
+  const userRecord = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
+  const storedPassword = currentUser.password !== undefined ? currentUser.password : (userRecord ? userRecord.password : undefined);
+
+  if (storedPassword === undefined) return showErr('Password data not found. Please log out and log in again.');
+  if (storedPassword !== currentVal) return showErr('Current password is incorrect.');
+  if (newVal === currentVal)         return showErr('New password must be different from your current password.');
 
   // Update di array notized_users
-  const users = JSON.parse(localStorage.getItem('notized_users') || '[]');
   const idx   = users.findIndex(u => u.id === currentUser.id);
   if (idx !== -1) {
     users[idx].password = newVal;

@@ -1,5 +1,10 @@
 // ─── COMMON UTILITIES & SHARED FUNCTIONS ────────────────────────────────────
 
+// Ensure notized_users array always exists
+if (!localStorage.getItem('notized_users')) {
+  localStorage.setItem('notized_users', JSON.stringify([]));
+}
+
 // Set the worker source for PDF.js
 pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 

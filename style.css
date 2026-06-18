@@ -10,11 +10,11 @@
     --bg-surface:     #FFFFFF;
     --text-primary:   #1C1A16;
     --text-muted:     #6B6760;
-    --primary:        #0F6E56; /* Mengunci warna utama ke Hijau Sage/Emerald platform */
-    --primary-hover:  #1D9E75;
+    --primary:        #528d5c; /* Mengunci warna utama ke Hijau Sage/Emerald platform */
+    --primary-hover:  #3e8a4a;
     --primary-tint:   rgba(29, 158, 117, 0.09);
     
-    --sage:           #6B8F71;
+    --sage:           #528d5c;
     --sage-light:     #EDF3EE;
     --sage-mid:       #C2D9C5;
     --mint:           #1D9E75;

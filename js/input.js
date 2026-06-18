@@ -152,6 +152,15 @@ async function handleAnalyze() {
   const notes = document.getElementById('notes-input').value.trim();
   const errEl = document.getElementById('error-msg');
 
+    // Require login before analyzing — prevents orphaned notizedData + dashboard bounce-back
+  if (!localStorage.getItem('notized_currentUser')) {
+    if (errEl) {
+      errEl.textContent = 'Please log in to analyze and save your notes.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
   // Validasi awal kata
   if (!notes || notes.split(/\s+/).filter(Boolean).length < 10) {
     if (errEl) {
@@ -170,11 +179,14 @@ async function handleAnalyze() {
     screenInput.classList.add('loading-active');
   }
 
-  const formView = document.getElementById('input-form-view');
-  if (formView) formView.style.display = 'none';
-  
-  const loadingView = document.getElementById('loading-view');
-  if (loadingView) loadingView.classList.add('active');
+const formView = document.getElementById('input-form-view');
+if (formView) formView.style.display = 'none';
+
+const navEl = document.querySelector('nav.nav');
+if (navEl) navEl.style.display = 'none';
+
+const loadingView = document.getElementById('loading-view');
+if (loadingView) loadingView.classList.add('active');
 
   const stages = [
     'Reading your notes…',
@@ -213,7 +225,10 @@ async function handleAnalyze() {
     console.error('Analysis error:', e);
     if (formView) formView.style.display = 'block';
     if (loadingView) loadingView.classList.remove('active');
-    
+    // add navbar back
+    const navEl2 = document.querySelector('nav.nav');
+    if (navEl2) navEl2.style.display = 'flex';
+
     const screenInput = document.getElementById('screen-input');
     if (screenInput) {
       screenInput.classList.remove('loading-active');

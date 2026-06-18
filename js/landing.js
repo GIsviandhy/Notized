@@ -105,6 +105,9 @@ function handleAuthSubmit(event) {
     _saveSession(matched);
     closeAuthModal();
     if (typeof renderGlobalNavAuth === 'function') renderGlobalNavAuth();
+    localStorage.removeItem('notizedData');
+    localStorage.removeItem('notized_target_folder');
+
     window.location.href = 'dashboard.html';
 
   } else {
@@ -121,6 +124,9 @@ function handleAuthSubmit(event) {
     _saveSession(newUser);
     closeAuthModal();
     if (typeof renderGlobalNavAuth === 'function') renderGlobalNavAuth();
+    localStorage.removeItem('notizedData');
+    localStorage.removeItem('notized_target_folder');
+
     window.location.href = 'dashboard.html';
   }
 }
@@ -197,11 +203,17 @@ function confirmLCP() {
 
   const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
   if (!currentUser) return showErr('Session expired. Please log in again.');
-  if (currentUser.password !== currentVal)  return showErr('Current password is incorrect.');
-  if (newVal === currentVal)               return showErr('New password must differ from your current one.');
 
+  // Fallback: look up password from notized_users if not present on session object
   const users = JSON.parse(localStorage.getItem('notized_users') || '[]');
-  const idx   = users.findIndex(u => u.id === currentUser.id);
+  const userRecord = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
+  const storedPassword = currentUser.password !== undefined ? currentUser.password : (userRecord ? userRecord.password : undefined);
+
+  if (storedPassword === undefined) return showErr('Password data not found. Please log out and log in again.');
+  if (storedPassword !== currentVal) return showErr('Current password is incorrect.');
+  if (newVal === currentVal)         return showErr('New password must differ from your current one.');
+
+  const idx = users.findIndex(u => u.id === currentUser.id || u.email === currentUser.email);
   if (idx !== -1) {
     users[idx].password = newVal;
     localStorage.setItem('notized_users', JSON.stringify(users));
@@ -239,14 +251,3 @@ const observer = new IntersectionObserver((entries) => {
   });
 }, { threshold: 0.12 });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-/* ── Testimonial Carousel ── */
-document.addEventListener('DOMContentLoaded', function () {
-  const carousel   = document.querySelector('.testimonial-carousel');
-  const leftArrow  = document.querySelector('.carousel-arrow-left');
-  const rightArrow = document.querySelector('.carousel-arrow-right');
-  if (carousel && leftArrow && rightArrow) {
-    leftArrow.addEventListener('click',  () => carousel.scrollBy({ left: -420, behavior: 'smooth' }));
-    rightArrow.addEventListener('click', () => carousel.scrollBy({ left:  420, behavior: 'smooth' }));
-  }
-});

@@ -437,15 +437,14 @@
   <div id="loading-view" class="modern-loading-overlay">
     <div class="loader-box">
       <div class="pulse-spinner"><div class="spinner-core">✦</div></div>
-      <h3 class="serif loading-heading">Synthesizing Conceptual Nodes</h3>
-      <p class="loading-current-stage" id="loading-stage">Mapping structural data fields...</p>
+      <h3 class="serif loading-heading">Processing Your Notes</h3>
+      <p class="loading-current-stage" id="loading-stage">Reading your notes...</p>
       <div class="bar-track-wrapper"><div class="bar-fill-element" id="progress-bar"></div></div>
       <span class="pct-counter-text" id="progress-pct">0%</span>
     </div>
   </div>
   <script src="js/common.js"></script>
   <script src="js/ai-service.js"></script>
-  <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>
   <script>
     function activateTab(tabId, btnEl) {
@@ -484,16 +483,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       setupScrollSpy();
     });
-    window.toggleRawNotesView = function() {
-      const body = document.getElementById('raw-notes-body');
-      const btn  = document.getElementById('raw-accordion-btn');
-      const hint = document.getElementById('raw-accordion-hint');
-      if (!body || !btn) return;
-      const isNowOpen = body.style.display === 'none';
-      body.style.display = isNowOpen ? 'block' : 'none';
-      btn.classList.toggle('open', isNowOpen);
-      if (hint) hint.textContent = isNowOpen ? 'click to collapse' : 'click to expand';
-    }
+
     const urlParams = new URLSearchParams(window.location.search);
     if (!localStorage.getItem('notized_currentUser') && urlParams.get('loadExample') !== 'true') {
       window.location.href = 'landing.html';

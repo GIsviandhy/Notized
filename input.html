@@ -83,11 +83,6 @@
 
 <nav class="nav" style="display:flex;justify-content:space-between;align-items:center;position:relative;padding:1rem 2rem;">
   <div style="display:flex;align-items:center;gap:1rem;">
-    <!-- BACK button -->
-    <button onclick="location.href='landing.html'" style="display:flex;align-items:center;gap:0.4rem;background:transparent;border:1px solid rgba(28,26,22,0.12);color:#6B6760;padding:0.45rem 0.9rem;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(28,26,22,0.05)';this.style.color='#1C1A16'" onmouseout="this.style.background='transparent';this.style.color='#6B6760'">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-      Back
-    </button>
     <div class="nav-logo" onclick="location.href='landing.html'" style="cursor:pointer;display:flex;align-items:center;gap:0.5rem;">
       <span class="nav-logo-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg></span>
       <span class="nav-wordmark">Notized</span>
@@ -114,6 +109,12 @@
 </nav>
 
 <main class="input-main-container">
+        <!-- BACK BUTTON -->
+      <button onclick="location.href='landing.html'" style="display:flex;align-items:center;gap:0.4rem;background:transparent;border:1px solid rgba(28,26,22,0.12);color:#6B6760;margin-bottom:1rem;padding:0.45rem 0.9rem;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;flex-shrink:0;" onmouseover="this.style.background='rgba(28,26,22,0.05)';this.style.color='#1C1A16'" onmouseout="this.style.background='transparent';this.style.color='#6B6760'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back
+      </button>
+
   <div class="input-bound row-adaptive">
     <section id="input-form-view" class="input-card-pane fade-in">
       <div class="pane-header">
@@ -162,7 +163,6 @@
 </main>
 
 <script src="js/common.js"></script>
-<script src="js/auth.js"></script>
 <script src="js/ai-service.js"></script>
 <script src="js/input.js"></script>
 <script>
