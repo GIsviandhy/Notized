@@ -30,8 +30,8 @@ window.addEventListener('DOMContentLoaded', () => {
       return;
     }
     // Validasi Panjang Password
-    if (passInput && passInput.value.length > 0 && passInput.value.length < 4) {
-      errorEl.textContent = "Password must be at least 4 characters.";
+    if (passInput && passInput.value.length > 0 && passInput.value.length < 5) {
+      errorEl.textContent = "Password must be at least 5 characters.";
       errorEl.style.display = 'block';
       return;
     }

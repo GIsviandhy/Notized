@@ -10,112 +10,239 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="input.css">
+  <style>
+    .cp-modal-overlay { display:none; position:fixed; inset:0; background:rgba(28,26,22,0.4); backdrop-filter:blur(2px); align-items:center; justify-content:center; z-index:9999; }
+    .cp-modal-overlay.active { display:flex; }
+    .cp-modal-card { background:#fff; border-radius:16px; padding:2rem; width:100%; max-width:400px; border:1px solid rgba(28,26,22,0.1); box-shadow:0 12px 40px rgba(28,26,22,0.12); animation:cpScaleIn 0.2s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes cpScaleIn { from{opacity:0;transform:scale(0.97)} to{opacity:1;transform:scale(1)} }
+    .cp-field { margin-bottom:1rem; }
+    .cp-field label { display:block; font-size:12px; font-weight:600; color:#6B6760; margin-bottom:0.35rem; text-transform:uppercase; letter-spacing:0.04em; }
+    .cp-input-wrap { position:relative; }
+    .cp-input-wrap input { width:100%; padding:0.65rem 2.5rem 0.65rem 0.85rem; border-radius:8px; border:1px solid rgba(28,26,22,0.15); font-size:13.5px; background:#F6F4EF; outline:none; font-family:inherit; transition:border-color 0.2s; }
+    .cp-input-wrap input:focus { border-color:#6B8F71; box-shadow:0 0 0 2px rgba(107,143,113,0.15); }
+    .cp-eye-btn { position:absolute; right:0.65rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#6B6760; padding:0; display:flex; align-items:center; }
+    .cp-error { display:none; margin-top:0.85rem; background:#FAEAED; color:#B85C6E; font-size:12.5px; font-weight:500; padding:0.6rem 0.85rem; border-radius:8px; border:1px solid rgba(184,92,110,0.15); }
+    .cp-success { display:none; margin-top:0.85rem; background:#EDF3EE; color:#0F6E56; font-size:12.5px; font-weight:500; padding:0.6rem 0.85rem; border-radius:8px; border:1px solid rgba(15,110,86,0.15); }
+    .cp-actions { display:flex; gap:0.65rem; justify-content:flex-end; margin-top:1.5rem; }
+    .cp-btn-cancel { background:rgba(28,26,22,0.06); color:#1C1A16; padding:0.55rem 1.25rem; border-radius:8px; font-size:13.5px; font-weight:600; border:none; cursor:pointer; }
+    .cp-btn-cancel:hover { background:rgba(28,26,22,0.1); }
+    .cp-btn-submit { background:#6B8F71; color:white; padding:0.55rem 1.25rem; border-radius:8px; font-size:13.5px; font-weight:600; border:none; cursor:pointer; display:flex; align-items:center; gap:0.4rem; }
+    .cp-btn-submit:hover { background:#5a7a60; }
+  </style>
 </head>
 <body>
 
-<nav class="nav" style="display: flex; justify-content: space-between; align-items: center; position: relative; padding: 1rem 2rem;">
-  <div class="nav-logo" onclick="location.href='landing.html'" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
-    <span class="nav-logo-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg></span>
-    <span class="nav-wordmark">Notized</span>
-  </div>
-  
-  <div style="position: relative; display: flex; align-items: center;">
-    <div id="nav-auth-container" class="nav-actions" style="display: flex; gap: 1rem; align-items: center;"></div>
-
-    <div id="profile-dropdown-card" style="display: none; position: absolute; right: 0; top: 3.5rem; background: #ffffff; border: 1px solid var(--border, #e2e8f0); border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); padding: 1.25rem; width: 240px; flex-direction: column; gap: 0.75rem; z-index: 999999;">
-      <div style="display: flex; flex-direction: column; gap: 0.15rem; border-bottom: 1px solid var(--border, #e2e8f0); padding-bottom: 0.75rem;">
-        <span id="dropdown-user-name" style="font-weight: 600; font-size: 14px; color: #1a202c;">User Name</span>
-        <span id="dropdown-user-email" style="font-size: 12px; color: #718096; word-break: break-all;">user@email.com</span>
+<!-- CHANGE PASSWORD MODAL -->
+<div id="cp-modal" class="cp-modal-overlay">
+  <div class="cp-modal-card">
+    <div style="display:flex;align-items:center;gap:0.65rem;margin-bottom:0.35rem;">
+      <div style="width:32px;height:32px;background:#EDF3EE;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B8F71" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <button onclick="handleLogOut()" style="background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); padding: 0.5rem; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s;" onmouseover="this.style.background='rgba(184,92,110,0.15)'" onmouseout="this.style.background='rgba(184,92,110,0.1)'">
+      <h3 style="font-family:'Playfair Display',serif;font-size:20px;font-weight:700;color:#1C1A16;margin:0;">Change Password</h3>
+    </div>
+    <p style="font-size:13.5px;color:#6B6760;margin-bottom:1.25rem;">Enter your current password, then set a new one.</p>
+    <div class="cp-field">
+      <label>Current Password</label>
+      <div class="cp-input-wrap">
+        <input type="password" id="icp-current" placeholder="Your current password">
+        <button type="button" class="cp-eye-btn" onclick="icpToggleEye('icp-current',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="cp-field">
+      <label>New Password</label>
+      <div class="cp-input-wrap">
+        <input type="password" id="icp-new" placeholder="At least 6 characters">
+        <button type="button" class="cp-eye-btn" onclick="icpToggleEye('icp-new',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="cp-field" style="margin-bottom:0;">
+      <label>Confirm New Password</label>
+      <div class="cp-input-wrap">
+        <input type="password" id="icp-confirm" placeholder="Repeat new password">
+        <button type="button" class="cp-eye-btn" onclick="icpToggleEye('icp-confirm',this)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+    </div>
+    <div id="icp-error" class="cp-error"></div>
+    <div id="icp-success" class="cp-success">✓ Password updated successfully!</div>
+    <div class="cp-actions">
+      <button class="cp-btn-cancel" onclick="closeICPModal()">Cancel</button>
+      <button class="cp-btn-submit" onclick="confirmICP()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Update Password
+      </button>
+    </div>
+  </div>
+</div>
+
+<nav class="nav" style="display:flex;justify-content:space-between;align-items:center;position:relative;padding:1rem 2rem;">
+  <div style="display:flex;align-items:center;gap:1rem;">
+    <!-- BACK button -->
+    <button onclick="location.href='landing.html'" style="display:flex;align-items:center;gap:0.4rem;background:transparent;border:1px solid rgba(28,26,22,0.12);color:#6B6760;padding:0.45rem 0.9rem;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(28,26,22,0.05)';this.style.color='#1C1A16'" onmouseout="this.style.background='transparent';this.style.color='#6B6760'">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Back
+    </button>
+    <div class="nav-logo" onclick="location.href='landing.html'" style="cursor:pointer;display:flex;align-items:center;gap:0.5rem;">
+      <span class="nav-logo-icon"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg></span>
+      <span class="nav-wordmark">Notized</span>
+    </div>
+  </div>
+
+  <div style="position:relative;display:flex;align-items:center;">
+    <div id="nav-auth-container" class="nav-actions" style="display:flex;gap:1rem;align-items:center;"></div>
+    <div id="profile-dropdown-card" style="display:none;position:absolute;right:0;top:3.5rem;background:#ffffff;border:1px solid rgba(28,26,22,0.1);border-radius:14px;box-shadow:0 12px 40px rgba(28,26,22,0.1);padding:1rem;width:240px;flex-direction:column;gap:0.75rem;z-index:999999;">
+      <div style="display:flex;flex-direction:column;gap:0.15rem;border-bottom:1px solid rgba(28,26,22,0.08);padding-bottom:0.75rem;">
+        <span id="dropdown-user-name" style="font-weight:700;font-size:14px;color:#1C1A16;">User Name</span>
+        <span id="dropdown-user-email" style="font-size:12px;color:#6B6760;word-break:break-all;">user@email.com</span>
+      </div>
+      <button onclick="openICPModal()" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;background:rgba(28,26,22,0.04);color:#1C1A16;border:1px solid rgba(28,26,22,0.1);padding:0.55rem 0.75rem;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;" onmouseover="this.style.background='rgba(28,26,22,0.08)'" onmouseout="this.style.background='rgba(28,26,22,0.04)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        Change Password
+      </button>
+      <button onclick="handleLogOut()" style="background:rgba(184,92,110,0.1);color:#B85C6E;border:1px solid rgba(184,92,110,0.2);padding:0.55rem;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;transition:background 0.2s;display:flex;align-items:center;justify-content:center;gap:0.5rem;" onmouseover="this.style.background='rgba(184,92,110,0.15)'" onmouseout="this.style.background='rgba(184,92,110,0.1)'">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         Log Out Account
       </button>
     </div>
   </div>
 </nav>
-  
-  
-  <main class="input-main-container">
-    <div class="input-bound row-adaptive">
-      
-      <section id="input-form-view" class="input-card-pane fade-in">
-        <div class="pane-header">
-          <h2 class="serif entry-title">Transform Your Raw Notes</h2>
-          <p class="entry-subtitle">Feed in lecture transcripts, notes, drafts, or full book chapters.</p>
-        </div>
 
-        <div class="modern-textarea-container">
-          <textarea id="notes-input" 
-            placeholder="Paste your raw learning content here...&#10;&#10;Example: The nervous system coordinates bodily tasks. The central nervous system contains the brain and spinal cord. Neurons operate via action potentials with an all-or-nothing threshold of -55mV..."
-            oninput="updateWordCount()"></textarea>
-          
-          <div class="textarea-action-bar">
-            <span class="word-count-badge" id="word-count">Tip: Longer notes = richer insights</span>
-            <button type="button" class="btn-action-upload" onclick="triggerFileUpload()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
-              Attach Document (.txt, .pdf)
-            </button>
-            <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
-          </div>
-        </div>
-
-        <div id="error-msg" class="error-msg"></div>
-
-        <div class="action-submit-row">
-          <button type="button" class="btn-execute-analysis" onclick="handleAnalyze()">
-            <span>✦</span> Analyze Notes
-          </button>
-          <span class="time-hint-text">Process takes ~3-5s</span>
-        </div>
-      </section>
-
-      <aside class="guidelines-sidebar">
-        <h4 class="sidebar-block-heading">Things to Know</h4>
-        <div class="blueprint-stack">
-          <div class="blueprint-item">
-            <div class="b-label">Works best with</div>
-            <div class="b-text">Lecture notes, textbook excerpts, study guides.</div>
-          </div>
-          <div class="blueprint-item">
-            <div class="b-label">Minimum length</div>
-            <div class="b-text">A minimum of 10 words is enforced. Aim for 50+ words for meaningful analysis.</div>
-          </div>
-          <div class="blueprint-item">
-            <div class="b-label">Supported formats</div>
-            <div class="b-text">Plain text, bullet points, PDFs.</div>
-          </div>
-        </div>
-      </aside>
-
-    </div>
-
-    <div id="loading-view" class="modern-loading-overlay">
-      <div class="loader-box">
-        <div class="pulse-spinner">
-          <div class="spinner-core">✦</div>
-        </div>
-        <h3 class="serif loading-heading">Processing your notes</h3>
-        <p class="loading-current-stage" id="loading-stage">Reading your notes...</p>
-        
-        <div class="bar-track-wrapper">
-          <div class="bar-fill-element" id="progress-bar"></div>
-        </div>
-        <span class="pct-counter-text" id="progress-pct">0%</span>
+<main class="input-main-container">
+  <div class="input-bound row-adaptive">
+    <section id="input-form-view" class="input-card-pane fade-in">
+      <div class="pane-header">
+        <h2 class="serif entry-title">Transform Your Raw Notes</h2>
+        <p class="entry-subtitle">Feed in lecture transcripts, notes, drafts, or full book chapters.</p>
       </div>
+      <div class="modern-textarea-container">
+        <textarea id="notes-input"
+          placeholder="Paste your raw learning content here...&#10;&#10;Example: The nervous system coordinates bodily tasks. The central nervous system contains the brain and spinal cord. Neurons operate via action potentials with an all-or-nothing threshold of -55mV..."
+          oninput="updateWordCount()"></textarea>
+        <div class="textarea-action-bar">
+          <span class="word-count-badge" id="word-count">Tip: Longer notes = richer insights</span>
+          <button type="button" class="btn-action-upload" onclick="triggerFileUpload()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            Attach Document (.txt, .pdf)
+          </button>
+          <input type="file" id="file-input" accept=".txt,.md,.pdf" style="display:none" onchange="handleFileUpload(event)" />
+        </div>
+      </div>
+      <div id="error-msg" class="error-msg"></div>
+      <div class="action-submit-row">
+        <button type="button" class="btn-execute-analysis" onclick="handleAnalyze()">
+          <span>✦</span> Analyze Notes
+        </button>
+        <span class="time-hint-text">Process takes ~3-5s</span>
+      </div>
+    </section>
+    <aside class="guidelines-sidebar">
+      <h4 class="sidebar-block-heading">Things to Know</h4>
+      <div class="blueprint-stack">
+        <div class="blueprint-item"><div class="b-label">Works best with</div><div class="b-text">Lecture notes, textbook excerpts, study guides.</div></div>
+        <div class="blueprint-item"><div class="b-label">Minimum length</div><div class="b-text">A minimum of 10 words is enforced. Aim for 50+ words for meaningful analysis.</div></div>
+        <div class="blueprint-item"><div class="b-label">Supported formats</div><div class="b-text">Plain text, bullet points, PDFs.</div></div>
+      </div>
+    </aside>
+  </div>
+  <div id="loading-view" class="modern-loading-overlay">
+    <div class="loader-box">
+      <div class="pulse-spinner"><div class="spinner-core">✦</div></div>
+      <h3 class="serif loading-heading">Processing your notes</h3>
+      <p class="loading-current-stage" id="loading-stage">Reading your notes...</p>
+      <div class="bar-track-wrapper"><div class="bar-fill-element" id="progress-bar"></div></div>
+      <span class="pct-counter-text" id="progress-pct">0%</span>
     </div>
-  </main>
+  </div>
+</main>
 
-  <script src="js/common.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/ai-service.js"></script>
-  <script src="js/input.js"></script>
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('loadExample') === 'true' && typeof loadExample === 'function') {
-        loadExample();
-      }
+<script src="js/common.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ai-service.js"></script>
+<script src="js/input.js"></script>
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('loadExample') === 'true' && typeof loadExample === 'function') {
+      loadExample();
+    }
+  });
+
+  /* ── Change Password ── */
+  function openICPModal() {
+    ['icp-current','icp-new','icp-confirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.value = ''; el.type = 'password'; }
     });
-  </script>
+    document.getElementById('icp-error').style.display = 'none';
+    document.getElementById('icp-success').style.display = 'none';
+    const dd = document.getElementById('profile-dropdown-card');
+    if (dd) dd.style.display = 'none';
+    document.getElementById('cp-modal').classList.add('active');
+  }
+
+  function closeICPModal() {
+    document.getElementById('cp-modal').classList.remove('active');
+  }
+
+  function icpToggleEye(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const isHidden = input.type === 'password';
+    input.type = isHidden ? 'text' : 'password';
+    btn.innerHTML = isHidden
+      ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+      : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  }
+
+  function confirmICP() {
+    const currentVal = (document.getElementById('icp-current')?.value || '').trim();
+    const newVal     = (document.getElementById('icp-new')?.value || '').trim();
+    const confirmVal = (document.getElementById('icp-confirm')?.value || '').trim();
+    const errEl = document.getElementById('icp-error');
+    const okEl  = document.getElementById('icp-success');
+
+    const showErr = msg => { errEl.textContent = msg; errEl.style.display = 'block'; okEl.style.display = 'none'; };
+    errEl.style.display = 'none'; okEl.style.display = 'none';
+
+    if (!currentVal || !newVal || !confirmVal) return showErr('Please fill in all fields.');
+    if (newVal.length < 6)                      return showErr('New password must be at least 6 characters.');
+    if (newVal !== confirmVal)                  return showErr('New passwords do not match.');
+
+    const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
+    if (!currentUser) return showErr('Session expired. Please log in again.');
+
+    // Fallback: cari password dari notized_users kalau tidak ada di sesi
+    const users = JSON.parse(localStorage.getItem('notized_users') || '[]');
+    const userRecord = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
+    const storedPassword = currentUser.password || (userRecord ? userRecord.password : undefined);
+
+    if (storedPassword === undefined) return showErr('Password data not found. Please log out and log in again.');
+    if (storedPassword !== currentVal) return showErr('Current password is incorrect.');
+    if (newVal === currentVal)         return showErr('New password must differ from your current one.');
+
+    const idx = users.findIndex(u => u.id === currentUser.id || u.email === currentUser.email);
+    if (idx !== -1) { users[idx].password = newVal; localStorage.setItem('notized_users', JSON.stringify(users)); }
+    currentUser.password = newVal;
+    localStorage.setItem('notized_currentUser', JSON.stringify(currentUser));
+    localStorage.setItem('currentUser', JSON.stringify(currentUser));
+
+    okEl.style.display = 'block';
+    ['icp-current','icp-new','icp-confirm'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    setTimeout(() => closeICPModal(), 1800);
+  }
+
+  function handleLogOut() {
+    localStorage.removeItem('notized_currentUser');
+    localStorage.removeItem('currentUser');
+    sessionStorage.removeItem('notized_greeted');
+    window.location.href = 'landing.html';
+  }
+</script>
 </body>
 </html>

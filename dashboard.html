@@ -11,7 +11,6 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="dashboard-body">
-
   <div id="custom-dialog-overlay" class="modal-overlay" style="display:none; z-index:1000;">
     <div class="modal-card animate-scale" style="max-width:360px;">
       <h3 class="serif modal-title" id="cd-title">Notification</h3>
@@ -23,7 +22,6 @@
       </div>
     </div>
   </div>
-
   <div id="save-modal" class="modal-overlay" style="display:none;">
     <div class="modal-card animate-scale">
       <h3 class="serif modal-title">Save Note to Library</h3>
@@ -36,6 +34,57 @@
       <div class="modal-actions">
         <button class="btn-secondary" onclick="closeSaveModal()">Cancel</button>
         <button class="btn-primary" onclick="confirmSaveNotes()">Save Note</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="change-password-card" class="modal-overlay" style="display:none;">
+    <div class="modal-card animate-scale" style="max-width:400px;">
+      <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.4rem;">
+        <div style="width:32px; height:32px; background:var(--sage-light); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        </div>
+        <h3 class="serif modal-title" style="margin-bottom:0;">Change Password</h3>
+      </div>
+      <p class="modal-subtitle">Enter your current password, then set a new one.</p>
+      <div class="input-group" style="margin-bottom:1rem;">
+        <label class="form-label">Current Password</label>
+        <div style="position:relative;">
+          <input type="password" id="cp-current" class="modal-input" placeholder="Your current password" style="padding-right:2.5rem;">
+          <button type="button" onclick="toggleCPVisibility('cp-current', this)" style="position:absolute; right:0.65rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0; display:flex; align-items:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-group" style="margin-bottom:1rem;">
+        <label class="form-label">New Password</label>
+        <div style="position:relative;">
+          <input type="password" id="cp-new" class="modal-input" placeholder="At least 6 characters" style="padding-right:2.5rem;">
+          <button type="button" onclick="toggleCPVisibility('cp-new', this)" style="position:absolute; right:0.65rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0; display:flex; align-items:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="input-group" style="margin-bottom:0;">
+        <label class="form-label">Confirm New Password</label>
+        <div style="position:relative;">
+          <input type="password" id="cp-confirm" class="modal-input" placeholder="Repeat new password" style="padding-right:2.5rem;">
+          <button type="button" onclick="toggleCPVisibility('cp-confirm', this)" style="position:absolute; right:0.65rem; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--text-muted); padding:0; display:flex; align-items:center;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="cp-error" style="display:none; margin-top:0.85rem; background:var(--rose-light); color:var(--rose); font-size:12.5px; font-weight:500; padding:0.6rem 0.85rem; border-radius:8px; border:1px solid rgba(184,92,110,0.15);"></div>
+      <div id="cp-success" style="display:none; margin-top:0.85rem; background:var(--sage-light); color:var(--primary); font-size:12.5px; font-weight:500; padding:0.6rem 0.85rem; border-radius:8px; border:1px solid rgba(15,110,86,0.15);">
+        ✓ Password updated successfully!
+      </div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeChangePasswordCard()">Cancel</button>
+        <button class="btn-primary" onclick="confirmChangePassword()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          Update Password
+        </button>
       </div>
     </div>
   </div>
@@ -61,9 +110,7 @@
       </div>
     </div>
   </div>
-
   <div class="workspace-layout">
-
     <nav class="nav dashboard-topbar">
       <div class="topbar-left-cluster">
         <button type="button" id="sidebar-toggle-btn" onclick="toggleSidebar(event)" title="Toggle Sidebar" class="btn-hamburger" style="display: flex !important;">
@@ -77,10 +124,8 @@
           <span class="workspace-pill">Workspace</span>
         </div>
       </div>
-
       <div class="topbar-right-cluster">
         <span id="user-greeting" class="user-greeting-tag">Hello, Scholar</span>
-
         <div class="dropdown-wrapper" id="create-new-wrapper" style="position: relative;">
           <button class="btn-primary" onclick="toggleHeaderDropdown(event)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -98,7 +143,6 @@
             </button>
           </div>
         </div>
-
         <div class="dashboard-profile-wrapper" style="position: relative; display: flex; align-items: center;">
           <div id="user-avatar-circle" onclick="toggleDashboardProfileDropdown(event)" style="
             width: 34px;
@@ -117,20 +161,26 @@
           " onmouseover="this.style.transform='scale(1.07)'" onmouseout="this.style.transform='scale(1)'">
             <span id="profile-initial"></span>
           </div>
-
           <div id="dashboard-profile-dropdown" class="profile-dropdown-card" style="display:none; position:absolute; right:0; top:3.5rem; min-width:220px; background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow-lg); padding:1rem; flex-direction:column; gap:0.8rem; z-index:600;">
             <div style="display:flex; flex-direction:column; gap:0.15rem; border-bottom:1px solid var(--border); padding-bottom:0.75rem;">
               <span id="dashboard-profile-name" style="font-weight:700; font-size:14px; color:var(--text-primary);">User Name</span>
               <span id="dashboard-profile-email" style="font-size:12px; color:var(--text-muted); word-break:break-word;">user@email.com</span>
             </div>
-            <button class="btn-secondary" onclick="handleLogout()" style="width:100%;">Logout</button>
+            <div style="display:flex; flex-direction:column; gap:0.4rem;">
+              <button onclick="handleChangePassword()" style="display:flex; align-items:center; justify-content:center; gap:0.5rem; background: rgba(28,26,22,0.04); color: var(--text-primary); border: 1px solid var(--border); padding: 0.55rem 0.75rem; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s;" onmouseover="this.style.background='rgba(28,26,22,0.08)'" onmouseout="this.style.background='rgba(28,26,22,0.04)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted);"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Change Password
+              </button>
+            </div>
+            <button onclick="handleLogOut()" style="background: rgba(184,92,110,0.1); color: #B85C6E; border: 1px solid rgba(184,92,110,0.2); padding: 0.55rem; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; width: 100%; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;" onmouseover="this.style.background='rgba(184,92,110,0.15)'" onmouseout="this.style.background='rgba(184,92,110,0.1)'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              Log Out Account
+            </button>
           </div>
         </div>
       </div>
     </nav>
-
     <div class="workspace-content">
-
       <aside class="workspace-sidebar-pane" id="workspace-sidebar">
         <div class="sidebar-header-action">
           <span class="directory-heading-text">Knowledge Trees</span>
@@ -142,9 +192,7 @@
           <div id="nested-directory-root" class="folders-tree"></div>
         </div>
       </aside>
-
       <main class="workspace-main-pane">
-
         <div id="empty-workspace-state" style="display:none; width:100%;" class="fade-in">
           <div class="breadcrumbs-bar" id="breadcrumbs-empty" style="margin-bottom:1.5rem;"></div>
           <div class="note-header-wrap">
@@ -159,7 +207,6 @@
               </button>
             </div>
           </div>
-          
           <div id="root-empty-hint" class="empty-state-canvas" style="padding: 5rem 2rem; display:flex; border: 1px dashed var(--border); border-radius: 16px; background-color: var(--white); max-width: 500px; margin: 2rem auto 0 auto;">
             <div class="empty-vector-wrap" style="color: var(--sage); background: var(--bg-app); width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
@@ -167,10 +214,8 @@
             <h3 class="serif canvas-headline" style="color: var(--text-primary); font-size: 18px; margin-bottom: 0.4rem;">Knowledge Console Standby</h3>
             <p class="canvas-subtext" style="color: var(--text-muted); font-size: 13px; max-width: 320px;">Your central vault is currently empty. Drop in a draft or establish a modular directory tree branch to launch analysis.</p>
           </div>
-          
           <div class="folder-contents-grid" id="root-contents-grid" style="margin-top:1.5rem;"></div>
         </div>
-
         <div id="folder-view-workspace" style="display:none; width:100%;" class="fade-in">
           <div class="breadcrumbs-bar" id="breadcrumbs-folder" style="margin-bottom:1.5rem;"></div>
           <div class="note-header-wrap">
@@ -201,7 +246,6 @@
           </div>
           <div class="folder-contents-grid" id="folder-contents-grid" style="margin-top:1.5rem;"></div>
         </div>
-
         <div id="input-form-workspace" style="display:none; width:100%; max-width:860px;" class="fade-in">
           <div class="breadcrumbs-bar" id="breadcrumbs-input" style="margin-bottom:1.5rem;"></div>
           <div class="note-header-wrap">
@@ -240,9 +284,7 @@
             <span class="time-hint-text">~3–5 seconds</span>
           </div>
         </div>
-
         <div id="active-project-workspace" style="display:none; width:100%;" class="fade-in">
-
           <div class="note-view-header" id="note-view-header-block">
             <div class="breadcrumbs-bar" id="breadcrumbs-project" style="margin-bottom:0.75rem;"></div>
             <div class="note-header-wrap" style="margin-bottom:0;">
@@ -268,7 +310,6 @@
               </div>
             </div>
           </div>
-
           <div class="note-sticky-tabs" id="note-sticky-tabs">
             <button class="note-tab active" data-tab="raw" onclick="activateTab('raw', this)">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -287,9 +328,24 @@
               Learning Path
             </button>
           </div>
-          
           <div class="note-onepage-body">
-
+            <!-- Raw Notes (visible in both analyzed and unanalyzed states) -->
+            <div class="note-section" id="note-section-raw" style="display:none;">
+              <div class="note-section-anchor" id="anchor-raw"></div>
+              <div class="note-section-eyebrow">
+                <span class="eyebrow-dot" style="background:var(--text-muted);"></span>
+                Raw Notes
+              </div>
+              <div class="raw-notes-accordion">
+                <button class="accordion-header" id="raw-accordion-btn" onclick="toggleRawNotesView()">
+                  <svg id="raw-notes-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                  <span>View Raw Notes</span>
+                  <span class="accordion-hint" id="raw-accordion-hint">click to expand</span>
+                </button>
+                <div class="raw-notes-display-box" id="raw-notes-body" style="display:none; margin-top: 1rem; padding: 1.25rem; background: var(--bg-surface); border-radius: 10px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; font-family: 'Courier New', monospace; font-size: 13px; line-height: 1.6; color: var(--text-primary);"></div>
+              </div>
+            </div>
+            
             <div id="unanalyzed-state" style="display:none; text-align:center; padding:4rem 2rem; background:var(--bg-surface); border:1px dashed var(--border); border-radius:14px; margin-top:1.5rem;">
               <div class="empty-vector-wrap" style="margin:0 auto 1.25rem auto;">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -301,25 +357,7 @@
                 Run Analysis Now
               </button>
             </div>
-
             <div id="analyzed-content-state" style="display:none;">
-
-              <div class="note-section" id="note-section-raw">
-                <div class="note-section-anchor" id="anchor-raw"></div>
-                <div class="note-section-eyebrow">
-                  <span class="eyebrow-dot" style="background:var(--text-muted);"></span>
-                  Raw Notes
-                </div>
-                <div class="raw-notes-accordion">
-                  <button class="accordion-header" id="raw-accordion-btn" onclick="toggleRawNotesView()">
-                    <svg id="raw-notes-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-                    <span>View Raw Notes</span>
-                    <span class="accordion-hint" id="raw-accordion-hint">click to expand</span>
-                  </button>
-                  <div class="raw-notes-display-box" id="raw-notes-body" style="display:none;"></div>
-                </div>
-              </div>
-
               <div class="note-section" id="note-section-summary">
                 <div class="note-section-anchor" id="anchor-summary"></div>
                 <div class="note-section-eyebrow">
@@ -369,7 +407,6 @@
                   </div>
                 </div>
               </div>
-
               <div class="note-section" id="note-section-clusters">
                 <div class="note-section-anchor" id="anchor-clusters"></div>
                 <div class="note-section-eyebrow">
@@ -379,7 +416,6 @@
                 <h3 class="segment-block-header" style="margin-bottom:1.25rem;">⬡ Topic Clusters</h3>
                 <div class="clusters-grid" id="clusters-grid"></div>
               </div>
-
               <div class="note-section" id="note-section-path">
                 <div class="note-section-anchor" id="anchor-path"></div>
                 <div class="note-section-eyebrow">
@@ -392,15 +428,12 @@
                   <div class="path-list" id="path-list"></div>
                 </div>
               </div>
-
             </div>
           </div>
         </div>
-
       </main>
     </div>
   </div>
-
   <div id="loading-view" class="modern-loading-overlay">
     <div class="loader-box">
       <div class="pulse-spinner"><div class="spinner-core">✦</div></div>
@@ -410,42 +443,32 @@
       <span class="pct-counter-text" id="progress-pct">0%</span>
     </div>
   </div>
-
   <script src="js/common.js"></script>
   <script src="js/ai-service.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>
-
   <script>
     function activateTab(tabId, btnEl) {
       document.querySelectorAll('.note-tab').forEach(b => b.classList.remove('active'));
       if (btnEl) btnEl.classList.add('active');
-
       const anchor = document.getElementById('anchor-' + tabId);
       if (!anchor) return;
       const mainPane = document.querySelector('.workspace-main-pane');
-      // Gunakan tinggi sticky header block (header + tabs) sebagai offset scroll
       const stickyBlock = document.querySelector('.note-sticky-header-block');
       const stickyOffset = stickyBlock ? stickyBlock.offsetHeight : 120;
-
       const anchorTop = anchor.getBoundingClientRect().top + mainPane.scrollTop - mainPane.getBoundingClientRect().top;
       mainPane.scrollTo({ top: anchorTop - stickyOffset, behavior: 'smooth' });
     }
-
     function setupScrollSpy() {
       const mainPane = document.querySelector('.workspace-main-pane');
       if (!mainPane) return;
-
       const sections = ['raw', 'summary', 'clusters', 'path'];
-
       mainPane.addEventListener('scroll', () => {
         const workspace = document.getElementById('active-project-workspace');
         if (!workspace || workspace.style.display === 'none') return;
-
         const topbarH = (document.querySelector('.dashboard-topbar') || {offsetHeight: 60}).offsetHeight;
         const tabsH   = (document.getElementById('note-sticky-tabs') || {offsetHeight: 44}).offsetHeight;
         const threshold = topbarH + tabsH + 20;
-
         let active = 'raw';
         sections.forEach(id => {
           const anchor = document.getElementById('anchor-' + id);
@@ -453,17 +476,14 @@
           const rect = anchor.getBoundingClientRect();
           if (rect.top <= threshold + 40) active = id;
         });
-
         document.querySelectorAll('.note-tab').forEach(b => {
           b.classList.toggle('active', b.dataset.tab === active);
         });
       }, { passive: true });
     }
-
     window.addEventListener('DOMContentLoaded', () => {
       setupScrollSpy();
     });
-
     window.toggleRawNotesView = function() {
       const body = document.getElementById('raw-notes-body');
       const btn  = document.getElementById('raw-accordion-btn');
@@ -474,7 +494,6 @@
       btn.classList.toggle('open', isNowOpen);
       if (hint) hint.textContent = isNowOpen ? 'click to collapse' : 'click to expand';
     }
-
     const urlParams = new URLSearchParams(window.location.search);
     if (!localStorage.getItem('notized_currentUser') && urlParams.get('loadExample') !== 'true') {
       window.location.href = 'landing.html';

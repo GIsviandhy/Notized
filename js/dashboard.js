@@ -574,8 +574,11 @@ function loadSavedFileNode(id, name, event) {
   document.getElementById('active-project-title').textContent = name;
   renderBreadcrumbs(path, 'breadcrumbs-project');
 
+  // Always show raw notes section - it's now at top level
+  const rawSection = document.getElementById('note-section-raw');
+  if (rawSection) rawSection.style.display = 'block';
   const rawBody = document.getElementById('raw-notes-body'); 
-  const btnHead = document.querySelector('.accordion-header');
+  const btnHead = document.getElementById('raw-accordion-btn');
   if (rawBody) rawBody.style.display = 'none'; 
   if (btnHead) btnHead.classList.remove('open');
 
@@ -784,7 +787,7 @@ async function handleContextRename(isFolder) {
 async function handleContextDelete(isFolder) {
   if (!currentRightClickedNodeId) return;
   const typeText = isFolder ? "folder and its contents" : "note";
-  const isConfirmed = await customConfirm(`Are you sure you want to completely delete this ${typeText}?`, "Purge Directory"); 
+  const isConfirmed = await customConfirm(`Are you sure you want to completely delete this ${typeText}?`, "Delete Folder");
   if (!isConfirmed) return;
   let treeData = getLibraryData(); 
   if (deleteInTree(treeData, currentRightClickedNodeId)) { 
@@ -839,7 +842,7 @@ async function triggerRenameNoteExplicit() {
 
 async function triggerDeleteNoteExplicit() {
   if (!currentViewedNoteId) return;
-  const isConfirmed = await customConfirm("Delete this note permanently from the ledger?", "Purge Document"); if (!isConfirmed) return;
+  const isConfirmed = await customConfirm("Delete this note permanently from the ledger?", "Delete Document"); if (!isConfirmed) return;
   let treeData = getLibraryData(); let parentPath = findPath(treeData, currentViewedNoteId);
   let parentFolderId = (parentPath && parentPath.length > 1) ? parentPath[parentPath.length - 2].id : 'root_root';
   if (deleteInTree(treeData, currentViewedNoteId)) { 
@@ -1149,10 +1152,16 @@ if (typeof hexToRgbaTint === 'undefined') {
 
 if (typeof handleLogout === 'undefined') {
   function handleLogout() {
+    // Clear ONLY auth data, preserve notes library
     localStorage.removeItem('notized_currentUser');
     localStorage.removeItem('currentUser');
     sessionStorage.removeItem('notized_greeted');
-    window.location.href = 'landing.html';
+    sessionStorage.clear();
+    
+    // Force reload landing page with cache buster to ensure fresh render
+    setTimeout(() => {
+      window.location.href = 'landing.html?logout=' + Date.now();
+    }, 50);
   }
 }
 
@@ -1203,6 +1212,109 @@ ${text}`
     if (hint) hint.textContent = isNowOpen ? 'click to collapse' : 'click to expand';
   };
 })();
+
+// ── CHANGE PASSWORD ──────────────────────────────────────────────────────────
+
+function handleChangePassword() {
+  // Reset semua field dan state setiap kali dibuka
+  ['cp-current', 'cp-new', 'cp-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ''; el.type = 'password'; }
+  });
+  const errEl = document.getElementById('cp-error');
+  const okEl  = document.getElementById('cp-success');
+  if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+  if (okEl)  okEl.style.display = 'none';
+
+  // Tutup dropdown profil dulu
+  const profileDrop = document.getElementById('dashboard-profile-dropdown');
+  if (profileDrop) profileDrop.style.display = 'none';
+
+  // Buka modal ganti password
+  const card = document.getElementById('change-password-card');
+  if (card) card.style.display = 'flex';
+}
+
+function closeChangePasswordCard() {
+  const card = document.getElementById('change-password-card');
+  if (card) card.style.display = 'none';
+}
+
+function toggleCPVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  const isHidden = input.type === 'password';
+  input.type = isHidden ? 'text' : 'password';
+  btn.innerHTML = isHidden
+    ? `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`
+    : `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+}
+
+function confirmChangePassword() {
+  const currentVal = (document.getElementById('cp-current')?.value || '').trim();
+  const newVal     = (document.getElementById('cp-new')?.value || '').trim();
+  const confirmVal = (document.getElementById('cp-confirm')?.value || '').trim();
+  const errEl = document.getElementById('cp-error');
+  const okEl  = document.getElementById('cp-success');
+
+  const showErr = (msg) => {
+    errEl.textContent = msg;
+    errEl.style.display = 'block';
+    okEl.style.display = 'none';
+  };
+
+  errEl.style.display = 'none';
+  okEl.style.display  = 'none';
+
+  if (!currentVal || !newVal || !confirmVal) return showErr('Please fill in all fields.');
+  if (newVal.length < 6)                      return showErr('New password must be at least 6 characters.');
+  if (newVal !== confirmVal)                  return showErr('New passwords do not match.');
+
+  const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
+  if (!currentUser) return showErr('Session expired. Please log in again.');
+
+  if (currentUser.password !== currentVal) return showErr('Current password is incorrect.');
+  if (newVal === currentVal)               return showErr('New password must be different from your current password.');
+
+  // Update di array notized_users
+  const users = JSON.parse(localStorage.getItem('notized_users') || '[]');
+  const idx   = users.findIndex(u => u.id === currentUser.id);
+  if (idx !== -1) {
+    users[idx].password = newVal;
+    localStorage.setItem('notized_users', JSON.stringify(users));
+  }
+
+  // Update sesi aktif
+  currentUser.password = newVal;
+  localStorage.setItem('notized_currentUser', JSON.stringify(currentUser));
+
+  // Tampilkan sukses, bersihkan field, tutup otomatis setelah 1.8 detik
+  okEl.style.display = 'block';
+  ['cp-current', 'cp-new', 'cp-confirm'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  setTimeout(() => closeChangePasswordCard(), 1800);
+}
+
+// ── LOGOUT ALIAS (handleLogOut dengan kapital O) ─────────────────────────────
+// Dashboard HTML menggunakan handleLogOut() — alias ke handleLogout()
+function handleLogOut() {
+  if (typeof handleLogout === 'function') {
+    handleLogout();
+  } else {
+    // Fallback logout
+    localStorage.removeItem('notized_currentUser');
+    localStorage.removeItem('currentUser');
+    localStorage.removeItem('notized_library_tree');
+    localStorage.removeItem('notized_library');
+    sessionStorage.removeItem('notized_greeted');
+    sessionStorage.clear();
+    setTimeout(() => {
+      window.location.href = 'landing.html?logout=' + Date.now();
+    }, 50);
+  }
+}
 
 (function() {
   const _origLoad = window.loadSavedFileNode;
