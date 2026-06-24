@@ -210,6 +210,7 @@ if (loadingView) loadingView.classList.add('active');
     if (pctEl) pctEl.textContent = '100%';
     await sleep(400);
 
+    result.rawText = notes;
     localStorage.setItem('notizedData', JSON.stringify(result));
     window.location.href = 'dashboard.html';
   } catch (e) {

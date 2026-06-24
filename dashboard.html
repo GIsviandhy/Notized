@@ -137,6 +137,7 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               New Note
             </button>
+            <hr style="margin:0.25rem 0; border:none; border-top:1px solid var(--border);">
             <button onclick="openFolderCreatorDirect(event)">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               New Folder
@@ -184,9 +185,6 @@
       <aside class="workspace-sidebar-pane" id="workspace-sidebar">
         <div class="sidebar-header-action">
           <span class="directory-heading-text">Knowledge Trees</span>
-          <button type="button" class="btn-add-folder-circle" onclick="openFolderCreatorDirect(event)" title="New Folder">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
         </div>
         <div class="tree-scroll-container">
           <div id="nested-directory-root" class="folders-tree"></div>
@@ -294,8 +292,7 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
                   Back
                 </button>
-                <div class="action-divider"></div>
-                <button class="btn-secondary" onclick="triggerEditNoteExplicit()">
+                <button class="btn-primary" onclick="triggerEditNoteExplicit()">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Edit
                 </button>
@@ -303,7 +300,8 @@
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   Rename
                 </button>
-                <button class="btn-outline-danger" onclick="triggerDeleteNoteExplicit()">
+                <span style="flex:1;"></span>
+                <button style="background:none; border:none; color:var(--rose); cursor:pointer; font-size:13.5px; font-weight:600; display:inline-flex; align-items:center; gap:0.4rem; padding:0.55rem 0.25rem;" onclick="triggerDeleteNoteExplicit()" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                   Delete
                 </button>

@@ -195,7 +195,7 @@ document.addEventListener('contextmenu', function(e) {
         }
         
         menu.innerHTML = `
-            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #1C1A16; transition: all 0.2s;" onmouseover="this.style.background='rgba(28,26,22,0.05)'; this.style.color='#0F6E56';" onmouseout="this.style.background='transparent'; this.style.color='#1C1A16';" onclick="handleContextRename(${isFolder})">✎ Rename</div>
+            <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #1C1A16; transition: all 0.2s;" onmouseover="this.style.background='rgba(28,26,22,0.05)'; this.style.color='var(--primary)';" onmouseout="this.style.background='transparent'; this.style.color='#1C1A16';" onclick="handleContextRename(${isFolder})">✎ Rename</div>
             <div style="padding: 0.6rem 0.8rem; cursor: pointer; border-radius: 6px; font-size: 13px; font-weight: 600; color: #B85C6E; transition: all 0.2s;" onmouseover="this.style.background='#FAEAED'" onmouseout="this.style.background='transparent'" onclick="handleContextDelete(${isFolder})">🗑 Delete</div>
         `;
         menu.style.display = 'flex';
@@ -656,7 +656,18 @@ function startNewIntake(targetId) {
   if (drop) drop.classList.remove('active');
   const folderId = targetId || 'root_root';
   localStorage.setItem('notized_target_folder', folderId);
-  window.location.href = `input.html?target=${encodeURIComponent(folderId)}`;
+  
+  // Show inline form instead of redirecting
+  isNoteEditingActive = false;
+  noteEditingTargetId = null;
+  hideAllViews();
+  document.getElementById('input-form-workspace').style.display = 'block';
+  document.getElementById('intake-form-title').textContent = 'Transform New Material';
+  document.getElementById('notes-input').value = '';
+  updateWordCount();
+  
+  const path = findPath(getLibraryData(), folderId);
+  renderBreadcrumbs(path, 'breadcrumbs-input');
 }
 
 function startNewIntakeFromCurrentFolder() { startNewIntake(currentViewedFolderId); }

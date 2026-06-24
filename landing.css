@@ -1,7 +1,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-    --sage:         #6B8F71;
+    --primary:      #528d5c;
+    --primary-hover: #3e8a4a;
+    --sage:         #528d5c;
     --sage-light:   #EDF3EE;
     --sage-mid:     #C2D9C5;
     --indigo:       #4A5586;

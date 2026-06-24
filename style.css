@@ -10,14 +10,13 @@
     --bg-surface:     #FFFFFF;
     --text-primary:   #1C1A16;
     --text-muted:     #6B6760;
-    --primary:        #528d5c; /* Mengunci warna utama ke Hijau Sage/Emerald platform */
+    --primary:        #528d5c;
     --primary-hover:  #3e8a4a;
-    --primary-tint:   rgba(29, 158, 117, 0.09);
+    --primary-tint:   rgba(82, 141, 92, 0.09);
     
     --sage:           #528d5c;
     --sage-light:     #EDF3EE;
     --sage-mid:       #C2D9C5;
-    --mint:           #1D9E75;
     --indigo:         #4A5586;
     --indigo-light:   #ECEEF7;
     --cream:          #F6F4EF;
@@ -92,7 +91,7 @@ input, select, textarea { font-family: inherit; }
 
 /* ⚡ TAMBAHAN UTAMA: Kelas tombol Log In Hijau Solid yang Konsisten */
 .btn-nav-solid {
-    background-color: #0F6E56 !important;
+    background-color: var(--primary) !important;
     color: #ffffff !important;
     border: none !important;
     padding: 0.6rem 1.4rem !important;
@@ -100,7 +99,7 @@ input, select, textarea { font-family: inherit; }
     font-size: 14px !important;
     font-weight: 600 !important;
     cursor: pointer !important;
-    box-shadow: 0 2px 8px rgba(15, 110, 86, 0.2) !important;
+    box-shadow: 0 2px 8px rgba(82, 141, 92, 0.2) !important;
     transition: all 0.2s ease !important;
 }
 

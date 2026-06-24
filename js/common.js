@@ -101,7 +101,7 @@ function renderGlobalNavAuth() {
       : "openAuthModal('login')";
     container.innerHTML = `
       <button class="btn-nav-solid" onclick="${loginOnClick}" style="
-        background-color: #0F6E56; 
+        background-color: var(--primary); 
         color: #ffffff; 
         border: none; 
         padding: 0.6rem 1.4rem; 
@@ -109,10 +109,10 @@ function renderGlobalNavAuth() {
         font-size: 14px; 
         font-weight: 600; 
         cursor: pointer; 
-        box-shadow: 0 2px 8px rgba(15, 110, 86, 0.2);
+        box-shadow: 0 2px 8px rgba(82, 141, 92, 0.2);
         transition: all 0.2s ease;
-      " onmouseover="this.style.backgroundColor='#1D9E75'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(29, 158, 117, 0.3)';" 
-        onmouseout="this.style.backgroundColor='#0F6E56'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(15, 110, 86, 0.2)';">
+      " onmouseover="this.style.backgroundColor='var(--primary-hover)'; this.style.transform='translateY(-1px)'; this.style.boxShadow='0 4px 12px rgba(62, 138, 74, 0.3)';" 
+        onmouseout="this.style.backgroundColor='var(--primary)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(82, 141, 92, 0.2)';">
         Log In
       </button>
     `;
