@@ -232,7 +232,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     renderGlobalNavAuth();
   }
 
-if (isGuestMode) {
+  if (isGuestMode) {
     localStorage.removeItem('notized_currentUser');
     setupGuestUI();
     startNewIntake('root_root');
@@ -242,6 +242,42 @@ if (isGuestMode) {
       updateWordCount();
     }
     showToast("Entered Guest Mode (Try Sample)", "info");
+  } else if (!localStorage.getItem('notized_currentUser') && localStorage.getItem('notizedData')) {
+    // Guest user arriving from input.html with analyzed notes — show result inline
+    setupGuestUI();
+    const incomingData = JSON.parse(localStorage.getItem('notizedData'));
+    hideAllViews();
+    document.getElementById('active-project-workspace').style.display = 'block';
+    const projBreadcrumbs = document.getElementById('breadcrumbs-project');
+    if (projBreadcrumbs) projBreadcrumbs.style.display = 'none';
+    const actionBars = document.querySelectorAll('#active-project-workspace .explicit-action-bar');
+    actionBars.forEach(bar => bar.style.display = 'none');
+    
+    document.getElementById('active-project-title').textContent = incomingData.title || 'Analysis Result';
+    
+    let guestMsg = document.getElementById('guest-save-msg');
+    if (!guestMsg) {
+      guestMsg = document.createElement('div');
+      guestMsg.id = 'guest-save-msg';
+      guestMsg.style.cssText = "margin-top: 1rem; padding: 1.5rem; background-color: #f8faec; border: 1px dashed #6B8F71; border-radius: 12px; text-align: center; margin-bottom: 2rem;";
+      guestMsg.innerHTML = `
+        <h3 class="serif" style="color: #0F6E56; margin-bottom: 0.5rem;">Analysis Complete!</h3>
+        <p style="color: #1C1A16; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
+        <button class="btn-primary" onclick="window.location.href='landing.html'">Login or Register Account</button>
+      `;
+      const headerWrap = document.querySelector('#active-project-workspace .note-header-wrap');
+      if (headerWrap) headerWrap.insertAdjacentElement('afterend', guestMsg);
+    }
+    
+    document.getElementById('unanalyzed-state').style.display = 'none';
+    document.getElementById('analyzed-content-state').style.display = 'block';
+    const rawBody = document.getElementById('raw-notes-body');
+    if (rawBody) {
+      rawBody.style.display = 'none';
+      rawBody.textContent = incomingData.rawText || '';
+    }
+    renderProjectContent(incomingData);
+    showToast("Analysis complete!", "success");
   } else {
     refreshWorkspaceTree();
     setupSidebarResizer();

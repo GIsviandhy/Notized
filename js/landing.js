@@ -16,6 +16,15 @@ window.addEventListener('DOMContentLoaded', () => {
     sessionStorage.clear();
   }
   
+  // If redirected from input.html with openLogin=true, auto-open the login modal
+  if (urlParams.get('openLogin') === 'true') {
+    setTimeout(() => {
+      if (typeof openAuthModal === 'function') {
+        openAuthModal('login');
+      }
+    }, 100);
+  }
+  
   // Render auth UI based on current login state
   if (typeof renderGlobalNavAuth === 'function') {
     setTimeout(() => {

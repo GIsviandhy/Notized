@@ -12,10 +12,10 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 function esc(str) {
   if (!str) return '';
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&')
+    .replace(/</g, '<')
+    .replace(/>/g, '>')
+    .replace(/"/g, '"');
 }
 
 // ─── SLEEP UTILITY ───────────────────────────────────────────────────────────
@@ -95,8 +95,12 @@ function renderGlobalNavAuth() {
     if (de) de.textContent = user.email || '';
   } else {
     // User not logged in: Tampilkan tombol Log In hijau solid yang konsisten
+    // On input.html, redirect to landing.html with openLogin param (no openAuthModal function there)
+    const loginOnClick = window.location.pathname.includes('input.html')
+      ? "location.href='landing.html?openLogin=true'"
+      : "openAuthModal('login')";
     container.innerHTML = `
-      <button class="btn-nav-solid" onclick="openAuthModal('login')" style="
+      <button class="btn-nav-solid" onclick="${loginOnClick}" style="
         background-color: #0F6E56; 
         color: #ffffff; 
         border: none; 

@@ -152,15 +152,6 @@ async function handleAnalyze() {
   const notes = document.getElementById('notes-input').value.trim();
   const errEl = document.getElementById('error-msg');
 
-    // Require login before analyzing — prevents orphaned notizedData + dashboard bounce-back
-  if (!localStorage.getItem('notized_currentUser')) {
-    if (errEl) {
-      errEl.textContent = 'Please log in to analyze and save your notes.';
-      errEl.style.display = 'block';
-    }
-    return;
-  }
-
   // Validasi awal kata
   if (!notes || notes.split(/\s+/).filter(Boolean).length < 10) {
     if (errEl) {
