@@ -713,21 +713,69 @@ function updateWordCount() {
   if (wordCount === 0) badge.textContent = "Waiting for content"; else if (wordCount < 10) badge.textContent = `${wordCount} words - Too short!`; else badge.textContent = `${wordCount} words`;
 }
 
-function triggerFileUpload() { document.getElementById('file-input').click(); }
+function triggerFileUpload() {
+  const fileInput = document.getElementById('file-input');
+  if (!fileInput) return;
+  fileInput.value = '';
+  fileInput.click();
+}
+
+function isPdfUpload(file) {
+  const fileName = (file && file.name ? file.name : '').toLowerCase();
+  const fileType = (file && file.type ? file.type : '').toLowerCase();
+  return fileName.endsWith('.pdf') || fileType === 'application/pdf';
+}
+
+function isTextUpload(file) {
+  const fileName = (file && file.name ? file.name : '').toLowerCase();
+  const fileType = (file && file.type ? file.type : '').toLowerCase();
+  return fileName.endsWith('.txt') || fileName.endsWith('.md') || fileType.startsWith('text/');
+}
+
+function readTextFile(file) {
+  if (typeof file.text === 'function') {
+    return file.text();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = ev => resolve(ev.target.result || '');
+    reader.onerror = () => reject(new Error('Unable to read text file'));
+    reader.readAsText(file);
+  });
+}
 
 async function handleFileUpload(event) {
-  const file = event.target.files[0]; if (!file) return;
-  const textarea = document.getElementById('notes-input'); textarea.value = "Extracting document content, please wait...";
-  try { 
-      if (file.name.toLowerCase().endsWith('.pdf')) textarea.value = await extractTextFromPDF(file); 
-      else textarea.value = await file.text(); 
+  const file = event.target.files[0];
+  if (!file) return;
+  const textarea = document.getElementById('notes-input');
+  const errorMsg = document.getElementById('error-msg');
+  if (errorMsg) errorMsg.style.display = 'none';
+  textarea.value = 'Extracting document content, please wait...';
+
+  try {
+      if (isPdfUpload(file)) {
+        textarea.value = await extractTextFromPDF(file);
+      } else if (isTextUpload(file)) {
+        textarea.value = await readTextFile(file);
+      } else {
+        throw new Error('Unsupported file type.');
+      }
+
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
       updateWordCount();
-      showToast("Document attached successfully", "info");
-  } 
-  catch (e) { 
-      textarea.value = ""; 
-      customAlert("Error reading file. Ensure it's a valid text or PDF.", "System Error"); 
+      showToast('Document attached successfully', 'info');
   }
+  catch (e) {
+      textarea.value = '';
+      if (errorMsg) {
+        errorMsg.textContent = 'Error reading file. Ensure it is a valid text or PDF file.';
+        errorMsg.style.display = 'block';
+      }
+      customAlert('Error reading file. Ensure it\'s a valid text or PDF.', 'System Error');
+  }
+
+  event.target.value = '';
 }
 
 async function handleSaveRaw() {
@@ -1075,7 +1123,7 @@ function bindDragAndDropEvents() {
   });
 }
 
-function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData); bindDragAndDropEvents(); setupSidebarDropZone(); }
+function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData) + buildSidebarDropZoneHTML(); bindDragAndDropEvents(); setupSidebarDropZone(); }
 
 function refreshCurrentView() {
   refreshWorkspaceTree();
@@ -1115,6 +1163,10 @@ function buildTreeHTML(nodes) {
         </div>`;
     }
   }).join('');
+}
+
+function buildSidebarDropZoneHTML() {
+  return '<div id="sidebar-drop-zone" class="sidebar-drop-zone" title="Drop here to move to root level">Drop here to move to root level</div>';
 }
 
 function toggleFolderNode(nodeId, event) {

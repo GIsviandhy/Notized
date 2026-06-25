@@ -101,38 +101,51 @@ function updateWordCount() {
 
 // ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
 function triggerFileUpload() {
-  document.getElementById('file-input').click();
+  const fileInput = document.getElementById('file-input');
+  if (!fileInput) return;
+  fileInput.value = '';
+  fileInput.click();
 }
 
 async function handleFileUpload(e) {
   const file = e.target.files[0];
+  const fileInput = e.target;
   if (!file) return;
 
-  if (file.type === "application/pdf") {
+  const fileName = (file.name || '').toLowerCase();
+  const isPdf = fileName.endsWith('.pdf') || file.type === 'application/pdf';
+  const isText = fileName.endsWith('.txt') || fileName.endsWith('.md') || file.type.startsWith('text/');
+
+  try {
+    if (isPdf) {
     if (typeof extractTextFromPDF === 'function') {
-      try {
         const text = await extractTextFromPDF(file);
         document.getElementById('notes-input').value = text;
         updateWordCount();
-      } catch (err) {
-        console.error("PDF Extraction error:", err);
-        const errEl = document.getElementById('error-msg');
-        if (errEl) {
-          errEl.textContent = 'Failed to extract text from PDF file.';
-          errEl.style.display = 'block';
-        }
+      } else {
+        throw new Error('PDF extraction is unavailable.');
       }
+    } else if (isText) {
+      const reader = new FileReader();
+      reader.onload = ev => {
+        document.getElementById('notes-input').value = ev.target.result;
+        updateWordCount();
+      };
+      reader.onerror = () => { throw new Error('Unable to read text file.'); };
+      reader.readAsText(file);
     } else {
-      console.warn("extractTextFromPDF function is missing in common.js");
+      throw new Error('Unsupported file type. Please upload a .txt, .md, or .pdf file.');
     }
-  } else {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      document.getElementById('notes-input').value = ev.target.result;
-      updateWordCount();
-    };
-    reader.readAsText(file);
+  } catch (err) {
+    console.error('File upload error:', err);
+    const errEl = document.getElementById('error-msg');
+    if (errEl) {
+      errEl.textContent = 'Failed to read file. Please upload a valid .txt, .md, or .pdf file.';
+      errEl.style.display = 'block';
+    }
   }
+
+  if (fileInput) fileInput.value = '';
 }
 
 function loadExample() {

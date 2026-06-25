@@ -232,7 +232,7 @@ input, select, textarea { font-family: inherit; }
 .btn-add-folder-circle:hover { background: var(--primary); color: white; }
 
 .tree-scroll-container { flex: 1; overflow-y: auto; padding: 1rem 0.75rem; position: relative; }
-.folders-tree { display: flex; flex-direction: column; gap: 0.25rem; }
+.folders-tree { display: flex; flex-direction: column; gap: 0.25rem; min-height: 100%; }
 .tree-folder-block { display: flex; flex-direction: column; margin-bottom: 0.25rem; }
 
 .tree-node-row { transition: background 0.15s, border-color 0.15s; }
@@ -666,14 +666,16 @@ body.modal-open {
 .sidebar-drop-zone {
     border: 2px dashed transparent;
     border-radius: 8px;
-    margin: 0.25rem 0;
+    margin: 0.5rem 0 0 0;
     padding: 1rem 0.75rem;
     text-align: center;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-muted);
     transition: all 0.2s;
-    min-height: 48px;
+    min-height: 120px;
+    flex: 1 1 auto;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
