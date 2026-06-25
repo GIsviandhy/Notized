@@ -56,11 +56,34 @@ window.addEventListener('DOMContentLoaded', () => {
   if (urlParams.get('loadExample') === 'true') {
     loadExample();
   } else {
+    renderInputPageChrome();
+  }
+});
+
+function renderInputPageChrome() {
+  const container = document.getElementById('nav-auth-container');
+  const guestHero = document.getElementById('guest-hero-shell');
+  const user = JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
+
+  if (user && user.name) {
     if (typeof renderGlobalNavAuth === 'function') {
       renderGlobalNavAuth();
     }
+    if (guestHero) guestHero.style.display = 'none';
+    return;
   }
-});
+
+  if (container) {
+    container.innerHTML = `
+      <button type="button" class="btn-nav-home" onclick="location.href='index.html'">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Back to Home
+      </button>
+      <button type="button" class="btn-nav-solid" onclick="openAuthModal('login')">Login / Register</button>
+    `;
+  }
+  if (guestHero) guestHero.style.display = 'none';
+}
 
 // ─── INTERACTIVE PROFILE DROPDOWN FOR INPUT PAGE ──────────────────────────────
 function toggleProfileDropdown(event) {
@@ -154,10 +177,8 @@ function loadExample() {
     inputArea.value = EXAMPLE_NOTES;
     updateWordCount();
   }
-  
-  if (typeof renderGlobalNavAuth === 'function') {
-    renderGlobalNavAuth();
-  }
+
+  renderInputPageChrome();
 }
 
 // ─── ANALYZE PROCESSOR ───────────────────────────────────────────────────────
@@ -224,8 +245,25 @@ if (loadingView) loadingView.classList.add('active');
     await sleep(400);
 
     result.rawText = notes;
-    localStorage.setItem('notizedData', JSON.stringify(result));
-    window.location.href = 'dashboard.html';
+
+    // Check if user is authenticated
+    const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
+    const isAuth = !!(currentUser && (currentUser.name || currentUser.email));
+
+    if (isAuth) {
+      // Authenticated user: redirect to dashboard to save
+      localStorage.setItem('notizedData', JSON.stringify(result));
+      window.location.href = 'dashboard.html';
+    } else {
+      // Guest user: show results inline on this page
+      document.getElementById('loading-view').classList.remove('active');
+      if (typeof showGuestResult === 'function') {
+        showGuestResult(result);
+      } else {
+        localStorage.setItem('notizedData', JSON.stringify(result));
+        window.location.href = 'dashboard.html';
+      }
+    }
   } catch (e) {
     console.error('Analysis error:', e);
     if (formView) formView.style.display = 'block';

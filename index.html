@@ -505,17 +505,23 @@
       localStorage.setItem('notized_users', JSON.stringify(users));
       localStorage.setItem('notized_currentUser', JSON.stringify(newUser));
       closeAuthModal();
-      localStorage.removeItem('notizedData');
-      localStorage.removeItem('notized_target_folder');
-      window.location.href = 'dashboard.html';
+      const resumeSave = sessionStorage.getItem('notized_guest_save_pending') === 'true';
+      if (!resumeSave) {
+        localStorage.removeItem('notizedData');
+        localStorage.removeItem('notized_target_folder');
+      }
+      window.location.href = resumeSave ? 'dashboard.html?resumeSave=true' : 'dashboard.html';
     } else {
       const matched = users.find(u => u.email === email && u.password === password);
       if (!matched) { showCustomAlert('Invalid email or password.'); return; }
       localStorage.setItem('notized_currentUser', JSON.stringify(matched));
       closeAuthModal();
-      localStorage.removeItem('notizedData');
-      localStorage.removeItem('notized_target_folder');
-      window.location.href = 'dashboard.html';
+      const resumeSave = sessionStorage.getItem('notized_guest_save_pending') === 'true';
+      if (!resumeSave) {
+        localStorage.removeItem('notizedData');
+        localStorage.removeItem('notized_target_folder');
+      }
+      window.location.href = resumeSave ? 'dashboard.html?resumeSave=true' : 'dashboard.html';
     }
   }
 

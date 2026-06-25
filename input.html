@@ -28,6 +28,27 @@
     .cp-btn-cancel:hover { background:rgba(28,26,22,0.1); }
     .cp-btn-submit { background:#6B8F71; color:white; padding:0.55rem 1.25rem; border-radius:8px; font-size:13.5px; font-weight:600; border:none; cursor:pointer; display:flex; align-items:center; gap:0.4rem; }
     .cp-btn-submit:hover { background:#5a7a60; }
+
+    /* Guest results styles */
+    #guest-result-view { display:none; }
+    #guest-result-view .summary-list { list-style:none; display:flex; flex-direction:column; gap:1rem; margin-top:1.25rem; }
+    #guest-result-view .summary-list li { font-size:14px; line-height:1.65; color:#1C1A16; display:flex; gap:0.65rem; }
+    #guest-result-view .summary-arrow { color:#528d5c; font-weight:bold; }
+    #guest-result-view .keyword-chips { display:flex; flex-wrap:wrap; gap:0.5rem; margin-top:1rem; }
+    #guest-result-view .keyword-chips span { font-size:12.5px; font-weight:500; padding:0.35rem 0.85rem; border-radius:30px; background:#EDF3EE; color:#0F6E56; border:none; }
+    #guest-result-view .clusters-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-top:1rem; }
+    #guest-result-view .cluster-card { background:#fff; border:1px solid rgba(28,26,22,0.1); border-radius:12px; padding:1.25rem; }
+    #guest-result-view .cluster-name { font-size:13.5px; font-weight:700; color:#1C1A16; margin-bottom:0.65rem; }
+    #guest-result-view .cluster-topic { font-size:12.5px; color:#6B6760; padding-left:0.85rem; position:relative; margin-bottom:0.3rem; }
+    #guest-result-view .cluster-topic::before { content:'→'; position:absolute; left:0; color:#4A5586; font-weight:bold; }
+    #guest-result-view .path-list { display:flex; flex-direction:column; gap:1.25rem; margin-top:1rem; }
+    #guest-result-view .path-item { display:flex; gap:1rem; align-items:flex-start; }
+    #guest-result-view .path-num { width:36px; height:36px; border-radius:50%; border:2px solid rgba(28,26,22,0.1); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; flex-shrink:0; }
+    #guest-result-view .path-num.first { background:#528d5c; border-color:#528d5c; color:#fff; }
+    #guest-result-view .path-step { flex:1; background:#fff; border:1px solid rgba(28,26,22,0.1); border-radius:12px; padding:1rem 1.25rem; }
+    #guest-result-view .path-step-title { font-size:14px; font-weight:600; color:#1C1A16; }
+    #guest-result-view .path-step-tip { font-size:13px; color:#6B6760; margin-top:0.3rem; }
+    #guest-result-view .raw-text-box { display:none; margin-top:1rem; padding:1.25rem; background:#F6F4EF; border-radius:10px; border:1px solid rgba(28,26,22,0.1); max-height:400px; overflow-y:auto; white-space:pre-wrap; font-size:13px; line-height:1.6; color:#1C1A16; }
   </style>
 </head>
 <body>
@@ -109,17 +130,37 @@
 </nav>
 
 <main class="input-main-container">
-        <!-- BACK BUTTON -->
-      <button onclick="location.href='index.html'" style="display:flex;align-items:center;gap:0.4rem;background:transparent;border:1px solid rgba(28,26,22,0.12);color:#6B6760;margin-bottom:1rem;padding:0.45rem 0.9rem;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;flex-shrink:0;" onmouseover="this.style.background='rgba(28,26,22,0.05)';this.style.color='#1C1A16'" onmouseout="this.style.background='transparent';this.style.color='#6B6760'">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-        Back
-      </button>
+  <section id="guest-hero-shell" class="guest-hero-shell" aria-label="Guest preview banner" style="display:none;">
+    <div class="guest-hero-card">
+      <!-- <div class="guest-hero-stripes" aria-hidden="true"></div> -->
+      <div class="guest-hero-content">
+        <div class="guest-hero-kicker">preview</div>
+        <div class="guest-hero-grid">
+          <div>
+            <h1 class="serif guest-hero-title">Analyze notes in a calm, focused workspace.</h1>
+            <p class="guest-hero-copy">Paste lecture notes, upload a document, and preview the analysis before you log in to save it.</p>
+          </div>
+          <div class="guest-hero-actions">
+            <button type="button" class="btn-nav-solid guest-login-btn" onclick="handleGuestLoginFromInput()">Login / Register</button>
+
+            <span class="guest-hero-helper">Signing in unlocks saving, folders, and editing.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BACK BUTTON -->
+  <button onclick="location.href='index.html'" style="display:flex;align-items:center;gap:0.4rem;background:transparent;border:1px solid rgba(28,26,22,0.12);color:#6B6760;margin-bottom:1rem;padding:0.45rem 0.9rem;border-radius:20px;font-size:13px;font-weight:500;cursor:pointer;flex-shrink:0;" onmouseover="this.style.background='rgba(28,26,22,0.05)';this.style.color='#1C1A16'" onmouseout="this.style.background='transparent';this.style.color='#6B6760'">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Back
+  </button>
 
   <div class="input-bound row-adaptive">
     <section id="input-form-view" class="input-card-pane fade-in">
       <div class="pane-header">
         <h2 class="serif entry-title">Transform Your Raw Notes</h2>
-        <p class="entry-subtitle">Feed in lecture transcripts, notes, drafts, or full book chapters.</p>
+        <!-- <p class="entry-subtitle">Feed in lecture transcripts, notes, drafts, or full book chapters.</p> -->
       </div>
       <div class="modern-textarea-container">
         <textarea id="notes-input"
@@ -142,6 +183,76 @@
         <span class="time-hint-text">Process takes ~3-5s</span>
       </div>
     </section>
+
+    <!-- Guest Results View -->
+    <section id="guest-result-view" class="input-card-pane fade-in">
+      <div class="pane-header">
+        <h2 class="serif entry-title" id="guest-result-title">Analysis Result</h2>
+      </div>
+      <div id="guest-result-body">
+        <!-- Summary -->
+        <div style="margin-bottom:2rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6B6760;margin-bottom:1rem;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#10b981;flex-shrink:0;"></span>
+            Smart Summary
+            <span style="flex:1;height:1px;background:rgba(28,26,22,0.1);"></span>
+          </div>
+          <ul class="summary-list" id="guest-summary-list"></ul>
+        </div>
+        <!-- Keywords -->
+        <div style="margin-bottom:2rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6B6760;margin-bottom:1rem;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#4A5586;flex-shrink:0;"></span>
+            Keyword Radar
+            <span style="flex:1;height:1px;background:rgba(28,26,22,0.1);"></span>
+          </div>
+          <div class="keyword-chips" id="guest-keyword-chips"></div>
+        </div>
+        <!-- Clusters -->
+        <div style="margin-bottom:2rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6B6760;margin-bottom:1rem;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#B85C6E;flex-shrink:0;"></span>
+            Topic Clusters
+            <span style="flex:1;height:1px;background:rgba(28,26,22,0.1);"></span>
+          </div>
+          <div class="clusters-grid" id="guest-clusters-grid"></div>
+        </div>
+        <!-- Learning Path -->
+        <div style="margin-bottom:2rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#6B6760;margin-bottom:1rem;">
+            <span style="width:8px;height:8px;border-radius:50%;background:#C9883A;flex-shrink:0;"></span>
+            Learning Path
+            <span style="flex:1;height:1px;background:rgba(28,26,22,0.1);"></span>
+          </div>
+          <div class="path-list" id="guest-path-list"></div>
+        </div>
+        <!-- Guest conversion CTA -->
+        <!-- <div id="guest-conversion-banner" style="display:none; margin-top:1.5rem; padding:1.1rem 1.15rem; border-radius:16px; border:1px solid rgba(82,141,92,0.18); background:linear-gradient(180deg, rgba(236,243,238,0.95), rgba(248,251,248,0.98)); position:relative; overflow:hidden;">
+          <div class="guest-hero-stripes" aria-hidden="true"></div>
+          <div style="position:relative; z-index:1; display:flex; justify-content:space-between; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
+            <div style="max-width:620px;">
+              <div style="font-size:11px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; color:var(--primary); margin-bottom:0.45rem; display:inline-flex; align-items:center; gap:0.45rem;">
+                <span style="width:8px; height:8px; border-radius:50%; background:var(--primary); box-shadow:0 0 0 4px rgba(82,141,92,0.12);"></span>
+                Guest preview
+              </div>
+              <h3 class="serif" style="font-size:20px; line-height:1.1; color:var(--text-primary); letter-spacing:-0.03em; margin-bottom:0.45rem;">Save this analysis to your account without reprocessing.</h3>
+              <p style="font-size:13.5px; line-height:1.65; color:var(--text-muted);">Log in or create an account now and the processed note will be transferred straight into your Dashboard root notes collection.</p>
+            </div>
+            <button type="button" class="btn-nav-solid guest-login-btn" onclick="handleGuestLoginFromInput()">Login / Register</button>
+          </div>
+        </div> -->
+
+        <!-- Raw text toggle -->
+        <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid rgba(28,26,22,0.1);">
+          <button onclick="toggleGuestRawText()" style="display:inline-flex;align-items:center;gap:0.5rem;background:rgba(28,26,22,0.05);border:1px solid rgba(28,26,22,0.1);padding:0.45rem 1rem;border-radius:30px;color:#6B6760;font-size:12.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">
+            <svg id="guest-raw-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+            <span>View Raw Notes</span>
+          </button>
+          <div class="raw-text-box" id="guest-raw-text-box"></div>
+        </div>
+      </div>
+    </section>
+
     <aside class="guidelines-sidebar">
       <h4 class="sidebar-block-heading">Things to Know</h4>
       <div class="blueprint-stack">
@@ -217,7 +328,6 @@
     const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
     if (!currentUser) return showErr('Session expired. Please log in again.');
 
-    // Fallback: cari password dari notized_users kalau tidak ada di sesi
     const users = JSON.parse(localStorage.getItem('notized_users') || '[]');
     const userRecord = users.find(u => u.id === currentUser.id || u.email === currentUser.email);
     const storedPassword = currentUser.password || (userRecord ? userRecord.password : undefined);
@@ -242,6 +352,101 @@
     localStorage.removeItem('currentUser');
     sessionStorage.removeItem('notized_greeted');
     window.location.href = 'index.html';
+  }
+
+  /* ── Guest results helpers ── */
+  let guestResultData = null;
+
+  function showGuestResult(data) {
+    guestResultData = data;
+    document.getElementById('input-form-view').style.display = 'none';
+    document.getElementById('guest-result-view').style.display = 'block';
+    document.getElementById('guest-result-title').textContent = data.title || 'Analysis Result';
+    const guestHero = document.getElementById('guest-hero-shell');
+    if (guestHero) guestHero.style.display = 'block';
+    const guestBanner = document.getElementById('guest-conversion-banner');
+    if (guestBanner) guestBanner.style.display = 'block';
+
+    const guestConversionData = {
+      ...data,
+      guestTransferId: data.guestTransferId || `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      lastEdited: data.lastEdited || Date.now(),
+    };
+    guestResultData = guestConversionData;
+    localStorage.setItem('notizedData', JSON.stringify(guestConversionData));
+
+    // Summary
+    const summaryList = document.getElementById('guest-summary-list');
+    summaryList.innerHTML = (guestConversionData.summary || []).map(p => `<li><span class="summary-arrow">→</span> <span>${esc(p)}</span></li>`).join('');
+
+    // Keywords
+    const kwChips = document.getElementById('guest-keyword-chips');
+    kwChips.innerHTML = (guestConversionData.keywords || []).map(kw => `<span>${esc(kw)}</span>`).join('');
+
+    // Clusters
+    const clustersGrid = document.getElementById('guest-clusters-grid');
+    clustersGrid.innerHTML = (guestConversionData.clusters || []).map(c => `
+      <div class="cluster-card">
+        <div class="cluster-name">${esc(c.name)}</div>
+        ${(c.topics || []).map(t => `<div class="cluster-topic">${esc(t)}</div>`).join('')}
+      </div>
+    `).join('');
+
+    // Learning Path
+    const pathList = document.getElementById('guest-path-list');
+    pathList.innerHTML = (guestConversionData.learningPath || []).map((s, i) => `
+      <div class="path-item">
+        <div class="path-num ${i === 0 ? 'first' : ''}">${s.step}</div>
+        <div class="path-step">
+          <div class="path-step-title">${esc(s.title)}</div>
+          <div class="path-step-tip">${esc(s.tip)}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Raw text
+    const rawBox = document.getElementById('guest-raw-text-box');
+    if (rawBox) rawBox.textContent = guestConversionData.rawText || '';
+  }
+
+  function handleGuestLoginFromInput() {
+    if (guestResultData) {
+      localStorage.setItem('notizedData', JSON.stringify(guestResultData));
+      sessionStorage.setItem('notized_guest_save_pending', 'true');
+      if (typeof openAuthModal === 'function') {
+        openAuthModal('login');
+        return;
+      }
+    }
+
+    sessionStorage.setItem('notized_guest_save_pending', 'true');
+    if (typeof openAuthModal === 'function') {
+      openAuthModal('login');
+    } else {
+      window.location.href = 'index.html?auth=login&resumeSave=true';
+    }
+  }
+
+  function toggleGuestRawText() {
+    const box = document.getElementById('guest-raw-text-box');
+    const chevron = document.getElementById('guest-raw-chevron');
+    if (!box) return;
+    const isOpen = box.style.display !== 'none';
+    box.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.style.transform = isOpen ? '' : 'rotate(90deg)';
+  }
+
+  function handleGuestLoginFromInput() {
+    // Save data so dashboard can resume after login
+    if (guestResultData) {
+      localStorage.setItem('notizedData', JSON.stringify(guestResultData));
+    }
+    sessionStorage.setItem('notized_guest_save_pending', 'true');
+    if (typeof openAuthModal === 'function') {
+      openAuthModal('login');
+    } else {
+      window.location.href = 'index.html?auth=login&resumeSave=true';
+    }
   }
 </script>
 </body>

@@ -205,8 +205,8 @@
             <div class="empty-vector-wrap" style="color: var(--sage); background: var(--bg-app); width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
             </div>
-            <h3 class="serif canvas-headline" style="color: var(--text-primary); font-size: 18px; margin-bottom: 0.4rem;">Knowledge Console Standby</h3>
-            <p class="canvas-subtext" style="color: var(--text-muted); font-size: 13px; max-width: 320px;">Your central vault is currently empty. Drop in a draft or establish a modular directory tree branch to launch analysis.</p>
+            <h3 class="serif canvas-headline" style="color: var(--text-primary); font-size: 18px; margin-bottom: 0.4rem;">Empty Dashboard</h3>
+            <p class="canvas-subtext" style="color: var(--text-muted); font-size: 13px; max-width: 320px;">Your dashboard is currently empty. Drop in a draft or some notes to launch analysis.</p>
           </div>
           <div class="folder-contents-grid" id="root-contents-grid" style="margin-top:1.5rem;"></div>
         </div>
@@ -442,9 +442,17 @@
   <script src="js/ai-service.js"></script>
   <script src="js/dashboard.js"></script>
   <script>
+    let activeDashboardTab = 'raw';
+
+    function setActiveDashboardTab(tabId) {
+      activeDashboardTab = tabId;
+      document.querySelectorAll('.note-tab').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === tabId);
+      });
+    }
+
     function activateTab(tabId, btnEl) {
-      document.querySelectorAll('.note-tab').forEach(b => b.classList.remove('active'));
-      if (btnEl) btnEl.classList.add('active');
+      setActiveDashboardTab(tabId);
       const anchor = document.getElementById('anchor-' + tabId);
       if (!anchor) return;
       const mainPane = document.querySelector('.workspace-main-pane');
@@ -453,34 +461,41 @@
       const anchorTop = anchor.getBoundingClientRect().top + mainPane.scrollTop - mainPane.getBoundingClientRect().top;
       mainPane.scrollTo({ top: anchorTop - stickyOffset, behavior: 'smooth' });
     }
+
+    function syncActiveDashboardTabFromScroll() {
+      const mainPane = document.querySelector('.workspace-main-pane');
+      const workspace = document.getElementById('active-project-workspace');
+      if (!mainPane || !workspace || workspace.style.display === 'none') return;
+
+      const sections = ['raw', 'summary', 'clusters', 'path'];
+      const topbarH = (document.querySelector('.dashboard-topbar') || {offsetHeight: 60}).offsetHeight;
+      const tabsH = (document.getElementById('note-sticky-tabs') || {offsetHeight: 44}).offsetHeight;
+      const marker = mainPane.scrollTop + topbarH + tabsH + 28;
+
+      let nextActive = 'raw';
+      sections.forEach(id => {
+        const section = document.getElementById('note-section-' + id);
+        if (!section) return;
+        if (section.offsetTop <= marker) nextActive = id;
+      });
+
+      if (nextActive !== activeDashboardTab) {
+        setActiveDashboardTab(nextActive);
+      }
+    }
+
     function setupScrollSpy() {
       const mainPane = document.querySelector('.workspace-main-pane');
       if (!mainPane) return;
-      const sections = ['raw', 'summary', 'clusters', 'path'];
-      mainPane.addEventListener('scroll', () => {
-        const workspace = document.getElementById('active-project-workspace');
-        if (!workspace || workspace.style.display === 'none') return;
-        const topbarH = (document.querySelector('.dashboard-topbar') || {offsetHeight: 60}).offsetHeight;
-        const tabsH   = (document.getElementById('note-sticky-tabs') || {offsetHeight: 44}).offsetHeight;
-        const threshold = topbarH + tabsH + 20;
-        let active = 'raw';
-        sections.forEach(id => {
-          const anchor = document.getElementById('anchor-' + id);
-          if (!anchor) return;
-          const rect = anchor.getBoundingClientRect();
-          if (rect.top <= threshold + 40) active = id;
-        });
-        document.querySelectorAll('.note-tab').forEach(b => {
-          b.classList.toggle('active', b.dataset.tab === active);
-        });
-      }, { passive: true });
+      mainPane.addEventListener('scroll', syncActiveDashboardTabFromScroll, { passive: true });
     }
     window.addEventListener('DOMContentLoaded', () => {
       setupScrollSpy();
+      syncActiveDashboardTabFromScroll();
     });
 
     const urlParams = new URLSearchParams(window.location.search);
-    if (!localStorage.getItem('notized_currentUser') && urlParams.get('loadExample') !== 'true' && !localStorage.getItem('notizedData')) {
+    if (!localStorage.getItem('notized_currentUser') && urlParams.get('loadExample') !== 'true') {
       window.location.href = 'index.html';
     }
   </script>

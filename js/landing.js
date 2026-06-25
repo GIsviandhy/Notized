@@ -24,6 +24,15 @@ window.addEventListener('DOMContentLoaded', () => {
       }
     }, 100);
   }
+
+  const resumeSave = urlParams.get('resumeSave') === 'true' || sessionStorage.getItem('notized_guest_save_pending') === 'true';
+  if (resumeSave) {
+    setTimeout(() => {
+      if (typeof openAuthModal === 'function') {
+        openAuthModal('login');
+      }
+    }, 150);
+  }
   
   // Render auth UI based on current login state
   if (typeof renderGlobalNavAuth === 'function') {
@@ -114,10 +123,13 @@ function handleAuthSubmit(event) {
     _saveSession(matched);
     closeAuthModal();
     if (typeof renderGlobalNavAuth === 'function') renderGlobalNavAuth();
-    localStorage.removeItem('notizedData');
-    localStorage.removeItem('notized_target_folder');
+    const resumeSave = sessionStorage.getItem('notized_guest_save_pending') === 'true';
+    if (!resumeSave) {
+      localStorage.removeItem('notizedData');
+      localStorage.removeItem('notized_target_folder');
+    }
 
-    window.location.href = 'dashboard.html';
+    window.location.href = resumeSave ? 'dashboard.html?resumeSave=true' : 'dashboard.html';
 
   } else {
     const nameInput = document.getElementById('auth-input-name');
@@ -133,10 +145,13 @@ function handleAuthSubmit(event) {
     _saveSession(newUser);
     closeAuthModal();
     if (typeof renderGlobalNavAuth === 'function') renderGlobalNavAuth();
-    localStorage.removeItem('notizedData');
-    localStorage.removeItem('notized_target_folder');
+    const resumeSave = sessionStorage.getItem('notized_guest_save_pending') === 'true';
+    if (!resumeSave) {
+      localStorage.removeItem('notizedData');
+      localStorage.removeItem('notized_target_folder');
+    }
 
-    window.location.href = 'dashboard.html';
+    window.location.href = resumeSave ? 'dashboard.html?resumeSave=true' : 'dashboard.html';
   }
 }
 

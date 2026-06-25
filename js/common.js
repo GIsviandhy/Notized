@@ -318,9 +318,12 @@ function handleAuthSubmit(event) {
   }
 
   closeAuthModal();
-  localStorage.removeItem('notizedData');
-  localStorage.removeItem('notized_target_folder');
-  window.location.href = 'dashboard.html';
+  const resumeSave = sessionStorage.getItem('notized_guest_save_pending') === 'true';
+  if (!resumeSave) {
+    localStorage.removeItem('notizedData');
+    localStorage.removeItem('notized_target_folder');
+  }
+  window.location.href = resumeSave ? 'dashboard.html?resumeSave=true' : 'dashboard.html';
 }
 
 // Render auth nav: Dashboard + Profile if logged in, else Log In button

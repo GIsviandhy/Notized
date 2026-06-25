@@ -70,6 +70,98 @@ let currentViewedNoteId = null;
 let isNoteEditingActive = false;
 let noteEditingTargetId = null;
 let isGuestMode = false;
+const GUEST_SAVE_PROMPT_KEY = 'notized_guest_save_pending';
+
+function getCurrentUserSession() {
+  return JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
+}
+
+function isAuthenticatedUser() {
+  const user = getCurrentUserSession();
+  return !!(user && (user.name || user.email));
+}
+
+function promptGuestLoginForSave() {
+  const draft = localStorage.getItem('notizedData');
+  if (!draft) return;
+
+  sessionStorage.setItem(GUEST_SAVE_PROMPT_KEY, 'true');
+  window.location.href = 'index.html?auth=login&resumeSave=true';
+}
+
+function clearGuestSavePrompt() {
+  sessionStorage.removeItem(GUEST_SAVE_PROMPT_KEY);
+}
+
+function findNoteByTransferId(nodes, transferId) {
+  if (!transferId || !Array.isArray(nodes)) return null;
+
+  for (const node of nodes) {
+    if (node && node.type === 'file' && node.data && node.data.guestTransferId === transferId) {
+      return node;
+    }
+    if (node && node.type === 'folder' && Array.isArray(node.children)) {
+      const found = findNoteByTransferId(node.children, transferId);
+      if (found) return found;
+    }
+  }
+
+  return null;
+}
+
+function persistIncomingNote(incomingData, titleInput, folderTargetId = 'root_root') {
+  const safeData = incomingData ? JSON.parse(JSON.stringify(incomingData)) : null;
+  if (!safeData) return null;
+
+  const normalizedTitle = (titleInput || safeData.title || 'Analysis Result').trim().substring(0, 40) || 'Analysis Result';
+  const transferId = safeData.guestTransferId || '';
+  const treeData = getLibraryData();
+
+  if (transferId) {
+    const existingNode = findNoteByTransferId(treeData, transferId);
+    if (existingNode) {
+      existingNode.data = { ...existingNode.data, ...safeData, lastEdited: Date.now() };
+      localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+      localStorage.removeItem('notizedData');
+      localStorage.removeItem('notized_target_folder');
+      clearGuestSavePrompt();
+      return existingNode;
+    }
+  }
+
+  safeData.lastEdited = Date.now();
+  const newFileNode = { id: 'node_' + Date.now(), name: normalizedTitle, type: 'file', data: safeData };
+
+  if (folderTargetId === 'root_root' || folderTargetId.startsWith('mock_pad_')) {
+    treeData.push(newFileNode);
+  } else {
+    const parent = getTargetNode(treeData, folderTargetId);
+    if (parent) {
+      if (!parent.children) parent.children = [];
+      parent.children.push(newFileNode);
+      parent.expanded = true;
+    } else {
+      treeData.push(newFileNode);
+    }
+  }
+
+  localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+  localStorage.removeItem('notizedData');
+  localStorage.removeItem('notized_target_folder');
+  clearGuestSavePrompt();
+  return newFileNode;
+}
+
+// Guest login helper: preserves analysis data before opening auth modal
+function handleGuestLogin() {
+  sessionStorage.setItem(GUEST_SAVE_PROMPT_KEY, 'true');
+  if (typeof openAuthModal === 'function') {
+    openAuthModal('login');
+  } else {
+    // Fallback if common.js not loaded
+    window.location.href = 'index.html?auth=login&resumeSave=true';
+  }
+}
 
 // ─── ESCAPE UTILITY ───
 function esc(str) {
@@ -190,6 +282,7 @@ document.addEventListener('click', (e) => {
 window.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   isGuestMode = urlParams.get('loadExample') === 'true';
+  const resumeSave = urlParams.get('resumeSave') === 'true' || sessionStorage.getItem(GUEST_SAVE_PROMPT_KEY) === 'true';
 
   if (typeof renderGlobalNavAuth === 'function') {
     renderGlobalNavAuth();
@@ -226,7 +319,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       guestMsg.innerHTML = `
         <h3 class="serif" style="color: #0F6E56; margin-bottom: 0.5rem;">Analysis Complete!</h3>
         <p style="color: #1C1A16; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
-        <button class="btn-primary" onclick="window.location.href='index.html'">Login or Register Account</button>
+        <button class="btn-primary" onclick="handleGuestLogin()">Login or Register Account</button>
       `;
       const headerWrap = document.querySelector('#active-project-workspace .note-header-wrap');
       if (headerWrap) headerWrap.insertAdjacentElement('afterend', guestMsg);
@@ -296,7 +389,15 @@ window.addEventListener('DOMContentLoaded', async () => {
 
   refreshWorkspaceTree();
 
-  if (!isGuestMode && localStorage.getItem('notizedData')) {
+  if (resumeSave && isAuthenticatedUser() && localStorage.getItem('notizedData')) {
+    const incomingData = JSON.parse(localStorage.getItem('notizedData'));
+    const savedNode = persistIncomingNote(incomingData, incomingData.title || 'Analysis Result', 'root_root');
+    if (savedNode) {
+      refreshCurrentView();
+      loadSavedFileNode(savedNode.id, savedNode.name);
+      showToast('Note created successfully!');
+    }
+  } else if (!isGuestMode && localStorage.getItem('notizedData') && isAuthenticatedUser()) {
     openSaveModal();
   }
 });
@@ -413,7 +514,7 @@ function setupGuestUI() {
       <button type="button" class="btn-secondary" onclick="window.location.href='index.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> Back to Home
       </button>
-      <button type="button" class="btn-nav-solid" onclick="window.location.href='index.html'">Login / Register</button>
+      <button type="button" class="btn-nav-solid" onclick="handleGuestLogin()">Login / Register</button>
     `;
   }
   const mainLayout = document.querySelector('.workspace-layout');
@@ -814,7 +915,7 @@ async function handleAnalyze() {
             guestMsg.innerHTML = `
               <h3 class="serif" style="color: #0F6E56; margin-bottom: 0.5rem;">Analysis Complete!</h3>
               <p style="color: #1C1A16; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
-              <button class="btn-primary" onclick="window.location.href='index.html'">Login or Register Account</button>
+              <button class="btn-primary" onclick="handleGuestLogin()">Login or Register Account</button>
             `;
             const headerWrap = document.querySelector('#active-project-workspace .note-header-wrap');
             if(headerWrap) headerWrap.insertAdjacentElement('afterend', guestMsg);
@@ -850,7 +951,7 @@ async function triggerAnalyzeFromRaw() {
       barEl.style.width = '100%'; pctEl.textContent = '100%'; await sleep(300); document.getElementById('loading-view').classList.remove('active');
       node.data = result; localStorage.setItem('notized_library_tree', JSON.stringify(tree));
       refreshWorkspaceTree(); loadSavedFileNode(node.id, node.name);
-      showToast("Quantum Analysis Complete", "success");
+      showToast("Analysis Complete", "success");
    } catch(e) { document.getElementById('loading-view').classList.remove('active'); await customAlert("Quantum Analysis failed.", "System Error"); }
 }
 
@@ -1141,10 +1242,10 @@ function buildTreeHTML(nodes) {
       const caret = node.children && node.children.length > 0 ? (node.expanded ? "▾" : "▸") : " "; const baseColor = node.color || "#6B8F71"; 
       return `
         <div class="tree-folder-block" data-id="${node.id}">
-          <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" style="background-color: ${hexToRgbaTint(baseColor, 0.12)}; color: ${baseColor};" title="${esc(node.name)}">
+          <div class="tree-folder-header tree-node-row" draggable="true" data-id="${node.id}" data-type="folder" onclick="toggleFolderNode('${node.id}', event)" style="background-color: ${hexToRgbaTint(baseColor, 0.12)}; color: ${baseColor}; cursor: pointer;" title="${esc(node.name)}">
             <div style="display: flex; gap: 0.4rem; align-items: center; flex: 1; min-width: 0;">
-              <div onmousedown="event.stopPropagation()" onclick="toggleFolderNode('${node.id}', event)" style="cursor: pointer; font-size:14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: -4px;">${caret}</div>
-              <div onclick="viewFolderNode('${node.id}', event)" style="display: flex; gap: 0.5rem; align-items: center; flex: 1; cursor: pointer; min-width: 0;">
+              <div style="cursor: pointer; font-size:14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; margin-left: -4px;">${caret}</div>
+              <div style="display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 0;">
                 <svg class="tree-svg-icon" style="flex-shrink: 0; color: ${baseColor};" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
                 <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(node.name)}</strong>
               </div>
@@ -1218,6 +1319,10 @@ function selectColorDot(el) { document.querySelectorAll('.color-dot').forEach(d 
 
 function openSaveModal() {
   const incoming = localStorage.getItem('notizedData'); if (!incoming) return;
+  if (!isAuthenticatedUser()) {
+    promptGuestLoginForSave();
+    return;
+  }
   document.getElementById('save-modal').style.display = 'flex'; 
   const sName = document.getElementById('save-notes-name');
   sName.value = JSON.parse(incoming).title || '';
@@ -1236,17 +1341,18 @@ function openSaveModal() {
 function closeSaveModal() { document.getElementById('save-modal').style.display = 'none'; }
 
 async function confirmSaveNotes() {
+  if (!isAuthenticatedUser()) {
+    promptGuestLoginForSave();
+    return;
+  }
   const titleInput = document.getElementById('save-notes-name').value.trim().substring(0, 40); 
   const folderTargetId = document.getElementById('save-folder-select').value;
   if (!titleInput) { await customAlert('Please enter a project name.', "Validation"); return; }
   
-  const incomingData = JSON.parse(localStorage.getItem('notizedData')); let treeData = getLibraryData();
-  incomingData.lastEdited = Date.now();
-  const newFileNode = { id: "node_" + Date.now(), name: titleInput, type: "file", data: incomingData };
-  if (folderTargetId === "root_root" || folderTargetId.startsWith("mock_pad_")) treeData.push(newFileNode);
-  else { let parent = getTargetNode(treeData, folderTargetId); if (parent) { if (!parent.children) parent.children = []; parent.children.push(newFileNode); parent.expanded = true; } }
-  localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData'); localStorage.removeItem('notized_target_folder');
-  closeSaveModal(); refreshCurrentView(); loadSavedFileNode(newFileNode.id, titleInput);
+  const incomingData = JSON.parse(localStorage.getItem('notizedData'));
+  const newFileNode = persistIncomingNote(incomingData, titleInput, folderTargetId);
+  if (!newFileNode) return;
+  closeSaveModal(); refreshCurrentView(); loadSavedFileNode(newFileNode.id, newFileNode.name);
   showToast("Note created successfully!");
 }
 
@@ -1456,14 +1562,3 @@ function handleLogOut() {
   }
 }
 
-(function() {
-  const _origLoad = window.loadSavedFileNode;
-  window.loadSavedFileNode = function(id, name, event) {
-    _origLoad(id, name, event);
-    setTimeout(() => {
-      document.querySelectorAll('.note-tab').forEach((b, i) => b.classList.toggle('active', i === 0));
-      const mainPane = document.querySelector('.workspace-main-pane');
-      if (mainPane) mainPane.scrollTo({ top: 0, behavior: 'instant' });
-    }, 50);
-  };
-})();
