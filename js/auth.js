@@ -146,6 +146,8 @@ function handleTrySampleBypass() {
 
 window.addEventListener('DOMContentLoaded', () => {
   const greetingEl = document.getElementById('user-greeting');
+  const greetingEl2 = document.getElementById('user-greeting-2');
+
   if (greetingEl) {
     const user = JSON.parse(localStorage.getItem('notized_currentUser'));
     if (user && user.name) {

@@ -5,7 +5,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-    /* Refined Theme Palette (Sage, Cream & Emerald Mint) */
     --bg-app:         #F6F4EF;
     --bg-surface:     #FFFFFF;
     --text-primary:   #1C1A16;
@@ -49,6 +48,13 @@ body {
     height: 100vh;
 }
 
+/* ── GUEST MODE OVERRIDE: disable 100vh/overflow so content can scroll ── */
+.dashboard-body.guest-mode {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: 100vh;
+}
+
 .serif { font-family: 'Playfair Display', serif; font-weight: 700; }
 button { font-family: inherit; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; border: none; background: none; }
 input, select, textarea { font-family: inherit; }
@@ -76,7 +82,7 @@ input, select, textarea { font-family: inherit; }
 .stagger-6 { animation-delay: 0.24s; opacity: 0; }
 
 /* ── UNIFIED CORE BUTTONS ── */
-.btn-primary { background: var(--primary); color: white; padding: 0.55rem 1.25rem; border-radius: 12px; font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-primary { background: var(--primary); color: white; padding: 0.4rem 1rem; border-radius: 12px; font-size: 13.5px; font-weight: 600; box-shadow: var(--shadow-sm); display: inline-flex; align-items: center; gap: 0.5rem; }
 .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
 
@@ -86,10 +92,9 @@ input, select, textarea { font-family: inherit; }
 .btn-nav-danger { color: var(--rose); font-size: 13.5px; font-weight: 500; padding: 0.55rem 1rem; border-radius: 8px; }
 .btn-nav-danger:hover { background: var(--rose-light); }
 
-.btn-secondary { background: rgba(28,26,22,0.05); color: var(--text-primary); padding: 0.55rem 1.25rem; border-radius: 8px; font-size: 13.5px; font-weight: 600; }
+.btn-secondary { background: rgba(28,26,22,0.05); color: var(--text-primary); padding: 0.4rem 1rem; border-radius: 8px; font-size: 13.5px; font-weight: 600; }
 .btn-secondary:hover { background: rgba(28,26,22,0.1); }
 
-/* ⚡ TAMBAHAN UTAMA: Kelas tombol Log In Hijau Solid yang Konsisten */
 .btn-nav-solid {
     background-color: var(--primary) !important;
     color: #ffffff !important;
@@ -226,7 +231,7 @@ input, select, textarea { font-family: inherit; }
 .btn-add-folder-circle { width: 28px; height: 28px; background: rgba(28,26,22,0.05); color: var(--text-primary); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
 .btn-add-folder-circle:hover { background: var(--primary); color: white; }
 
-.tree-scroll-container { flex: 1; overflow-y: auto; padding: 1rem 0.75rem; }
+.tree-scroll-container { flex: 1; overflow-y: auto; padding: 1rem 0.75rem; position: relative; }
 .folders-tree { display: flex; flex-direction: column; gap: 0.25rem; }
 .tree-folder-block { display: flex; flex-direction: column; margin-bottom: 0.25rem; }
 
@@ -259,7 +264,7 @@ input, select, textarea { font-family: inherit; }
 .canvas-headline { font-size: 20px; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
 .canvas-subtext { font-size: 13.5px; line-height: 1.5; color: var(--text-muted); }
 
-.active-workspace-title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: 2rem; }
+.active-workspace-title { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; color: var(--text-primary); margin-bottom: 0.5rem; }
 
 /* Grid Dashboard Split Layout Structure */
 .dashboard-grid-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
@@ -415,9 +420,28 @@ input, select, textarea { font-family: inherit; }
     font-weight: 600;
     color: var(--text-primary);
     display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    box-shadow: var(--shadow-sm);
+}
+.folder-grid-item {
+    background: var(--bg-surface);
+    position: relative;
+}
+.folder-grid-item .grid-item-top {
+    display: flex;
     align-items: center;
     gap: 0.65rem;
-    box-shadow: var(--shadow-sm);
+    min-width: 0;
+}
+.file-grid-item {
+    background: var(--white);
+}
+.file-grid-item .grid-item-top {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
 }
 .folder-grid-item:hover, .file-grid-item:hover {
     transform: translateY(-2px);
@@ -425,12 +449,64 @@ input, select, textarea { font-family: inherit; }
     border-color: var(--primary);
 }
 
-/* ── EXPLICIT ACTION BUTTONS STYLES ── */
+/* Card metadata line */
+.card-meta-line {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--text-muted);
+    padding-left: calc(14px + 0.65rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
+}
+
+/* ── GLOBAL TEXT TRUNCATION RULES (consolidated, no inline styles needed) ── */
+.text-ellipsis {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    max-width: 100%;
+}
+.tree-folder-header > div { min-width: 0 !important; }
+.tree-folder-header strong,
+.tree-file-item span,
+.folder-grid-item span,
+.file-grid-item span,
+.tree-folder-header .tree-count {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block;
+}
+.tree-svg-icon { flex-shrink: 0 !important; }
+.tree-file-item,
+.folder-grid-item,
+.file-grid-item { min-width: 0 !important; }
+
+/* Breadcrumb items truncated */
+.crumb {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+/* Dropdown items truncated */
+.dropdown-menu-list button span,
+.profile-dropdown-card span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── ACTION BUTTONS REVISION ── */
 .explicit-action-bar {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    margin-bottom: 2rem;
     flex-wrap: wrap;
 }
 .note-header-wrap {
@@ -440,16 +516,95 @@ input, select, textarea { font-family: inherit; }
     flex-wrap: wrap;
     gap: 1rem;
 }
+.note-header-wrap.vertical {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+}
+.note-header-wrap.vertical .active-workspace-title {
+    width: 100%;
+    margin-bottom: 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+}
+.action-bar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.5rem;
+}
+.action-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.action-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+/* Back button - no border, no bg */
+.btn-back-ghost {
+    background: none !important;
+    border: none !important;
+    color: var(--text-muted);
+    padding: 0.4rem 0.5rem;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: 6px;
+}
+.btn-back-ghost:hover {
+    color: var(--text-primary);
+    background: rgba(28,26,22,0.05);
+}
+/* Rename ghost button - smaller padding, distinct icon */
+.btn-rename-ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0.35rem 0.85rem;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+.btn-rename-ghost:hover {
+    background: rgba(28,26,22,0.05);
+}
+/* Delete as plain rose text */
+.btn-delete-text {
+    background: none;
+    border: none;
+    color: var(--rose);
+    padding: 0.4rem 0.5rem;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 6px;
+}
+.btn-delete-text:hover {
+    background: var(--rose-light);
+    text-decoration: none;
+}
 .action-divider {
     width: 1px;
-    height: 24px;
+    height: 20px;
     background-color: var(--border);
-    margin: 0 0.5rem;
+    flex-shrink: 0;
 }
 .btn-outline-danger {
     background: transparent;
     color: var(--rose);
-    padding: 0.55rem 1.25rem;
+    padding: 0.4rem 1rem;
     border-radius: 8px;
     font-size: 13.5px;
     font-weight: 600;
@@ -458,6 +613,76 @@ input, select, textarea { font-family: inherit; }
 }
 .btn-outline-danger:hover {
     background: var(--rose-light);
+}
+
+/* ── NEW NOTE DASHED CARD ── */
+.new-note-card-dashed {
+    border: 1.5px dashed var(--border) !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 80px;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.new-note-card-dashed:hover {
+    border-color: var(--primary) !important;
+    background: rgba(82, 141, 92, 0.04) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+.new-note-card-dashed span {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+/* ── KEYWORD RADAR MINI STAT CARD (repositioned) ── */
+.mini-stat-card.kw-radar-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.mini-stat-card.kw-radar-card .kw-radar-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+}
+.mini-stat-card.kw-radar-card .keyword-chips-wrap {
+    margin-top: 0;
+}
+
+/* ── BODY SCROLL LOCK ── */
+body.modal-open {
+    overflow: hidden !important;
+    padding-right: 6px;
+}
+
+/* ── DROP ZONE AT SIDEBAR BOTTOM ── */
+.sidebar-drop-zone {
+    border: 2px dashed transparent;
+    border-radius: 8px;
+    margin: 0.25rem 0;
+    padding: 1rem 0.75rem;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.sidebar-drop-zone.drag-over {
+    border-color: var(--primary);
+    background: rgba(82, 141, 92, 0.08);
+    color: var(--primary);
 }
 
 /* ── DROPDOWN & RAW NOTES EXTRA UI SYSTEM ── */
@@ -505,13 +730,6 @@ input, select, textarea { font-family: inherit; }
 
 .dropdown-menu-list button svg {
     color: var(--text-muted);
-}
-
-.explicit-action-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    flex-wrap: wrap;
 }
 
 /* Sync Inline Tree SVGs Alignment */
@@ -577,7 +795,6 @@ input, select, textarea { font-family: inherit; }
 #create-new-wrapper .btn-primary svg:last-child {
   transition: transform 0.2s ease;
 }
-#header-action-dropdown.active ~ * { /* handled via JS toggle */ }
 
 /* ── Note view header block ── */
 .note-view-header {
@@ -602,7 +819,7 @@ input, select, textarea { font-family: inherit; }
   gap: 0;
   background: var(--bg-app); /* Menggunakan warna background dasar agar konten di bawah tidak menerawang */
   border-bottom: 2px solid var(--border);
-  margin: 0 -3rem 1.5rem -3rem; /* Bleed kiri kanan sejauh 3rem agar pas memenuhi area scroll induk */
+  margin: 0 -3rem 1.5rem -3rem;
   padding: 0 3rem;
   box-shadow: 0 4px 12px rgba(28,26,22,0.04);
 }
@@ -629,7 +846,7 @@ input, select, textarea { font-family: inherit; }
   background: transparent;
   border: none;
   border-bottom: 2px solid transparent;
-  margin-bottom: -2px; /* overlap the container border */
+  margin-bottom: -2px;
   cursor: pointer;
   transition: color 0.18s, border-color 0.18s;
   white-space: nowrap;
@@ -644,16 +861,16 @@ input, select, textarea { font-family: inherit; }
 }
 .note-tab.active svg { opacity: 1; }
 
-/* ── One-page scrollable note body ── */
+/* One-page scrollable note body */
 .note-onepage-body {
   padding-top: 0.5rem;
   padding-bottom: 5rem;
 }
 
-/* ── Note sections ── */
+/* Note sections */
 .note-section {
   padding-top: 2.5rem;
-  scroll-margin-top: 120px; /* fallback */
+  scroll-margin-top: 120px;
 }
 .note-section-anchor {
   display: block;
@@ -701,7 +918,7 @@ input, select, textarea { font-family: inherit; }
   }
 }
 
-/* ── Raw notes accordion hint text ── */
+/* Raw notes accordion hint text */
 .accordion-hint {
   margin-left: auto;
   font-size: 11px;
@@ -710,12 +927,12 @@ input, select, textarea { font-family: inherit; }
   pointer-events: none;
 }
 
-/* ── Ensure workspace-main-pane can be a scroll spy container ── */
+/* Ensure workspace-main-pane can be a scroll spy container */
 .workspace-main-pane {
   scroll-behavior: smooth;
 }
 
-/* ── Sidebar in the correct flex layout ── */
+/* Sidebar in the correct flex layout */
 .workspace-content {
   display: flex;
   flex: 1;
@@ -741,22 +958,26 @@ input, select, textarea { font-family: inherit; }
   border-right-color: transparent !important;
 }
 
-/* ── Panel body (missing from original for inner padding) ── */
-.panel-body {
-  padding: 0;
-}
-
-/* ── Bg-rose eyebrow dot ── */
+.panel-body { padding: 0; margin-top: 0.75rem;}
 .eyebrow-dot.bg-rose { background: var(--rose); }
 
-/* ── Override workspace-main-pane padding for mobile ── */
 @media (max-width: 768px) {
-  .workspace-main-pane {
-    padding: 1.5rem;
-  }
-  .note-sticky-tabs {
-    margin: 0 -1.5rem;
-    padding: 0 1.5rem;
-  }
+  .workspace-main-pane { padding: 1.5rem; }
+  .note-sticky-tabs { margin: 0 -1.5rem; padding: 0 1.5rem; }
   .note-view-header { padding: 1.25rem 0 0.75rem; }
+}
+
+/* ── GUEST MODE SPECIFIC ── */
+.dashboard-body.guest-mode .workspace-layout {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+}
+.dashboard-body.guest-mode .workspace-content {
+    overflow: visible;
+    display: block;
+}
+.dashboard-body.guest-mode .workspace-main-pane {
+    overflow: visible;
+    height: auto;
 }

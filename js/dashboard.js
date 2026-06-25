@@ -5,22 +5,11 @@
 // ─── INJEKSI CSS UNTUK FIX TEXT AREA, TEKS PANJANG & TOASTER ───
 const fixStyle = document.createElement('style');
 fixStyle.innerHTML = `
-  /* 1. Fix Teks Kepanjangan */
-  .tree-folder-header > div { min-width: 0 !important; }
-  .tree-folder-header strong, .tree-file-item span, .folder-grid-item span, .file-grid-item span {
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    display: block;
-  }
-  .tree-svg-icon { flex-shrink: 0 !important; }
-  .tree-file-item, .folder-grid-item, .file-grid-item { min-width: 0 !important; }
-
-  /* 2. Fix Text Area Form Input */
+  /* Fix Text Area Form Input */
   .modern-textarea-container { flex-grow: 1; display: flex; flex-direction: column; margin-bottom: 1.5rem; }
   #notes-input { flex-grow: 1; resize: none; min-height: 200px; }
 
-  /* 3. TOASTER CSS */
+  /* TOASTER CSS */
   #toast-container {
     position: fixed !important; bottom: 24px !important; right: 24px !important; z-index: 2147483647 !important;
     display: flex !important; flex-direction: column !important; gap: 12px !important; pointer-events: none !important;
@@ -35,13 +24,6 @@ fixStyle.innerHTML = `
   .toast-success { background: #10b981 !important; }
   .toast-error { background: #ef4444 !important; }
   .toast-info { background: #0284c7 !important; }
-
-  /* Responsive Fix for Note View 2 Column Inside Flex Container */
-  .note-two-col { display: flex; gap: 1.5rem; align-items: flex-start; width: 100%; }
-  @media (max-width: 768px) {
-    .note-two-col { flex-direction: column; }
-    .stats-sidebar-panel { width: 100% !important; }
-  }
 `;
 document.head.appendChild(fixStyle);
 
@@ -99,55 +81,36 @@ function esc(str) {
     .replace(/"/g, '&quot;');
 }
 
+// ─── TIME AGO UTILITY ───
+function timeAgo(timestamp) {
+  if (!timestamp) return '';
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (days > 30) return `Edited ${Math.floor(days / 30)} month${Math.floor(days / 30) > 1 ? 's' : ''} ago`;
+  if (days > 0) return `Edited ${days} day${days > 1 ? 's' : ''} ago`;
+  if (hours > 0) return `Edited ${hours} hour${hours > 1 ? 's' : ''} ago`;
+  if (minutes > 0) return `Edited ${minutes} min ago`;
+  return 'Edited just now';
+}
+
+// ─── HEX TO RGBA TINT ───
+function hexToRgbaTint(hex, alpha) {
+  hex = (hex || '#6B8F71').replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  const r = parseInt(hex.substring(0,2), 16);
+  const g = parseInt(hex.substring(2,4), 16);
+  const b = parseInt(hex.substring(4,6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 // ─── SLEEP UTILITY ───
 function sleep(ms) { 
   return new Promise(r => setTimeout(r, ms)); 
 }
 
 // ─── STORAGE MANAGEMENT & DATA INITIALIZATION ───
-// function initLibraryTree() {
-//   const existingTree = localStorage.getItem('notized_library_tree');
-//   if (existingTree) {
-//     return JSON.parse(existingTree);
-//   }
-
-//   const defaultTree = [
-//     {
-//       id: "node_uiux", name: "UI/UX Design", type: "folder", expanded: true, color: "#C9883A",
-//       children: [
-//         {
-//           id: "node_glowdiary", name: "GlowDiary Case Study", type: "file",
-//           data: {
-//             rawText: "GlowDiary Skincare Application UX Research.\n\nTarget market analysis indicates that users of skincare products encompass all genders, not just women. The interactive prototype built in Figma must reflect an inclusive interface.",
-//             summary: ["Target market is inclusive of all genders.","Interactive prototyping executed in Figma."],
-//             keywords: ["UX Research", "Figma", "Skincare App"],
-//             clusters: [{ name: "User Demographics", color: "indigo", topics: ["All Genders", "Inclusive"] }],
-//             learningPath: [{ step: 1, title: "Define Target Market", duration: "10 min", tip: "Ensure gender-neutral copy." }],
-//             isRawOnly: false
-//           }
-//         }
-//       ]
-//     },
-//     {
-//       id: "node_dismath", name: "Discrete Math", type: "folder", expanded: true, color: "#4A5586",
-//       children: [
-//         {
-//           id: "node_graph", name: "Graph Theory: Kamp Layout", type: "file",
-//           data: {
-//             rawText: "Graph theory application on the kamp layout project. Based on latest constraints, the Kamp Layout requires exactly 13 edges.",
-//             summary: ["Graph theory applied to kamp layout.","The layout structure consists of exactly 13 edges."],
-//             keywords: ["Graph Theory", "Kamp Layout", "13 Edges"],
-//             clusters: [{ name: "Graph Properties", color: "amber", topics: ["Edges", "Vertices"] }],
-//             learningPath: [{ step: 1, title: "Node Mapping", duration: "15 min", tip: "Identify critical vertices first." }],
-//             isRawOnly: false
-//           }
-//         }
-//       ]
-//     }
-//   ];
-//   localStorage.setItem('notized_library_tree', JSON.stringify(defaultTree));
-//   return defaultTree;
-// }
 function initLibraryTree() {
   const existingTree = localStorage.getItem('notized_library_tree');
   if (existingTree) {
@@ -281,14 +244,20 @@ window.addEventListener('DOMContentLoaded', async () => {
   } else {
     refreshWorkspaceTree();
     setupSidebarResizer();
+    setupSidebarDropZone();
     viewRoot();
     
     const greetingEl = document.getElementById('user-greeting');
+    const greetingEl2 = document.getElementById('user-greeting-2');
     const user = JSON.parse(localStorage.getItem('notized_currentUser') || localStorage.getItem('currentUser') || 'null');
     
     if (user && user.name) {
       if (greetingEl) {
         greetingEl.textContent = `Hello, ${user.name}`;
+      }
+
+      if (greetingEl2) {
+        greetingEl2.textContent = `Good Morning, ${user.name}!`;
       }
       
       if (!sessionStorage.getItem('notized_greeted')) {
@@ -382,7 +351,58 @@ function setupSidebarResizer() {
   });
 }
 
+function setupSidebarDropZone() {
+  const zone = document.getElementById('sidebar-drop-zone');
+  if (!zone || zone.dataset.dropZoneBound) return;
+  zone.dataset.dropZoneBound = 'true';
+
+  zone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.add('drag-over');
+  });
+
+  zone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove('drag-over');
+  });
+
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    zone.classList.remove('drag-over');
+
+    if (!draggedNodeId) return;
+
+    let treeData = getLibraryData();
+    let movingNode = null;
+
+    function extractNode(nodes) {
+      for (let i = 0; i < nodes.length; i++) {
+        if (nodes[i].id === draggedNodeId) {
+          movingNode = nodes.splice(i, 1)[0];
+          return true;
+        }
+        if (nodes[i].children && extractNode(nodes[i].children)) return true;
+      }
+      return false;
+    }
+
+    extractNode(treeData);
+    if (!movingNode) return;
+
+    treeData.push(movingNode);
+    localStorage.setItem('notized_library_tree', JSON.stringify(treeData));
+    refreshWorkspaceTree();
+    if (currentViewedFolderId !== 'root_root') viewFolderNode(currentViewedFolderId);
+    else viewRoot();
+    showToast('Moved to root level', 'info');
+  });
+}
+
 function setupGuestUI() {
+  document.body.classList.add('guest-mode');
   const sidebar = document.getElementById('workspace-sidebar');
   if (sidebar) sidebar.style.display = 'none';
   const hamburger = document.getElementById('sidebar-toggle-btn');
@@ -407,9 +427,7 @@ function toggleHeaderDropdown(event) {
   }
   const drop = document.getElementById('header-action-dropdown');
   if (drop) {
-    // Gunakan class 'active' sesuai CSS .dropdown-menu-list.active { display: block }
     drop.classList.toggle('active');
-    // Hapus inline style yang mungkin override
     drop.style.removeProperty('display');
   }
 }
@@ -421,7 +439,6 @@ function toggleDashboardProfileDropdown(event) {
   dropdown.style.display = (dropdown.style.display === 'none' || dropdown.style.display === '') ? 'flex' : 'none';
 }
 
-// Cegah ketidaksengajaan menutup saat mengklik bagian dalam komponen dropdown
 document.getElementById('dashboard-profile-dropdown')?.addEventListener('click', (e) => {
   e.stopPropagation();
 });
@@ -530,14 +547,11 @@ function customPrompt(msg, defaultValue = "", title = "Input Required") {
   });
 }
 
-// ⚡ REVISI SIDEBAR TOGGLE: Fungsi untuk membuka-tutup panel navigasi kiri
 function toggleSidebar(event) {
   if (event) event.preventDefault();
   const sidebar = document.getElementById('workspace-sidebar');
   if (sidebar) {
     sidebar.classList.toggle('collapsed');
-    // Gunakan CSS class 'collapsed' yang sudah ada (width: 0 + overflow: hidden)
-    // Jangan paksa display: none karena akan merusak layout flex
   }
 }
 
@@ -548,30 +562,63 @@ function hideAllViews() {
   document.getElementById('input-form-workspace').style.display = 'none';
 }
 
+function buildGridCardHtml(items, isRoot) {
+  let html = '';
+  const itemCount = items ? items.length : 0;
+
+  items.forEach(child => {
+    if (child.type === 'folder') {
+      const baseColor = child.color || 'var(--primary)';
+      const tintBg = hexToRgbaTint(child.color || '#528d5c', 0.08);
+      const childNoteCount = child.children ? child.children.filter(c => c.type === 'file').length : 0;
+      html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true" title="${esc(child.name)}" style="background-color: ${tintBg}; min-width: 0; overflow: hidden;">
+          <div class="grid-item-top">
+            <svg class="tree-svg-icon" style="color: ${baseColor}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <span class="text-ellipsis">${esc(child.name)}</span>
+          </div>
+          <span class="card-meta-line">${childNoteCount} note${childNoteCount !== 1 ? 's' : ''}</span>
+      </div>`;
+    } else {
+      const lastEdited = child.data && child.data.lastEdited ? timeAgo(child.data.lastEdited) : '';
+      html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
+          <div class="grid-item-top">
+            <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <span class="text-ellipsis">${esc(child.name)}</span>
+          </div>
+          <span class="card-meta-line">${lastEdited}</span>
+      </div>`;
+    }
+  });
+
+  // Ghost "+ New Note" card when 4 or fewer items
+  if (itemCount <= 4 || itemCount === 0) {
+    const targetId = isRoot ? 'root_root' : currentViewedFolderId;
+    html += `<div class="new-note-card-dashed folder-grid-item" onclick="startNewIntake('${targetId}')" title="Create a new note">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <span>Add New Note</span>
+    </div>`;
+  }
+
+  return html;
+}
+
 function viewRoot() {
   currentViewedFolderId = "root_root"; currentViewedNoteId = null; hideAllViews();
   document.getElementById('empty-workspace-state').style.display = 'block';
   renderBreadcrumbs([], 'breadcrumbs-empty');
   const tree = getLibraryData(); const grid = document.getElementById('root-contents-grid'); const emptyHint = document.getElementById('root-empty-hint');
-  let html = '';
+  
   if (tree && tree.length > 0) {
     if (emptyHint) emptyHint.style.display = 'none'; 
     grid.style.display = 'grid';
-    tree.forEach(child => {
-      if (child.type === 'folder') { 
-          html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
-              <svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
-          </div>`; 
-      } else { 
-          html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
-              <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
-          </div>`; 
-      }
-    });
-    grid.innerHTML = html;
-  } else { grid.style.display = 'none'; if (emptyHint) emptyHint.style.display = 'flex'; }
+    grid.innerHTML = buildGridCardHtml(tree, true);
+  } else { 
+    grid.style.display = 'none'; 
+    if (emptyHint) emptyHint.style.display = 'flex'; 
+    // Still show ghost card when empty
+    grid.style.display = 'grid';
+    grid.innerHTML = buildGridCardHtml([], true);
+  }
   bindDragAndDropEvents();
 }
 
@@ -593,23 +640,12 @@ function viewFolderNode(id, event) {
   document.getElementById('active-folder-title').textContent = targetFolder ? targetFolder.name : 'Folder';
   renderBreadcrumbs(path, 'breadcrumbs-folder');
   const grid = document.getElementById('folder-contents-grid');
-  let html = '';
+  
   if (targetFolder && targetFolder.children && targetFolder.children.length > 0) {
-    targetFolder.children.forEach(child => {
-      if (child.type === 'folder') { 
-          html += `<div class="folder-grid-item" data-type="folder" data-id="${child.id}" onclick="viewFolderNode('${child.id}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
-              <svg class="tree-svg-icon" style="color: ${child.color || 'var(--primary)'}; flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
-          </div>`; 
-      } else { 
-          html += `<div class="file-grid-item" data-type="file" data-id="${child.id}" onclick="loadSavedFileNode('${child.id}', '${esc(child.name)}')" draggable="true" title="${esc(child.name)}" style="min-width: 0; overflow: hidden;">
-              <svg class="tree-svg-icon" style="color: var(--text-muted); flex-shrink: 0;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-              <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%;">${esc(child.name)}</span>
-          </div>`; 
-      }
-    });
-  } else { html = `<p style="color: var(--text-muted); font-size: 14px; grid-column: 1 / -1; padding: 1.5rem; text-align: center; border: 1px dashed var(--border); border-radius: 12px;">This directory is empty.</p>`; }
-  grid.innerHTML = html;
+    grid.innerHTML = buildGridCardHtml(targetFolder.children, false);
+  } else {
+    grid.innerHTML = buildGridCardHtml([], false);
+  }
   bindDragAndDropEvents();
 }
 
@@ -620,7 +656,6 @@ function loadSavedFileNode(id, name, event) {
   document.getElementById('active-project-title').textContent = name;
   renderBreadcrumbs(path, 'breadcrumbs-project');
 
-  // Always show raw notes section - it's now at top level
   const rawSection = document.getElementById('note-section-raw');
   if (rawSection) rawSection.style.display = 'block';
   const rawBody = document.getElementById('raw-notes-body'); 
@@ -657,7 +692,6 @@ function startNewIntake(targetId) {
   const folderId = targetId || 'root_root';
   localStorage.setItem('notized_target_folder', folderId);
   
-  // Show inline form instead of redirecting
   isNoteEditingActive = false;
   noteEditingTargetId = null;
   hideAllViews();
@@ -676,7 +710,7 @@ function updateWordCount() {
   const text = document.getElementById('notes-input').value.trim(); const wordCount = text.length > 0 ? text.split(/\s+/).length : 0;
   const badge = document.getElementById('word-count');
   if (!badge) return;
-  if (wordCount === 0) badge.textContent = "Waiting for content"; else if (wordCount < 10) badge.textContent = `${wordCount} words - Too short!`; else badge.textContent = `${wordCount} words detected`;
+  if (wordCount === 0) badge.textContent = "Waiting for content"; else if (wordCount < 10) badge.textContent = `${wordCount} words - Too short!`; else badge.textContent = `${wordCount} words`;
 }
 
 function triggerFileUpload() { document.getElementById('file-input').click(); }
@@ -699,7 +733,7 @@ async function handleFileUpload(event) {
 async function handleSaveRaw() {
    const notes = document.getElementById('notes-input').value.trim();
    if (!notes) { await customAlert("Notes cannot be empty. Please enter some text.", "Empty Note"); return; }
-   const result = { rawText: notes, isRawOnly: true }; localStorage.setItem('notizedData', JSON.stringify(result));
+   const result = { rawText: notes, isRawOnly: true, lastEdited: Date.now() }; localStorage.setItem('notizedData', JSON.stringify(result));
    if (isNoteEditingActive) saveEditedNoteDirectly(result); else openSaveModal();
 }
 
@@ -794,6 +828,7 @@ async function triggerEditNoteExplicit() {
 function saveEditedNoteDirectly(newAnalysisData) {
   let treeData = getLibraryData(); let node = getTargetNode(treeData, noteEditingTargetId);
   if (node) {
+    newAnalysisData.lastEdited = Date.now();
     node.data = newAnalysisData; localStorage.setItem('notized_library_tree', JSON.stringify(treeData)); localStorage.removeItem('notizedData');
     isNoteEditingActive = false; noteEditingTargetId = null; refreshWorkspaceTree(); loadSavedFileNode(node.id, node.name);
     showToast("Note content updated successfully!");
@@ -1040,12 +1075,11 @@ function bindDragAndDropEvents() {
   });
 }
 
-function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData); bindDragAndDropEvents(); }
+function refreshWorkspaceTree() { const treeData = getLibraryData(); document.getElementById('nested-directory-root').innerHTML = buildTreeHTML(treeData); bindDragAndDropEvents(); setupSidebarDropZone(); }
 
-// Refresh sidebar tree + main content area sesuai view yang sedang aktif
 function refreshCurrentView() {
   refreshWorkspaceTree();
-  if (currentViewedNoteId) return; // Sedang buka note, tidak perlu re-render grid
+  if (currentViewedNoteId) return;
   if (currentViewedFolderId && currentViewedFolderId !== 'root_root') {
     viewFolderNode(currentViewedFolderId);
   } else {
@@ -1155,6 +1189,7 @@ async function confirmSaveNotes() {
   if (!titleInput) { await customAlert('Please enter a project name.', "Validation"); return; }
   
   const incomingData = JSON.parse(localStorage.getItem('notizedData')); let treeData = getLibraryData();
+  incomingData.lastEdited = Date.now();
   const newFileNode = { id: "node_" + Date.now(), name: titleInput, type: "file", data: incomingData };
   if (folderTargetId === "root_root" || folderTargetId.startsWith("mock_pad_")) treeData.push(newFileNode);
   else { let parent = getTargetNode(treeData, folderTargetId); if (parent) { if (!parent.children) parent.children = []; parent.children.push(newFileNode); parent.expanded = true; } }
@@ -1180,7 +1215,7 @@ function renderProjectContent(data) {
       <div class="path-item">
         <div class="path-num ${i === 0 ? 'first' : ''}">${step.step}</div>
         <div class="path-card">
-          <div class="path-card-header"><span class="path-card-title">${esc(step.title)}</span><span class="path-duration">15 min</span></div>
+          <div class="path-card-header"><span class="path-card-title">${esc(step.title)}</span></div>
           <p class="path-tip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: var(--amber); flex-shrink: 0; display: inline-block; vertical-align: text-top; margin-right: 4px;"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5.5 5.5 0 0 0 7 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"></path><line x1="9" y1="18" x2="15" y2="18"></line><line x1="10" y1="22" x2="14" y2="22"></line></svg><span>${esc(step.tip)}</span></p>
         </div>
       </div>`).join('');
@@ -1319,11 +1354,6 @@ function confirmChangePassword() {
   if (newVal.length < 6)                      return showErr('New password must be at least 6 characters.');
   if (newVal !== confirmVal)                  return showErr('New passwords do not match.');
 
-  // const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
-  // if (!currentUser) return showErr('Session expired. Please log in again.');
-
-  // if (currentUser.password !== currentVal) return showErr('Current password is incorrect.');
-  // if (newVal === currentVal)               return showErr('New password must be different from your current password.');
   const currentUser = JSON.parse(localStorage.getItem('notized_currentUser') || 'null');
   if (!currentUser) return showErr('Session expired. Please log in again.');
 

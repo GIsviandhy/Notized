@@ -66,7 +66,7 @@
           </button>
         </div>
       </div>
-      <div class="input-group" style="margin-bottom:0;">
+      <div class="input-group" style="margin-bottom:1rem;">
         <label class="form-label">Confirm New Password</label>
         <div style="position:relative;">
           <input type="password" id="cp-confirm" class="modal-input" placeholder="Repeat new password" style="padding-right:2.5rem;">
@@ -116,33 +116,37 @@
         <button type="button" id="sidebar-toggle-btn" onclick="toggleSidebar(event)" title="Toggle Sidebar" class="btn-hamburger" style="display: flex !important;">
           <svg width="18" height="14" viewBox="0 0 18 14" fill="none"><path d="M0 1H18M0 7H18M0 13H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
-        <div class="nav-logo" onclick="location.href='landing.html'" style="cursor:pointer;">
+        <div class="nav-logo" onclick="location.href='dashboard.html'" style="cursor:pointer;">
           <div class="nav-logo-icon">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2h10v2H2V2zm0 4h7v2H2V6zm0 4h5v2H2v-2z" fill="white"/></svg>
           </div>
           <span class="nav-wordmark">Notized</span>
-          <span class="workspace-pill">Workspace</span>
+          <span class="workspace-pill">Dashboard</span>
         </div>
       </div>
       <div class="topbar-right-cluster">
-        <span id="user-greeting" class="user-greeting-tag">Hello, Scholar</span>
         <div class="dropdown-wrapper" id="create-new-wrapper" style="position: relative;">
           <button class="btn-primary" onclick="toggleHeaderDropdown(event)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Create New
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px;"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
+
           <div id="header-action-dropdown" class="dropdown-menu-list" style="position: absolute; left: 0; top: 100%; z-index: 500;">
             <button onclick="startNewIntake('root_root')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="green" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+
               New Note
             </button>
+            
             <hr style="margin:0.25rem 0; border:none; border-top:1px solid var(--border);">
+            
             <button onclick="openFolderCreatorDirect(event)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="yellow" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               New Folder
             </button>
           </div>
+
         </div>
         <div class="dashboard-profile-wrapper" style="position: relative; display: flex; align-items: center;">
           <div id="user-avatar-circle" onclick="toggleDashboardProfileDropdown(event)" style="
@@ -184,10 +188,11 @@
     <div class="workspace-content">
       <aside class="workspace-sidebar-pane" id="workspace-sidebar">
         <div class="sidebar-header-action">
-          <span class="directory-heading-text">Knowledge Trees</span>
+          <span class="directory-heading-text">My Notes</span>
         </div>
         <div class="tree-scroll-container">
           <div id="nested-directory-root" class="folders-tree"></div>
+          <div id="sidebar-drop-zone" class="sidebar-drop-zone" title="Drop here to move to root level">Drop here to move to root level</div>
         </div>
       </aside>
       <main class="workspace-main-pane">
@@ -195,14 +200,7 @@
           <div class="breadcrumbs-bar" id="breadcrumbs-empty" style="margin-bottom:1.5rem;"></div>
           <div class="note-header-wrap">
             <div>
-              <h1 class="serif active-workspace-title" style="margin-bottom:0.5rem;">Workspace Overview</h1>
-              <p class="canvas-subtext">Your notes and folders live here.</p>
-            </div>
-            <div class="explicit-action-bar" style="margin-bottom:0;">
-              <button class="btn-primary" onclick="startNewIntake('root_root')">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                New Note Here
-              </button>
+              <h1 id="user-greeting-2" class="serif active-workspace-title" style="margin-bottom:0.5rem;">Good Morning, Kiki</h1>
             </div>
           </div>
           <div id="root-empty-hint" class="empty-state-canvas" style="padding: 5rem 2rem; display:flex; border: 1px dashed var(--border); border-radius: 16px; background-color: var(--white); max-width: 500px; margin: 2rem auto 0 auto;">
@@ -216,49 +214,50 @@
         </div>
         <div id="folder-view-workspace" style="display:none; width:100%;" class="fade-in">
           <div class="breadcrumbs-bar" id="breadcrumbs-folder" style="margin-bottom:1.5rem;"></div>
-          <div class="note-header-wrap">
-            <div>
-              <h1 id="active-folder-title" class="serif active-workspace-title" style="margin-bottom:0.5rem;">Folder</h1>
-              <p class="canvas-subtext">Explore and manage notes in this folder.</p>
-            </div>
-            <div class="explicit-action-bar" style="margin-bottom:0;">
-              <button class="btn-secondary" onclick="handleFolderBack()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                Back
-              </button>
-              <div class="action-divider"></div>
-              <button class="btn-primary" onclick="startNewIntakeFromCurrentFolder()">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                New Note
-              </button>
-              <div class="action-divider"></div>
-              <button class="btn-secondary" onclick="triggerRenameFolderExplicit()">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                Rename
-              </button>
-              <button class="btn-outline-danger" onclick="triggerDeleteFolderExplicit()">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                Delete
-              </button>
+          <div class="note-header-wrap vertical">
+            <h1 id="active-folder-title" class="serif active-workspace-title">Folder</h1>
+            <div class="action-bar-row">
+              <div class="action-bar-left">
+                <button class="btn-back-ghost" onclick="handleFolderBack()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  Back
+                </button>
+              </div>
+              <div class="action-bar-right">
+                <button class="btn-primary" onclick="startNewIntakeFromCurrentFolder()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  New Note
+                </button>
+                <div class="action-divider"></div>
+                <button class="btn-rename-ghost" onclick="triggerRenameFolderExplicit()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Rename
+                </button>
+                <button class="btn-delete-text" onclick="triggerDeleteFolderExplicit()">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
           <div class="folder-contents-grid" id="folder-contents-grid" style="margin-top:1.5rem;"></div>
         </div>
         <div id="input-form-workspace" style="display:none; width:100%; max-width:860px;" class="fade-in">
           <div class="breadcrumbs-bar" id="breadcrumbs-input" style="margin-bottom:1.5rem;"></div>
-          <div class="note-header-wrap">
-            <div>
-              <h2 class="serif entry-title" id="intake-form-title">Transform New Material</h2>
-              <p class="entry-subtitle">Paste lecture notes, textbook chapters, or drafts. We'll do the rest.</p>
-            </div>
-            <div class="explicit-action-bar" style="margin-bottom:0;">
-              <button class="btn-secondary" onclick="handleCancelInput()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                Back
-              </button>
+          <div class="note-header-wrap vertical">
+            <h2 class="serif entry-title" id="intake-form-title">Transform New Material</h2>
+            <div class="action-bar-row">
+              <div class="action-bar-left">
+                <button class="btn-back-ghost" onclick="handleCancelInput()">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  Back
+                </button>
+              </div>
+              <div class="action-bar-right"></div>
             </div>
           </div>
-          <div class="modern-textarea-container" style="margin-top:1.5rem;">
+          <!-- <p class="entry-subtitle" style="margin-bottom:1.5rem;">Paste lecture notes, textbook chapters, or drafts. We'll do the rest.</p> -->
+          <div class="modern-textarea-container" style="margin-top:0;">
             <textarea id="notes-input" placeholder="Paste your notes here..." oninput="updateWordCount()"></textarea>
             <div class="textarea-action-bar">
               <span class="word-count-badge" id="word-count">Waiting for content</span>
@@ -277,7 +276,7 @@
             </button>
             <button type="button" class="btn-execute-analysis" onclick="handleAnalyze()">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-              Run Analysis
+              Analyze Notes
             </button>
             <span class="time-hint-text">~3–5 seconds</span>
           </div>
@@ -285,26 +284,34 @@
         <div id="active-project-workspace" style="display:none; width:100%;" class="fade-in">
           <div class="note-view-header" id="note-view-header-block">
             <div class="breadcrumbs-bar" id="breadcrumbs-project" style="margin-bottom:0.75rem;"></div>
-            <div class="note-header-wrap" style="margin-bottom:0;">
+            <!-- Title on its own full-width line, action bar below -->
+            <div class="note-header-wrap vertical" style="margin-bottom:0;">
               <h1 id="active-project-title" class="serif active-workspace-title" style="margin-bottom:0;">Note</h1>
-              <div class="explicit-action-bar" style="margin-bottom:0;">
-                <button class="btn-secondary" onclick="handleNoteBack()">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-                  Back
-                </button>
-                <button class="btn-primary" onclick="triggerEditNoteExplicit()">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Edit
-                </button>
-                <button class="btn-secondary" onclick="triggerRenameNoteExplicit()">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                  Rename
-                </button>
-                <span style="flex:1;"></span>
-                <button style="background:none; border:none; color:var(--rose); cursor:pointer; font-size:13.5px; font-weight:600; display:inline-flex; align-items:center; gap:0.4rem; padding:0.55rem 0.25rem;" onclick="triggerDeleteNoteExplicit()" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                  Delete
-                </button>
+              <div class="action-bar-row">
+                <div class="action-bar-left">
+                  <button class="btn-back-ghost" onclick="handleNoteBack()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                    Back
+                  </button>
+                </div>
+                <div class="action-bar-right">
+                  <button class="btn-primary" onclick="triggerEditNoteExplicit()">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    Edit
+                  </button>
+                  <button class="btn-rename-ghost" onclick="triggerRenameNoteExplicit()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                      <line x1="7" y1="7" x2="7.01" y2="7"/>
+                    </svg>
+                    Rename
+                  </button>
+                  <div class="action-divider"></div>
+                  <button class="btn-delete-text" onclick="triggerDeleteNoteExplicit()">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -326,8 +333,8 @@
               Learning Path
             </button>
           </div>
+
           <div class="note-onepage-body">
-            <!-- Raw Notes (visible in both analyzed and unanalyzed states) -->
             <div class="note-section" id="note-section-raw" style="display:none;">
               <div class="note-section-anchor" id="anchor-raw"></div>
               <div class="note-section-eyebrow">
@@ -365,34 +372,30 @@
                 <div class="note-two-col">
                   <div style="display:flex; flex-direction:column; gap:1.25rem; flex:1;">
                     <div class="panel-card">
-                      <div class="panel-card-header">
+                      <!-- <div class="panel-card-header">
                         <span class="panel-indicator-dot bg-emerald"></span>
                         <h3 class="panel-card-title">Core Synthesized Breakdown</h3>
-                      </div>
+                      </div> -->
                       <div class="panel-body">
                         <ul class="clean-summary-list" id="summary-list"></ul>
                       </div>
                     </div>
-                    <div class="panel-card">
-                      <div class="panel-card-header">
-                        <span class="panel-indicator-dot bg-indigo"></span>
-                        <h3 class="panel-card-title">◈ Anchor Keyword Radar</h3>
-                      </div>
-                      <div class="panel-body">
-                        <div class="keyword-chips-wrap" id="keyword-chips"></div>
-                        <div class="context-tip-callout" style="margin-top:1rem;">
-                          <span class="tip-bulb">💡</span>
-                          <p class="tip-paragraph">Scan these chips first when reviewing — they anchor the core ideas in this note.</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
+                  <!-- Right sidebar column: Keyword Radar first, then Tracked Concepts, then stats -->
                   <div class="stats-sidebar-panel" style="display:flex; flex-direction:column; gap:0.85rem; width:280px; flex-shrink:0;">
-                    <div class="stats-row-stack" style="gap:0.85rem;">
-                      <div class="mini-stat-card">
+                    <!-- Keyword Radar (moved above Tracked Concepts) -->
+                    <div class="mini-stat-card kw-radar-card">
+                      <div class="kw-radar-header">
                         <div class="m-stat-icon txt-indigo">◈</div>
-                        <div class="m-stat-text-wrap"><span class="m-stat-number" id="stat-keywords">0</span><span class="m-stat-title">Tracked Concepts</span></div>
+                        <div class="m-stat-text-wrap"><span class="m-stat-number" id="stat-keywords">0</span><span class="m-stat-title">Keyword Radar</span></div>
                       </div>
+                      <div class="keyword-chips-wrap" id="keyword-chips"></div>
+                      <!-- <div class="context-tip-callout" style="margin-top:0.25rem;">
+                        <span class="tip-bulb">💡</span>
+                        <p class="tip-paragraph" style="font-size:11.5px;">Scan these chips first when reviewing — they anchor the core ideas in this note.</p>
+                      </div> -->
+                    </div>
+                    <div class="stats-row-stack" style="gap:0.85rem;">
                       <div class="mini-stat-card">
                         <div class="m-stat-icon txt-emerald">⬡</div>
                         <div class="m-stat-text-wrap"><span class="m-stat-number" id="stat-clusters">0</span><span class="m-stat-title">Active Clusters</span></div>
@@ -409,9 +412,9 @@
                 <div class="note-section-anchor" id="anchor-clusters"></div>
                 <div class="note-section-eyebrow">
                   <span class="eyebrow-dot" style="background:var(--rose);"></span>
-                  Structured Dimension Matrices
+                  Topic Clusters
                 </div>
-                <h3 class="segment-block-header" style="margin-bottom:1.25rem;">⬡ Topic Clusters</h3>
+                <!-- <h3 class="segment-block-header" style="margin-bottom:1.25rem;">⬡ Core Breakdowns</h3> -->
                 <div class="clusters-grid" id="clusters-grid"></div>
               </div>
               <div class="note-section" id="note-section-path">
@@ -420,7 +423,7 @@
                   <span class="eyebrow-dot" style="background:var(--amber);"></span>
                   Learning Path
                 </div>
-                <h3 class="segment-block-header" style="margin-bottom:1.25rem;">↓ Sequenced Concept Dependency Path</h3>
+                <h3 class="segment-block-header" style="margin-bottom:1.25rem;">↓ Steps to Take</h3>
                 <div class="timeline-trail-container">
                   <div class="timeline-center-line"></div>
                   <div class="path-list" id="path-list"></div>

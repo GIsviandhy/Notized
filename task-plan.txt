@@ -1,0 +1,31 @@
+NOTIZED REVISIONS PLAN
+
+1. CSS changes (style.css):
+   - Global ellipsis truncation
+   - Folder card tinted backgrounds
+   - Note card white background with metadata
+   - Action bar restyling for note view
+   - Keyword Radar reposition to right column
+   - Drop zone styling
+   - Modal scroll lock class
+   - Dashed new-note card style
+
+2. HTML changes (dashboard.html):
+   - Restructure note view: title full-width line, action bar below
+   - Restructure stats sidebar: Keyword Radar above Tracked Concepts
+   - Add drop zone element
+   - Update folder card colors with inline tint
+
+3. JS changes (dashboard.js):
+   - Add lastEdited timestamps on save/create/rename
+   - Card rendering with metadata lines
+   - New note dashed card logic (show when ≤4 items)
+   - Drop zone drag-and-drop handler
+   - Background scroll lock on modal open/close
+   - Guest mode scroll fix
+   - Folder card background tint via JS
+
+4. Auth/login fixes:
+   - common.js: login button on input.html already redirects to landing.html?openLogin=true ✓
+   - landing.js: already checks for openLogin param ✓
+   - Need to ensure no duplicate conflicts
