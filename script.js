@@ -4,7 +4,7 @@
 // 
 // New structure:
 // - js/common.js    - Shared utilities (PDF extraction, API calls, storage)
-// - js/landing.js   - Landing page (landing.html)
+// - js/landing.js   - Landing page (index.html)
 // - js/input.js     - Input page (input.html)
 // - js/dashboard.js - Dashboard page (dashboard.html)
 //
@@ -75,7 +75,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // Render list folder & file standalone dari database lokal ke sidebar kiri
   refreshWorkspaceTree();
 
-  // Cek apakah ada data fresh yang baru dikirim setelah klik "Analyze" dari landing.html
+  // Cek apakah ada data fresh yang baru dikirim setelah klik "Analyze" dari index.html
   const incomingData = localStorage.getItem('notizedData');
   if (incomingData) {
     document.getElementById('btn-trigger-save').style.display = 'block';
@@ -89,7 +89,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ─── NAVIGATION (landing.html) ─────────────────────────────────────────────────
+// ─── NAVIGATION (index.html) ─────────────────────────────────────────────────
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById('screen-' + name).className = 'screen active';

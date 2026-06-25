@@ -158,7 +158,7 @@ function handleLogOut() {
   if (typeof renderGlobalNavAuth === 'function') renderGlobalNavAuth();
   // Force full page reload to ensure fresh state
   setTimeout(() => {
-    window.location.href = 'landing.html?t=' + Date.now();
+    window.location.href = 'index.html?t=' + Date.now();
   }, 100);
 }
 

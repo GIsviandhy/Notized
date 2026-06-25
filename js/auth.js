@@ -135,7 +135,7 @@ function handleAuthSubmit(event) {
 
 function handleLogout() {
   localStorage.removeItem('notized_currentUser');
-  window.location.href = 'landing.html';
+  window.location.href = 'index.html';
 }
 
 // ─── TRY SAMPLE TANPA LOGIN (GUEST MURNI) ───

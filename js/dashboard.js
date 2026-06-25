@@ -226,7 +226,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       guestMsg.innerHTML = `
         <h3 class="serif" style="color: #0F6E56; margin-bottom: 0.5rem;">Analysis Complete!</h3>
         <p style="color: #1C1A16; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
-        <button class="btn-primary" onclick="window.location.href='landing.html'">Login or Register Account</button>
+        <button class="btn-primary" onclick="window.location.href='index.html'">Login or Register Account</button>
       `;
       const headerWrap = document.querySelector('#active-project-workspace .note-header-wrap');
       if (headerWrap) headerWrap.insertAdjacentElement('afterend', guestMsg);
@@ -410,10 +410,10 @@ function setupGuestUI() {
   const topbarRight = document.querySelector('.topbar-right-cluster');
   if (topbarRight) {
     topbarRight.innerHTML = `
-      <button type="button" class="btn-secondary" onclick="window.location.href='landing.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
+      <button type="button" class="btn-secondary" onclick="window.location.href='index.html'" style="margin-right: 0.5rem; background: transparent; border: 1px solid var(--border);">
          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> Back to Home
       </button>
-      <button type="button" class="btn-nav-solid" onclick="window.location.href='landing.html'">Login / Register</button>
+      <button type="button" class="btn-nav-solid" onclick="window.location.href='index.html'">Login / Register</button>
     `;
   }
   const mainLayout = document.querySelector('.workspace-layout');
@@ -814,7 +814,7 @@ async function handleAnalyze() {
             guestMsg.innerHTML = `
               <h3 class="serif" style="color: #0F6E56; margin-bottom: 0.5rem;">Analysis Complete!</h3>
               <p style="color: #1C1A16; margin-bottom: 1rem;">To edit, manage, and save this analysis into your personal directory, you must be signed in to an account.</p>
-              <button class="btn-primary" onclick="window.location.href='landing.html'">Login or Register Account</button>
+              <button class="btn-primary" onclick="window.location.href='index.html'">Login or Register Account</button>
             `;
             const headerWrap = document.querySelector('#active-project-workspace .note-header-wrap');
             if(headerWrap) headerWrap.insertAdjacentElement('afterend', guestMsg);
@@ -1299,7 +1299,7 @@ if (typeof handleLogout === 'undefined') {
     
     // Force reload landing page with cache buster to ensure fresh render
     setTimeout(() => {
-      window.location.href = 'landing.html?logout=' + Date.now();
+      window.location.href = 'index.html?logout=' + Date.now();
     }, 50);
   }
 }
@@ -1451,7 +1451,7 @@ function handleLogOut() {
     sessionStorage.removeItem('notized_greeted');
     sessionStorage.clear();
     setTimeout(() => {
-      window.location.href = 'landing.html?logout=' + Date.now();
+      window.location.href = 'index.html?logout=' + Date.now();
     }, 50);
   }
 }
